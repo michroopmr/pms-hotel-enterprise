@@ -164,7 +164,9 @@ app.post("/tasks",(req,res)=>{
 
  const {title,description,department,due_date,user}=req.body;
 
- const now = new Date();
+ const now = new Date(
+ new Date().toLocaleString("en-US", { timeZone: "America/Mexico_City" })
+);
 
  const created_at =
   now.getFullYear() + "-" +
