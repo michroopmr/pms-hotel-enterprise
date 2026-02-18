@@ -4,6 +4,7 @@ const { Server } = require("socket.io");
 const sqlite3 = require("sqlite3").verbose();
 const cors = require("cors");
 const twilio = require("twilio");
+require('dotenv').config();
 
 
 const app = express();
@@ -24,8 +25,9 @@ const io = new Server(server,{
 });
 // ================= PMS WHATSAPP ALERT =================
 
-const accountSid = "ACa9b93576468386fec33f8535c8aa54e5";
-const authToken = "d466534703d8c11eef845f137563acff";
+const accountSid = process.env.TWILIO_ACCOUNT_SID;
+const authToken = process.env.TWILIO_AUTH_TOKEN;
+
 
 const clientTwilio = twilio(accountSid, authToken);
 
