@@ -428,16 +428,6 @@ function initDatabase(){
 
 }
 
-
-const PORT = process.env.PORT || 5000;
-
-initDatabase(()=>{
-
- server.listen(PORT,()=>{
-   console.log("Servidor SISTEMAS OK - PMS ENTERPRISE");
- });
-
-});
 function startServer(){
 
  const PORT = process.env.PORT || 5000;
