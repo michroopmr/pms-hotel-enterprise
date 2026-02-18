@@ -41,53 +41,8 @@ const clientTwilio = twilio(accountSid, authToken);
 const WHATSAPP_FROM = "whatsapp:+14155238886"; // sandbox
 const WHATSAPP_TO = "whatsapp:+525531005532"; // tu celular
 
-// ================= USERS =================
-db.run(`
-CREATE TABLE IF NOT EXISTS users(
- id INTEGER PRIMARY KEY AUTOINCREMENT,
- username TEXT UNIQUE,
- password TEXT,
- role TEXT,
- department TEXT
-)
-`);
 
-// ================= TASKS =================
-db.run(`
-CREATE TABLE IF NOT EXISTS tasks(
- id INTEGER PRIMARY KEY AUTOINCREMENT,
- title TEXT,
- description TEXT,
- department TEXT,
- status TEXT DEFAULT 'abierto',
- created_by TEXT,
- created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
- due_date TEXT
-)
-`);
 
-// 🔥 AGREGAR COLUMNA COMMENTS SI NO EXISTE
-db.run("ALTER TABLE tasks ADD COLUMN comments TEXT",()=>{});
-
-// ================= SETTINGS =================
-db.run(`
-CREATE TABLE IF NOT EXISTS settings(
- key TEXT PRIMARY KEY,
- value TEXT
-)
-`);
-
-// ================= USERS DEMO =================
-db.run(`
-INSERT OR IGNORE INTO users(username,password,role,department)
-VALUES
-('sistemas','admin123','sistemas',NULL),
-('gerencia','1234','gerencia','gerencia'),
-('operaciones','1234','operaciones','operaciones'),
-('mantenimiento','1234','mantenimiento','mantenimiento'),
-('recepcion','1234','recepcion','recepcion'),
-('cocina','1234','cocina','cocina')
-`);
 async function enviarAlertaPMS(department, mensaje){
 
  console.log("📲 ALERTA PMS:", department, mensaje);
