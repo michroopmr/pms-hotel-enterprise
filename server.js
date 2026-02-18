@@ -11,7 +11,15 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const db = new sqlite3.Database("./database.db");
+const db = new sqlite3.Database("./database.db", (err) => {
+ if(err){
+   console.log("DB error:", err);
+ } else {
+   console.log("DB conectada");
+   initDatabase();
+ }
+});
+
 
 
 
@@ -371,54 +379,55 @@ app.get("/settings",(req,res)=>{
 
 });
 
-function initDatabase(callback){
+function initDatabase(){
 
  db.serialize(()=>{
 
    db.run(`
    CREATE TABLE IF NOT EXISTS users(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT UNIQUE,
-    password TEXT,
-    role TEXT,
-    department TEXT,
-    phone TEXT
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     username TEXT UNIQUE,
+     password TEXT,
+     role TEXT,
+     department TEXT,
+     phone TEXT
    )
    `);
-db.run("ALTER TABLE users ADD COLUMN phone TEXT",()=>{});
 
    db.run(`
    CREATE TABLE IF NOT EXISTS tasks(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT,
-    description TEXT,
-    department TEXT,
-    status TEXT DEFAULT 'abierto',
-    created_by TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    due_date TEXT,
-    comments TEXT
+     id INTEGER PRIMARY KEY AUTOINCREMENT,
+     title TEXT,
+     description TEXT,
+     department TEXT,
+     status TEXT DEFAULT 'abierto',
+     created_by TEXT,
+     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+     due_date TEXT,
+     comments TEXT
    )
    `);
 
    db.run(`
    CREATE TABLE IF NOT EXISTS settings(
-    key TEXT PRIMARY KEY,
-    value TEXT
+     key TEXT PRIMARY KEY,
+     value TEXT
    )
    `);
 
    db.run(`
    INSERT OR IGNORE INTO users(username,password,role,department)
-   VALUES
-   ('sistemas','admin123','sistemas',NULL)
+   VALUES('sistemas','admin123','sistemas',NULL)
    `);
 
-   callback();
+   console.log("Tablas creadas OK");
+
+   startServer();
 
  });
 
 }
+
 
 const PORT = process.env.PORT || 5000;
 
@@ -429,5 +438,14 @@ initDatabase(()=>{
  });
 
 });
+function startServer(){
+
+ const PORT = process.env.PORT || 5000;
+
+ server.listen(PORT,()=>{
+   console.log("Servidor SISTEMAS OK - PMS ENTERPRISE");
+ });
+
+}
 
 
