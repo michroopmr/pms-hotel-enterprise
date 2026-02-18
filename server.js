@@ -372,7 +372,62 @@ app.get("/settings",(req,res)=>{
 
 });
 
-server.listen(5000,()=>{
- console.log("Servidor SISTEMAS OK - PMS ENTERPRISE");
+function initDatabase(callback){
+
+ db.serialize(()=>{
+
+   db.run(`
+   CREATE TABLE IF NOT EXISTS users(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    username TEXT UNIQUE,
+    password TEXT,
+    role TEXT,
+    department TEXT,
+    phone TEXT
+   )
+   `);
+
+   db.run(`
+   CREATE TABLE IF NOT EXISTS tasks(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT,
+    description TEXT,
+    department TEXT,
+    status TEXT DEFAULT 'abierto',
+    created_by TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    due_date TEXT,
+    comments TEXT
+   )
+   `);
+
+   db.run(`
+   CREATE TABLE IF NOT EXISTS settings(
+    key TEXT PRIMARY KEY,
+    value TEXT
+   )
+   `);
+
+   db.run(`
+   INSERT OR IGNORE INTO users(username,password,role,department)
+   VALUES
+   ('sistemas','admin123','sistemas',NULL)
+   `);
+
+   callback();
+
+ });
+
+}
+
+const PORT = process.env.PORT || 5000;
+
+initDatabase(()=>{
+
+ server.listen(PORT,()=>{
+   console.log("Servidor SISTEMAS OK - PMS ENTERPRISE");
+ });
+
 });
+
 
