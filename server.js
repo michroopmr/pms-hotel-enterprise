@@ -12,7 +12,6 @@ app.use(cors());
 app.use(express.json());
 
 const db = new sqlite3.Database("./database.db");
-db.run("ALTER TABLE users ADD COLUMN phone TEXT",()=>{});
 
 
 
@@ -386,6 +385,7 @@ function initDatabase(callback){
     phone TEXT
    )
    `);
+db.run("ALTER TABLE users ADD COLUMN phone TEXT",()=>{});
 
    db.run(`
    CREATE TABLE IF NOT EXISTS tasks(
