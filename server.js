@@ -6,11 +6,13 @@ const { Server } = require("socket.io");
 const webpush = require("web-push");
 const cors = require("cors");
 const { Pool } = require("pg");
+const jwt = require("jsonwebtoken");
 
 /* ================= APP ================= */
-
+const SECRET = "mollyhelpers_secret";
 const app = express();
 const server = http.createServer(app);
+
 
 const io = new Server(server,{
   cors:{ origin:"*" }
@@ -312,18 +314,42 @@ app.get("/create-sistemas", async (req,res)=>{
      )
    `);
 
-   await db.query(
-     `INSERT INTO users(username,password,role)
-      VALUES($1,$2,$3)
-      ON CONFLICT (username) DO NOTHING`,
-     ["sistemas","1234","sistemas"]
+   
+/* ================= LOGIN ================= */
+
+app.post("/login", async (req,res)=>{
+
+ try{
+
+   const { username, password } = req.body;
+
+   const result = await db.query(
+     "SELECT * FROM users WHERE username=$1 AND password=$2",
+     [username,password]
    );
 
-   res.send("Usuario sistemas creado con password 1234");
+   if(resultapp.get("/create-sistemas", async (req,res)=>{
+
+ await db.query(
+   `INSERT INTO users(username,password,role)
+    VALUES($1,$2,$3)
+    ON CONFLICT (username) DO NOTHING`,
+   ["sistemas","1234","sistemas"]
+ );
+
+ res.send("Usuario sistemas creado");
+
+});.rows.length === 0){
+     return res.sendStatus(401);
+   }
+
+   res.json(result.rows[0]);
 
  }catch(err){
+
    console.log(err);
-   res.status(500).send("Error creando usuario");
+   res.sendStatus(500);
+
  }
 
 });
