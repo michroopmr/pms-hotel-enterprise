@@ -300,23 +300,28 @@ app.get("/tasks/:department", async (req,res)=>{
 
 });
 // ===== CREAR USUARIO SISTEMAS (TEMPORAL) =====
-
 app.get("/create-sistemas", async (req,res)=>{
 
  try{
 
-   await db.query(`
-     CREATE TABLE IF NOT EXISTS users(
-       id SERIAL PRIMARY KEY,
-       username TEXT UNIQUE,
-       password TEXT,
-       role TEXT
-     )
-   `);
+   await db.query(
+     `INSERT INTO users(username,password,role)
+      VALUES($1,$2,$3)
+      ON CONFLICT (username) DO NOTHING`,
+     ["sistemas","1234","sistemas"]
+   );
 
-   
+   res.send("Usuario sistemas creado");
+
+ }catch(err){
+
+   console.log(err);
+   res.status(500).send("Error creando usuario");
+
+ }
+
+});   
 /* ================= LOGIN ================= */
-
 app.post("/login", async (req,res)=>{
 
  try{
@@ -325,21 +330,10 @@ app.post("/login", async (req,res)=>{
 
    const result = await db.query(
      "SELECT * FROM users WHERE username=$1 AND password=$2",
-     [username,password]
+     [username, password]
    );
 
-   if(resultapp.get("/create-sistemas", async (req,res)=>{
-
- await db.query(
-   `INSERT INTO users(username,password,role)
-    VALUES($1,$2,$3)
-    ON CONFLICT (username) DO NOTHING`,
-   ["sistemas","1234","sistemas"]
- );
-
- res.send("Usuario sistemas creado");
-
-});.rows.length === 0){
+   if(result.rows.length === 0){
      return res.sendStatus(401);
    }
 
