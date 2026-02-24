@@ -251,6 +251,29 @@ app.post("/login", async (req,res)=>{
  }
 
 });
+/* ================= CHANGE PASSWORD ================= */
+
+app.post("/change-password", async (req,res)=>{
+
+ try{
+
+   const { username, newPassword } = req.body;
+
+   await db.query(
+     "UPDATE users SET password=$1 WHERE username=$2",
+     [newPassword, username]
+   );
+
+   res.json({ok:true});
+
+ }catch(err){
+
+   console.log(err);
+   res.status(500).send("Error cambiando password");
+
+ }
+
+});
 // ================= GET TASKS =================
 
 app.get("/tasks/:department", async (req,res)=>{
@@ -310,4 +333,8 @@ const PORT = process.env.PORT || 3000;
 
 server.listen(PORT,()=>{
  console.log("🚀 Server running on port",PORT);
+});
+
+app.get("/settings",(req,res)=>{
+  res.sendFile(__dirname + "/settings.html");
 });
