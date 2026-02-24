@@ -1,53 +1,65 @@
+/* ================= IMPORTS ================= */
+
 const express = require("express");
-const sqlite3 = require("sqlite3").verbose();
 const http = require("http");
 const { Server } = require("socket.io");
 const webpush = require("web-push");
 const cors = require("cors");
+const { Pool } = require("pg");
+
+/* ================= APP ================= */
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server, {
-  cors: {
-    origin: "*"
-  }
+
+const io = new Server(server,{
+  cors:{ origin:"*" }
 });
 
 app.use(express.json());
 
 app.use(cors({
-  origin: "*",
-  methods: ["GET","POST","PUT"],
-  allowedHeaders: ["Content-Type"]
+  origin:"*",
+  methods:["GET","POST","PUT"],
+  allowedHeaders:["Content-Type"]
 }));
 
 app.use(express.static(__dirname));
 
-/* ================= DATABASE ================= */
+/* ================= DATABASE (POSTGRESQL) ================= */
 
-const db = new sqlite3.Database("./database.db");
-
-db.serialize(() => {
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS tasks(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      title TEXT,
-      department TEXT,
-      status TEXT
-    )
-  `);
-
-  db.run(`
-    CREATE TABLE IF NOT EXISTS push_subscriptions(
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      endpoint TEXT UNIQUE,
-      department TEXT,
-      subscription TEXT
-    )
-  `);
-
+const db = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl:{ rejectUnauthorized:false }
 });
+
+async function initDB(){
+
+ await db.query(`
+   CREATE TABLE IF NOT EXISTS tasks(
+     id SERIAL PRIMARY KEY,
+     title TEXT,
+     description TEXT,
+     department TEXT,
+     status TEXT,
+     created_by TEXT,
+     created_at TIMESTAMP DEFAULT NOW(),
+     due_date TIMESTAMP
+   )
+ `);
+
+ await db.query(`
+   CREATE TABLE IF NOT EXISTS push_subscriptions(
+     id SERIAL PRIMARY KEY,
+     endpoint TEXT UNIQUE,
+     department TEXT,
+     subscription TEXT
+   )
+ `);
+
+}
+
+initDB();
 
 /* ================= WEB PUSH ================= */
 
@@ -61,184 +73,190 @@ webpush.setVapidDetails(
 
 const onlineDepartments = {};
 
-io.on("connection", (socket) => {
+io.on("connection",(socket)=>{
 
-  const department = socket.handshake.query.department;
+ const department = socket.handshake.query.department;
 
-  if (department) {
-    onlineDepartments[department] = true;
-    console.log(`🟢 ${department} online`);
-  }
+ if(department){
+   onlineDepartments[department] = true;
+   console.log(`🟢 ${department} online`);
+ }
 
-  socket.on("disconnect", () => {
-    if (department) {
-      delete onlineDepartments[department];
-      console.log(`🔴 ${department} offline`);
-    }
-  });
+ socket.on("disconnect",()=>{
+   if(department){
+     delete onlineDepartments[department];
+     console.log(`🔴 ${department} offline`);
+   }
+ });
 
 });
 
 /* ================= PUSH HELPER ================= */
-function sendPushByDepartment(department, title, message, taskId){
 
-  if (onlineDepartments[department]) {
-    console.log(`⚡ ${department} online → solo socket`);
-    return;
-  }
+async function sendPushByDepartment(department,title,message,taskId){
 
-  const payload = JSON.stringify({
-    title,
-    body: message,
-    taskId
-  });
+ if(onlineDepartments[department]){
+   console.log(`⚡ ${department} online → solo socket`);
+   return;
+ }
 
+ const payload = JSON.stringify({
+   title,
+   body:message,
+   taskId
+ });
 
-  db.all(
-    "SELECT subscription FROM push_subscriptions WHERE department=?",
-    [department],
-    (err, rows) => {
+ const result = await db.query(
+   "SELECT subscription FROM push_subscriptions WHERE department=$1",
+   [department]
+ );
 
-      if (err) {
-        console.log("Error leyendo suscripciones:", err);
-        return;
-      }
+ for(const row of result.rows){
 
-      rows.forEach(r => {
-        const sub = JSON.parse(r.subscription);
+   const sub = JSON.parse(row.subscription);
 
-        webpush.sendNotification(sub, payload)
-        .catch(e => {
+   webpush.sendNotification(sub,payload)
+   .catch(async e=>{
 
-          console.log("Push error:", e.message);
+     console.log("Push error:",e.message);
 
-          // limpiar suscripciones inválidas
-          if (e.statusCode === 410 || e.statusCode === 404) {
-            db.run(
-              "DELETE FROM push_subscriptions WHERE endpoint=?",
-              [sub.endpoint]
-            );
-          }
+     if(e.statusCode===410 || e.statusCode===404){
+       await db.query(
+         "DELETE FROM push_subscriptions WHERE endpoint=$1",
+         [sub.endpoint]
+       );
+     }
 
-        });
+   });
 
-      });
+ }
 
-    }
-  );
 }
 
 /* ================= SUBSCRIBE ================= */
 
-app.post("/subscribe", (req, res) => {
+app.post("/subscribe", async (req,res)=>{
 
-  const subscription = req.body;
-  const endpoint = subscription.endpoint;
-  const department = subscription.department || "general";
+ const subscription = req.body;
+ const endpoint = subscription.endpoint;
+ const department = subscription.department || "general";
 
-  db.run(
-    `INSERT OR IGNORE INTO push_subscriptions(endpoint, department, subscription)
-     VALUES(?,?,?)`,
-    [endpoint, department, JSON.stringify(subscription)],
-    (err) => {
+ await db.query(
+   `INSERT INTO push_subscriptions(endpoint,department,subscription)
+    VALUES($1,$2,$3)
+    ON CONFLICT(endpoint) DO NOTHING`,
+   [endpoint,department,JSON.stringify(subscription)]
+ );
 
-      if (err) {
-        console.log("Error guardando subscription:", err);
-        return res.sendStatus(500);
-      }
+ console.log(`🔥 Subscription guardada (${department})`);
 
-      console.log(`🔥 Subscription guardada (${department})`);
-      res.sendStatus(201);
+ res.sendStatus(201);
 
-    }
-  );
 });
 
-/* ================= CREAR TAREA ================= */
+/* ================= GET TASKS ================= */
 
-app.post("/tasks", (req, res) => {
+app.get("/tasks/:department", async (req,res)=>{
 
-  const { title, department } = req.body;
+ const department = req.params.department;
 
-  db.run(
-    "INSERT INTO tasks(title,department,status) VALUES(?,?,?)",
-    [title, department, "abierto"],
-    function(err) {
+ const result = await db.query(
+   "SELECT * FROM tasks WHERE department=$1 ORDER BY id DESC",
+   [department]
+ );
 
-      if (err) {
-        console.log(err);
-        return res.sendStatus(500);
-      }
+ res.json(result.rows);
 
-      const nuevaTarea = {
-        id: this.lastID,
-        title,
-        department,
-        status: "abierto"
-      };
-
-      // realtime
-      io.emit("task_update", nuevaTarea);
-
-      // push inteligente
-      sendPushByDepartment(
-  department,
-  "Nueva tarea",
-  `Departamento: ${department} - ${title}`,
-  nuevaTarea.id
-);
-
-      res.json({ ok: true });
-
-    }
-  );
 });
 
-/* ================= ACTUALIZAR TAREA ================= */
+/* ================= CREATE TASK ================= */
 
-app.put("/tasks/:id", (req, res) => {
+app.post("/tasks", async (req,res)=>{
 
-  const { status } = req.body;
-  const id = req.params.id;
+ const { title, description, department, due_date, user } = req.body;
 
-  db.run(
-    "UPDATE tasks SET status=? WHERE id=?",
-    [status, id],
-    function(err) {
+ const result = await db.query(
+   `INSERT INTO tasks(title,description,department,status,created_by,due_date)
+    VALUES($1,$2,$3,$4,$5,$6)
+    RETURNING *`,
+   [title,description,department,"abierto",user,due_date]
+ );
 
-      if (err) {
-        console.log(err);
-        return res.sendStatus(500);
-      }
+ const nuevaTarea = result.rows[0];
 
-      io.emit("task_update", { id, status });
+ io.emit("task_update", nuevaTarea);
 
-      db.get(
-        "SELECT department FROM tasks WHERE id=?",
-        [id],
-        (err, row) => {
+ await sendPushByDepartment(
+   department,
+   "Nueva tarea",
+   `${title} - ${department}`,
+   nuevaTarea.id
+ );
 
-          if (err || !row) return;
+ res.json({ok:true});
 
-          sendPushByDepartment(
-            row.department,
-            "Estado actualizado",
-            `Nuevo estado: ${status}`
-          );
-
-        }
-      );
-
-      res.json({ ok: true });
-
-    }
-  );
 });
 
+/* ================= UPDATE TASK ================= */
+
+app.put("/tasks/:id", async (req,res)=>{
+
+ const id = req.params.id;
+ const { status } = req.body;
+
+ await db.query(
+   "UPDATE tasks SET status=$1 WHERE id=$2",
+   [status,id]
+ );
+
+ io.emit("task_update",{ id:Number(id), status });
+
+ const result = await db.query(
+   "SELECT department FROM tasks WHERE id=$1",
+   [id]
+ );
+
+ if(result.rows.length){
+
+   await sendPushByDepartment(
+     result.rows[0].department,
+     "Estado actualizado",
+     `Nuevo estado: ${status}`,
+     id
+   );
+
+ }
+
+ res.json({ok:true});
+
+});
+// ================= GET TASKS =================
+
+app.get("/tasks/:department", async (req,res)=>{
+
+ try{
+
+   const department = req.params.department;
+
+   const result = await db.query(
+     "SELECT * FROM tasks WHERE department=$1 ORDER BY id DESC",
+     [department]
+   );
+
+   res.json(result.rows);
+
+ }catch(err){
+
+   console.log(err);
+   res.status(500).send("Error obteniendo tareas");
+
+ }
+
+});
 /* ================= START ================= */
 
 const PORT = process.env.PORT || 3000;
 
-server.listen(PORT, () => {
-  console.log("🚀 Server running on port", PORT);
+server.listen(PORT,()=>{
+ console.log("🚀 Server running on port",PORT);
 });
