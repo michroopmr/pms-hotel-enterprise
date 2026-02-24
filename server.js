@@ -3,13 +3,23 @@ const sqlite3 = require("sqlite3").verbose();
 const http = require("http");
 const { Server } = require("socket.io");
 const webpush = require("web-push");
+const cors = require("cors");
 
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 
 app.use(express.json());
+
+app.use(cors({
+  origin: "*",
+  methods: ["GET","POST","PUT"],
+  allowedHeaders: ["Content-Type"]
+}));
+
 app.use(express.static(__dirname));
+
+// ================= DATABASE =================
 
 const db = new sqlite3.Database("./database.db");
 
@@ -36,9 +46,9 @@ db.serialize(()=>{
 // ================= WEB PUSH =================
 
 webpush.setVapidDetails(
- "mailto:admin@mollyhelpers.com",
- "TU_PUBLIC_KEY",
- "TU_PRIVATE_KEY"
+  "mailto:admin@mollyhelpers.com",
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
 );
 
 // ================= SOCKET =================
@@ -47,25 +57,58 @@ io.on("connection",(socket)=>{
  console.log("🔥 cliente conectado:", socket.id);
 });
 
+// ================= PUSH HELPER (ENTERPRISE) =================
+
+function sendPushByDepartment(department, title, message){
+
+  const payload = JSON.stringify({
+    title,
+    body: message
+  });
+
+  db.all(
+    "SELECT subscription FROM push_subscriptions WHERE department=?",
+    [department],
+    (err,rows)=>{
+
+      if(err){
+        console.log("Error leyendo subs:", err);
+        return;
+      }
+
+      rows.forEach(r=>{
+        const sub = JSON.parse(r.subscription);
+
+        webpush.sendNotification(sub, payload)
+        .catch(e=>console.log("Push error:", e.message));
+      });
+
+    }
+  );
+}
+
 // ================= SUBSCRIBE =================
 
-app.post("/subscribe",(req,res)=>{
+app.post('/subscribe', (req, res) => {
 
- const { subscription, department } = req.body;
+  const subscription = req.body;
+  const endpoint = subscription.endpoint;
+  const department = subscription.department || "general";
 
- db.run(
-   "INSERT OR REPLACE INTO push_subscriptions(endpoint,department,subscription) VALUES(?,?,?)",
-   [subscription.endpoint, department, JSON.stringify(subscription)],
-   (err)=>{
-     if(err){
-       console.log("Error guardando push:", err);
-       return res.sendStatus(500);
-     }
-     console.log("🔥 Push guardado enterprise");
-     res.sendStatus(201);
-   }
- );
+  db.run(
+    `INSERT OR IGNORE INTO push_subscriptions(endpoint, department, subscription)
+     VALUES(?,?,?)`,
+    [endpoint, department, JSON.stringify(subscription)],
+    (err) => {
+      if(err){
+        console.log("Error guardando subscription:", err);
+        return res.sendStatus(500);
+      }
 
+      console.log("🔥 Nueva subscription guardada");
+      res.sendStatus(201);
+    }
+  );
 });
 
 // ================= CREAR TAREA =================
@@ -91,32 +134,17 @@ app.post("/tasks",(req,res)=>{
        status: "abierto"
      };
 
+     // realtime
      io.emit("task_update", tareaNueva);
 
-     res.json({ok:true});
-
-     // ===== PUSH SOLO A SU DEPARTAMENTO =====
-
-     const payload = JSON.stringify({
-       body: `Nueva tarea: ${title}`
-     });
-
-     db.all(
-       "SELECT subscription FROM push_subscriptions WHERE department=?",
-       [department],
-       (err,rows)=>{
-
-         if(err) return;
-
-         rows.forEach(r=>{
-           const sub = JSON.parse(r.subscription);
-
-           webpush.sendNotification(sub, payload)
-           .catch(e=>console.log("Push error:",e.message));
-         });
-
-       }
+     // push inteligente
+     sendPushByDepartment(
+       department,
+       "Nueva tarea",
+       `Departamento: ${department} - ${title}`
      );
+
+     res.json({ok:true});
 
    }
  );
@@ -144,35 +172,22 @@ app.put("/tasks/:id",(req,res)=>{
 
      res.json({ok:true});
 
-     // Obtener department real
-     db.get("SELECT department FROM tasks WHERE id=?",[id],(err,row)=>{
+     // obtener department real
+     db.get(
+       "SELECT department FROM tasks WHERE id=?",
+       [id],
+       (err,row)=>{
 
-       if(err || !row) return;
+         if(err || !row) return;
 
-       const department = row.department;
+         sendPushByDepartment(
+           row.department,
+           "Estado actualizado",
+           `Nuevo estado: ${status}`
+         );
 
-       const payload = JSON.stringify({
-         body: `Estado actualizado: ${status}`
-       });
-
-       db.all(
-         "SELECT subscription FROM push_subscriptions WHERE department=?",
-         [department],
-         (err,rows)=>{
-
-           if(err) return;
-
-           rows.forEach(r=>{
-             const sub = JSON.parse(r.subscription);
-
-             webpush.sendNotification(sub, payload)
-             .catch(e=>console.log("Push error:",e.message));
-           });
-
-         }
-       );
-
-     });
+       }
+     );
 
    }
  );
