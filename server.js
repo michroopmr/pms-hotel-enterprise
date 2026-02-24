@@ -7,7 +7,11 @@ const cors = require("cors");
 
 const app = express();
 const server = http.createServer(app);
-const io = new Server(server);
+const io = new Server(server, {
+  cors: {
+    origin: "*"
+  }
+});
 
 app.use(express.json());
 
@@ -19,31 +23,33 @@ app.use(cors({
 
 app.use(express.static(__dirname));
 
-// ================= DATABASE =================
+/* ================= DATABASE ================= */
 
 const db = new sqlite3.Database("./database.db");
 
-db.serialize(()=>{
+db.serialize(() => {
 
- db.run(`
- CREATE TABLE IF NOT EXISTS tasks(
-   id INTEGER PRIMARY KEY AUTOINCREMENT,
-   title TEXT,
-   department TEXT,
-   status TEXT
- )`);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS tasks(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT,
+      department TEXT,
+      status TEXT
+    )
+  `);
 
- db.run(`
- CREATE TABLE IF NOT EXISTS push_subscriptions(
-   id INTEGER PRIMARY KEY AUTOINCREMENT,
-   endpoint TEXT UNIQUE,
-   department TEXT,
-   subscription TEXT
- )`);
+  db.run(`
+    CREATE TABLE IF NOT EXISTS push_subscriptions(
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      endpoint TEXT UNIQUE,
+      department TEXT,
+      subscription TEXT
+    )
+  `);
 
 });
 
-// ================= WEB PUSH =================
+/* ================= WEB PUSH ================= */
 
 webpush.setVapidDetails(
   "mailto:admin@mollyhelpers.com",
@@ -51,45 +57,80 @@ webpush.setVapidDetails(
   process.env.VAPID_PRIVATE_KEY
 );
 
-// ================= SOCKET =================
+/* ================= SOCKET ================= */
 
-io.on("connection",(socket)=>{
- console.log("🔥 cliente conectado:", socket.id);
+const onlineDepartments = {};
+
+io.on("connection", (socket) => {
+
+  const department = socket.handshake.query.department;
+
+  if (department) {
+    onlineDepartments[department] = true;
+    console.log(`🟢 ${department} online`);
+  }
+
+  socket.on("disconnect", () => {
+    if (department) {
+      delete onlineDepartments[department];
+      console.log(`🔴 ${department} offline`);
+    }
+  });
+
 });
 
-// ================= PUSH HELPER (ENTERPRISE) =================
+/* ================= PUSH HELPER ================= */
+function sendPushByDepartment(department, title, message, taskId){
 
-function sendPushByDepartment(department, title, message){
+  if (onlineDepartments[department]) {
+    console.log(`⚡ ${department} online → solo socket`);
+    return;
+  }
 
   const payload = JSON.stringify({
     title,
-    body: message
+    body: message,
+    taskId
   });
+
 
   db.all(
     "SELECT subscription FROM push_subscriptions WHERE department=?",
     [department],
-    (err,rows)=>{
+    (err, rows) => {
 
-      if(err){
-        console.log("Error leyendo subs:", err);
+      if (err) {
+        console.log("Error leyendo suscripciones:", err);
         return;
       }
 
-      rows.forEach(r=>{
+      rows.forEach(r => {
         const sub = JSON.parse(r.subscription);
 
         webpush.sendNotification(sub, payload)
-        .catch(e=>console.log("Push error:", e.message));
+        .catch(e => {
+
+          console.log("Push error:", e.message);
+
+          // limpiar suscripciones inválidas
+          if (e.statusCode === 410 || e.statusCode === 404) {
+            db.run(
+              "DELETE FROM push_subscriptions WHERE endpoint=?",
+              [sub.endpoint]
+            );
+          }
+
+        });
+
       });
 
     }
   );
 }
 
-// ================= SUBSCRIBE =================
+/* ================= SUBSCRIBE ================= */
 
-app.post('/subscribe', (req, res) => {
+app.post("/subscribe", (req, res) => {
 
   const subscription = req.body;
   const endpoint = subscription.endpoint;
@@ -100,104 +141,104 @@ app.post('/subscribe', (req, res) => {
      VALUES(?,?,?)`,
     [endpoint, department, JSON.stringify(subscription)],
     (err) => {
-      if(err){
+
+      if (err) {
         console.log("Error guardando subscription:", err);
         return res.sendStatus(500);
       }
 
-      console.log("🔥 Nueva subscription guardada");
+      console.log(`🔥 Subscription guardada (${department})`);
       res.sendStatus(201);
+
     }
   );
 });
 
-// ================= CREAR TAREA =================
+/* ================= CREAR TAREA ================= */
 
-app.post("/tasks",(req,res)=>{
+app.post("/tasks", (req, res) => {
 
- const { title, department } = req.body;
+  const { title, department } = req.body;
 
- db.run(
-   "INSERT INTO tasks(title,department,status) VALUES(?,?,?)",
-   [title, department, "abierto"],
-   function(err){
+  db.run(
+    "INSERT INTO tasks(title,department,status) VALUES(?,?,?)",
+    [title, department, "abierto"],
+    function(err) {
 
-     if(err){
-       console.log(err);
-       return res.sendStatus(500);
-     }
+      if (err) {
+        console.log(err);
+        return res.sendStatus(500);
+      }
 
-     const tareaNueva = {
-       id: this.lastID,
-       title,
-       department,
-       status: "abierto"
-     };
+      const nuevaTarea = {
+        id: this.lastID,
+        title,
+        department,
+        status: "abierto"
+      };
 
-     // realtime
-     io.emit("task_update", tareaNueva);
+      // realtime
+      io.emit("task_update", nuevaTarea);
 
-     // push inteligente
-     sendPushByDepartment(
-       department,
-       "Nueva tarea",
-       `Departamento: ${department} - ${title}`
-     );
+      // push inteligente
+      sendPushByDepartment(
+  department,
+  "Nueva tarea",
+  `Departamento: ${department} - ${title}`,
+  nuevaTarea.id
+);
 
-     res.json({ok:true});
+      res.json({ ok: true });
 
-   }
- );
-
+    }
+  );
 });
 
-// ================= ACTUALIZAR TAREA =================
+/* ================= ACTUALIZAR TAREA ================= */
 
-app.put("/tasks/:id",(req,res)=>{
+app.put("/tasks/:id", (req, res) => {
 
- const { status } = req.body;
- const id = req.params.id;
+  const { status } = req.body;
+  const id = req.params.id;
 
- db.run(
-   "UPDATE tasks SET status=? WHERE id=?",
-   [status,id],
-   function(err){
+  db.run(
+    "UPDATE tasks SET status=? WHERE id=?",
+    [status, id],
+    function(err) {
 
-     if(err){
-       console.log(err);
-       return res.sendStatus(500);
-     }
+      if (err) {
+        console.log(err);
+        return res.sendStatus(500);
+      }
 
-     io.emit("task_update",{ id, status });
+      io.emit("task_update", { id, status });
 
-     res.json({ok:true});
+      db.get(
+        "SELECT department FROM tasks WHERE id=?",
+        [id],
+        (err, row) => {
 
-     // obtener department real
-     db.get(
-       "SELECT department FROM tasks WHERE id=?",
-       [id],
-       (err,row)=>{
+          if (err || !row) return;
 
-         if(err || !row) return;
+          sendPushByDepartment(
+            row.department,
+            "Estado actualizado",
+            `Nuevo estado: ${status}`
+          );
 
-         sendPushByDepartment(
-           row.department,
-           "Estado actualizado",
-           `Nuevo estado: ${status}`
-         );
+        }
+      );
 
-       }
-     );
+      res.json({ ok: true });
 
-   }
- );
-
+    }
+  );
 });
 
-// ================= START =================
+/* ================= START ================= */
 
 const PORT = process.env.PORT || 3000;
 
-server.listen(PORT, ()=>{
- console.log("🚀 Server running on port", PORT);
+server.listen(PORT, () => {
+  console.log("🚀 Server running on port", PORT);
 });
