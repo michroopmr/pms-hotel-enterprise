@@ -56,8 +56,17 @@ async function initDB(){
      subscription TEXT
    )
  `);
-
+ // 👇 USERS DENTRO DE LA FUNCION
+ await db.query(`
+   CREATE TABLE IF NOT EXISTS users(
+     id SERIAL PRIMARY KEY,
+     username TEXT UNIQUE,
+     password TEXT,
+     role TEXT
+   )
+ `);
 }
+
 
 initDB();
 
@@ -154,21 +163,6 @@ app.post("/subscribe", async (req,res)=>{
 
 });
 
-/* ================= GET TASKS ================= */
-
-app.get("/tasks/:department", async (req,res)=>{
-
- const department = req.params.department;
-
- const result = await db.query(
-   "SELECT * FROM tasks WHERE department=$1 ORDER BY id DESC",
-   [department]
- );
-
- res.json(result.rows);
-
-});
-
 /* ================= CREATE TASK ================= */
 
 app.post("/tasks", async (req,res)=>{
@@ -228,6 +222,33 @@ app.put("/tasks/:id", async (req,res)=>{
  }
 
  res.json({ok:true});
+
+});
+/* ================= LOGIN ================= */
+
+app.post("/login", async (req,res)=>{
+
+ try{
+
+   const { username, password } = req.body;
+
+   const result = await db.query(
+     "SELECT * FROM users WHERE username=$1 AND password=$2",
+     [username, password]
+   );
+
+   if(result.rows.length === 0){
+     return res.sendStatus(401);
+   }
+
+   res.json(result.rows[0]);
+
+ }catch(err){
+
+   console.log(err);
+   res.sendStatus(500);
+
+ }
 
 });
 // ================= GET TASKS =================
