@@ -216,38 +216,51 @@ app.post("/tasks", async (req,res)=>{
 });
 app.put("/tasks/:id", async (req,res)=>{
 
- const id = req.params.id;
- const { status } = req.body;
+ try{
 
- // actualizar status
- await db.query(
-   "UPDATE tasks SET status=$1 WHERE id=$2",
-   [status,id]
- );
+   const id = req.params.id;
+   const { status, comments } = req.body;
 
- // obtener tarea completa actualizada
- const result = await db.query(
-   "SELECT * FROM tasks WHERE id=$1",
-   [id]
- );
+   if(status !== undefined){
+     await db.query(
+       "UPDATE tasks SET status=$1 WHERE id=$2",
+       [status,id]
+     );
+   }
 
- const tareaActualizada = result.rows[0];
+   if(comments !== undefined){
+     await db.query(
+       "UPDATE tasks SET comments=$1 WHERE id=$2",
+       [JSON.stringify(comments), id]
+     );
+   }
 
- // enviar tarea completa (NO solo status)
- io.emit("task_update", tareaActualizada);
+   const result = await db.query(
+     "SELECT * FROM tasks WHERE id=$1",
+     [id]
+   );
 
- // push notification
- await sendPushByDepartment(
-   tareaActualizada.department,
-   "Estado actualizado",
-   `Nuevo estado: ${status}`,
-   id
- );
+   const tareaActualizada = result.rows[0];
 
- res.json({ok:true});
+   io.emit("task_update", tareaActualizada);
+
+   if(status !== undefined){
+     await sendPushByDepartment(
+       tareaActualizada.department,
+       "Estado actualizado",
+       `Nuevo estado: ${status}`,
+       id
+     );
+   }
+
+   res.json(tareaActualizada);
+
+ }catch(err){
+   console.error(err);
+   res.status(500).json({error:"Error actualizando tarea"});
+ }
 
 });
-
 
  // obtener tarea completa actualizada
  const result = await db.query(
