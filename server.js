@@ -214,36 +214,35 @@ app.post("/tasks", async (req,res)=>{
  res.json({ok:true});
 
 });
-
-/* ================= UPDATE TASK ================= */
-
 app.put("/tasks/:id", async (req,res)=>{
 
  const id = req.params.id;
  const { status } = req.body;
 
+ // actualizar status
  await db.query(
    "UPDATE tasks SET status=$1 WHERE id=$2",
    [status,id]
  );
 
- io.emit("task_update",{ id:Number(id), status });
-
+ // obtener tarea completa actualizada
  const result = await db.query(
-   "SELECT department FROM tasks WHERE id=$1",
+   "SELECT * FROM tasks WHERE id=$1",
    [id]
  );
 
- if(result.rows.length){
+ const tareaActualizada = result.rows[0];
 
-   await sendPushByDepartment(
-     result.rows[0].department,
-     "Estado actualizado",
-     `Nuevo estado: ${status}`,
-     id
-   );
+ // enviar tarea completa (NO solo status)
+ io.emit("task_update", tareaActualizada);
 
- }
+ // push notification
+ await sendPushByDepartment(
+   tareaActualizada.department,
+   "Estado actualizado",
+   `Nuevo estado: ${status}`,
+   id
+ );
 
  res.json({ok:true});
 
@@ -398,6 +397,3 @@ server.listen(PORT,()=>{
  console.log("🚀 Server running on port",PORT);
 });
 
-app.get("/settings",(req,res)=>{
-  res.sendFile(__dirname + "/settings.html");
-});
