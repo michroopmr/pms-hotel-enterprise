@@ -262,30 +262,7 @@ app.put("/tasks/:id", async (req,res)=>{
 
 });
 
- // obtener tarea completa actualizada
- const result = await db.query(
-   "SELECT * FROM tasks WHERE id=$1",
-   [id]
- );
-
- const tareaActualizada = result.rows[0];
-
- // enviar tarea completa (NO solo status)
- io.emit("task_update", tareaActualizada);
-
- // push notification
- await sendPushByDepartment(
-   tareaActualizada.department,
-   "Estado actualizado",
-   `Nuevo estado: ${status}`,
-   id
- );
-
- res.json({ok:true});
-
-});
-
-/* ================= LOGIN ================= */
+ /* ================= LOGIN ================= */
 
 app.post("/login", async (req,res)=>{
 
