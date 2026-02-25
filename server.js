@@ -164,7 +164,29 @@ app.post("/subscribe", async (req,res)=>{
  res.sendStatus(201);
 
 });
+// ================= SETTINGS =================
 
+let settingsMemory = [];
+
+app.get("/settings",(req,res)=>{
+ res.json(settingsMemory);
+});
+
+app.post("/settings",(req,res)=>{
+
+ const { key, value } = req.body;
+
+ const index = settingsMemory.findIndex(s=>s.key===key);
+
+ if(index !== -1){
+   settingsMemory[index].value = value;
+ }else{
+   settingsMemory.push({key,value});
+ }
+
+ res.json({ok:true});
+
+});
 /* ================= CREATE TASK ================= */
 
 app.post("/tasks", async (req,res)=>{
@@ -226,6 +248,7 @@ app.put("/tasks/:id", async (req,res)=>{
  res.json({ok:true});
 
 });
+
 /* ================= LOGIN ================= */
 
 app.post("/login", async (req,res)=>{
