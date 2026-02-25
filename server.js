@@ -322,6 +322,26 @@ app.get("/tasks/:department", async (req,res)=>{
  }
 
 });
+/* ================= GET ALL TASKS ================= */
+
+app.get("/tasks", async (req,res)=>{
+
+ try{
+
+   const result = await db.query(
+     "SELECT * FROM tasks ORDER BY id DESC"
+   );
+
+   res.json(result.rows);
+
+ }catch(err){
+
+   console.log(err);
+   res.status(500).send("Error obteniendo tareas");
+
+ }
+
+});
 // ===== CREAR USUARIO SISTEMAS (TEMPORAL) =====
 app.get("/create-sistemas", async (req,res)=>{
 
