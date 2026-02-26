@@ -104,22 +104,44 @@ const onlineDepartments = {};
 
 io.on("connection",(socket)=>{
 
- const department = socket.handshake.query.department;
+ const token = socket.handshake.auth?.token;
+ const department = socket.handshake.query?.department;
 
- if(department){
-   onlineDepartments[department] = true;
-   console.log(`🟢 ${department} online`);
+ try{
+
+   const decoded = jwt.verify(token, SECRET);
+   socket.user = decoded;
+
+   if(department){
+     socket.join(department);
+     onlineDepartments[department] = true;
+     console.log(`🟢 ${department} online`);
+   }
+
+   // 🔥 sistemas escucha todos los departamentos
+   if(decoded.role === "sistemas"){
+     socket.join("recepcion");
+     socket.join("mantenimiento");
+   }
+
+ }catch(e){
+
+   console.log("⛔ Socket no autorizado");
+   socket.disconnect();
+   return;
+
  }
 
  socket.on("disconnect",()=>{
+
    if(department){
      delete onlineDepartments[department];
      console.log(`🔴 ${department} offline`);
    }
+
  });
 
 });
-
 /* ================= PUSH HELPER ================= */
 
 async function sendPushByDepartment(department,title,message,taskId){
@@ -220,7 +242,7 @@ app.post("/tasks", authMiddleware, async (req,res)=>{
 
  const nuevaTarea = result.rows[0];
 
- io.emit("task_update", nuevaTarea);
+ io.to(department).emit("task_update", nuevaTarea);
 
  await sendPushByDepartment(
    department,
@@ -258,9 +280,9 @@ app.put("/tasks/:id", authMiddleware, async (req,res)=>{
      [id]
    );
 
-   const tareaActualizada = result.rows[0];
-
-   io.emit("task_update", tareaActualizada);
+  const tareaActualizada = result.rows[0];
+  io.to(tareaActualizada.department)
+  .emit("task_update", tareaActualizada);
 
    if(status !== undefined){
      await sendPushByDepartment(
