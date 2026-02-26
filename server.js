@@ -139,9 +139,10 @@ io.on("connection",(socket)=>{
 
    // 🔥 sistemas escucha todos los departamentos
    if(decoded.role === "sistemas"){
-     socket.join("recepcion");
-     socket.join("mantenimiento");
-   }
+  DEPARTMENTS.forEach(dep=>{
+    socket.join(dep);
+  });
+}
 
  }catch(e){
 
@@ -247,10 +248,14 @@ app.post("/settings",(req,res)=>{
 
 });
 /* ================= CREATE TASK ================= */
-
 app.post("/tasks", authMiddleware, async (req,res)=>{
 
  const { title, description, department, due_date, user } = req.body;
+
+ // 🔒 Validar que el departamento exista
+ if(!DEPARTMENTS.includes(department)){
+   return res.status(400).send("Departamento inválido");
+ }
 
  const result = await db.query(
    `INSERT INTO tasks(title,description,department,status,created_by,due_date)
@@ -273,6 +278,7 @@ app.post("/tasks", authMiddleware, async (req,res)=>{
  res.json({ok:true});
 
 });
+
 app.put("/tasks/:id", authMiddleware, async (req,res)=>{
 
  try{
@@ -358,8 +364,10 @@ app.post("/users", authMiddleware, async (req,res)=>{
    const { username, password, role, department } = req.body;
 
 await db.query(
-  "INSERT INTO users(username,password,role,department) VALUES($1,$2,$3,$4)",
-  [username,password,role,department]
+  `INSERT INTO users(username,password,role,department)
+   VALUES($1,$2,$3,$4)
+   ON CONFLICT (username) DO NOTHING`,
+  ["sistemas","1234","sistemas","sistemas"]
 );
 
    res.json({ok:true});
