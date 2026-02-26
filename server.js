@@ -13,6 +13,17 @@ const SECRET = "mollyhelpers_secret";
 const app = express();
 const server = http.createServer(app);
 
+app.use(express.json());
+
+app.use(cors({
+  origin: "*",
+  credentials: false,
+  methods: ["GET","POST","PUT","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"]
+}));
+
+app.options("*", cors());
+
 const DEPARTMENTS = [
   "recepcion",
   "mantenimiento",
@@ -43,17 +54,10 @@ function authMiddleware(req,res,next){
 app.get("/departments", authMiddleware, (req,res)=>{
   res.json(DEPARTMENTS);
 });
+
 const io = new Server(server,{
   cors:{ origin:"*" }
 });
-
-app.use(express.json());
-
-app.use(cors({
-  origin:"*",
-  methods:["GET","POST","PUT"],
-  allowedHeaders:["Content-Type","Authorization"]
-}));
 
 app.use(express.static(__dirname));
 
@@ -93,11 +97,12 @@ async function initDB(){
  // 👇 USERS DENTRO DE LA FUNCION
  await db.query(`
    CREATE TABLE IF NOT EXISTS users(
-     id SERIAL PRIMARY KEY,
-     username TEXT UNIQUE,
-     password TEXT,
-     role TEXT
-   )
+  id SERIAL PRIMARY KEY,
+  username TEXT UNIQUE,
+  password TEXT,
+  role TEXT,
+  department TEXT
+)
  `);
 }
 
@@ -350,12 +355,12 @@ app.post("/users", authMiddleware, async (req,res)=>{
 
  try{
 
-   const { username, password, role } = req.body;
+   const { username, password, role, department } = req.body;
 
-   await db.query(
-     "INSERT INTO users(username,password,role) VALUES($1,$2,$3)",
-     [username,password,role]
-   );
+await db.query(
+  "INSERT INTO users(username,password,role,department) VALUES($1,$2,$3,$4)",
+  [username,password,role,department]
+);
 
    res.json({ok:true});
 
@@ -369,7 +374,7 @@ app.post("/users", authMiddleware, async (req,res)=>{
 });
 // ================= GET TASKS =================
 
-app.get("/tasks/:department", async (req,res)=>{
+app.get("/tasks/:department", authMiddleware, async (req,res)=>{
 
  try{
 
@@ -392,7 +397,7 @@ app.get("/tasks/:department", async (req,res)=>{
 });
 /* ================= GET ALL TASKS ================= */
 
-app.get("/tasks", async (req,res)=>{
+app.get("/tasks", authMiddleware, async (req,res)=>{
 
  try{
 
