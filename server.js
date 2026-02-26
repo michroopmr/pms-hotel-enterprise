@@ -13,20 +13,17 @@ const SECRET = "mollyhelpers_secret";
 const app = express();
 const server = http.createServer(app);
 
-
-const io = new Server(server,{
-  cors:{ origin:"*" }
-});
-
-app.use(express.json());
-
-app.use(cors({
-  origin:"*",
-  methods:["GET","POST","PUT"],
-  allowedHeaders:["Content-Type","Authorization"]
-}));
-
-app.use(express.static(__dirname));
+const DEPARTMENTS = [
+  "recepcion",
+  "mantenimiento",
+  "operaciones",
+  "spa",
+  "ama_de_llaves",
+  "alimentos_bebidas",
+  "cocina",
+  "tabaqueria",
+  "Gerencia General"
+];
 function authMiddleware(req,res,next){
 
  const authHeader = req.headers.authorization;
@@ -43,6 +40,23 @@ function authMiddleware(req,res,next){
  }
 
 }
+app.get("/departments", authMiddleware, (req,res)=>{
+  res.json(DEPARTMENTS);
+});
+const io = new Server(server,{
+  cors:{ origin:"*" }
+});
+
+app.use(express.json());
+
+app.use(cors({
+  origin:"*",
+  methods:["GET","POST","PUT"],
+  allowedHeaders:["Content-Type","Authorization"]
+}));
+
+app.use(express.static(__dirname));
+
 /* ================= DATABASE (POSTGRESQL) ================= */
 
 const db = new Pool({
@@ -451,7 +465,8 @@ res.json({
   user:{
     id: usuario.id,
     username: usuario.username,
-    role: usuario.role
+    role: usuario.role,
+    department: usuario.department
   }
 });
 
