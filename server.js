@@ -23,11 +23,26 @@ app.use(express.json());
 app.use(cors({
   origin:"*",
   methods:["GET","POST","PUT"],
-  allowedHeaders:["Content-Type"]
+  allowedHeaders:["Content-Type","Authorization"]
 }));
 
 app.use(express.static(__dirname));
+function authMiddleware(req,res,next){
 
+ const authHeader = req.headers.authorization;
+
+ if(!authHeader) return res.sendStatus(401);
+
+ const token = authHeader.split(" ")[1];
+
+ try{
+   req.user = jwt.verify(token, SECRET);
+   next();
+ }catch{
+   return res.sendStatus(403);
+ }
+
+}
 /* ================= DATABASE (POSTGRESQL) ================= */
 
 const db = new Pool({
@@ -192,7 +207,7 @@ app.post("/settings",(req,res)=>{
 });
 /* ================= CREATE TASK ================= */
 
-app.post("/tasks", async (req,res)=>{
+app.post("/tasks", authMiddleware, async (req,res)=>{
 
  const { title, description, department, due_date, user } = req.body;
 
@@ -217,7 +232,7 @@ app.post("/tasks", async (req,res)=>{
  res.json({ok:true});
 
 });
-app.put("/tasks/:id", async (req,res)=>{
+app.put("/tasks/:id", authMiddleware, async (req,res)=>{
 
  try{
 
@@ -265,36 +280,12 @@ app.put("/tasks/:id", async (req,res)=>{
 
 });
 
- /* ================= LOGIN ================= */
-
-app.post("/login", async (req,res)=>{
-
- try{
-
-   const { username, password } = req.body;
-
-   const result = await db.query(
-     "SELECT * FROM users WHERE username=$1 AND password=$2",
-     [username, password]
-   );
-
-   if(result.rows.length === 0){
-     return res.sendStatus(401);
-   }
-
-   res.json(result.rows[0]);
-
- }catch(err){
-
-   console.log(err);
-   res.sendStatus(500);
-
- }
-
-});
 /* ================= CHANGE PASSWORD ================= */
 
-app.post("/change-password", async (req,res)=>{
+app.post("/change-password", authMiddleware, async (req,res)=>{
+  if(req.user.role !== "sistemas"){
+   return res.status(403).send("No autorizado");
+}
 
  try{
 
@@ -311,6 +302,31 @@ app.post("/change-password", async (req,res)=>{
 
    console.log(err);
    res.status(500).send("Error cambiando password");
+
+ }
+
+});
+app.post("/users", authMiddleware, async (req,res)=>{
+
+ if(req.user.role !== "sistemas"){
+   return res.status(403).send("No autorizado");
+ }
+
+ try{
+
+   const { username, password, role } = req.body;
+
+   await db.query(
+     "INSERT INTO users(username,password,role) VALUES($1,$2,$3)",
+     [username,password,role]
+   );
+
+   res.json({ok:true});
+
+ }catch(err){
+
+   console.log(err);
+   res.status(500).send("Error creando usuario");
 
  }
 
@@ -396,7 +412,26 @@ app.post("/login", async (req,res)=>{
      return res.sendStatus(401);
    }
 
-   res.json(result.rows[0]);
+   const usuario = result.rows[0];
+
+const token = jwt.sign(
+  {
+    id: usuario.id,
+    username: usuario.username,
+    role: usuario.role
+  },
+  SECRET,
+  { expiresIn:"8h" }
+);
+
+res.json({
+  token,
+  user:{
+    id: usuario.id,
+    username: usuario.username,
+    role: usuario.role
+  }
+});
 
  }catch(err){
 
