@@ -49,7 +49,10 @@ async function initDB(){
      due_date TIMESTAMP
    )
  `);
-
+ await db.query(`
+  ALTER TABLE tasks
+  ADD COLUMN IF NOT EXISTS comments TEXT;
+`);
  await db.query(`
    CREATE TABLE IF NOT EXISTS push_subscriptions(
      id SERIAL PRIMARY KEY,
