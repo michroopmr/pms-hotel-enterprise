@@ -24,11 +24,11 @@ app.use(cors({
 }));
 
 const DEPARTMENTS = [
-  "Recepcion",
+  "Recepción",
   "Mantenimiento",
   "Operaciones",
   "Spa",
-  "Ama_de_llaves",
+  "Housekeeping",
   "Alimentos_Bebidas",
   "Cocina",
   "Tabaqueria",
