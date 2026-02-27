@@ -408,17 +408,25 @@ app.get("/tasks", authMiddleware, async (req,res)=>{
 
  try{
 
+   // Sistemas y Admin ven todo
+   if(req.user.role === "sistemas" || req.user.role === "admin"){
+     const result = await db.query(
+       "SELECT * FROM tasks ORDER BY id DESC"
+     );
+     return res.json(result.rows);
+   }
+
+   // Operador solo su departamento
    const result = await db.query(
-     "SELECT * FROM tasks ORDER BY id DESC"
+     "SELECT * FROM tasks WHERE department=$1 ORDER BY id DESC",
+     [req.user.department]
    );
 
    res.json(result.rows);
 
  }catch(err){
-
    console.log(err);
    res.status(500).send("Error obteniendo tareas");
-
  }
 
 });
@@ -463,13 +471,14 @@ app.post("/login", async (req,res)=>{
    const usuario = result.rows[0];
 
 const token = jwt.sign(
-  {
-    id: usuario.id,
-    username: usuario.username,
-    role: usuario.role
-  },
-  SECRET,
-  { expiresIn:"8h" }
+{
+  id: usuario.id,
+  username: usuario.username,
+  role: usuario.role,
+  department: usuario.department
+},
+SECRET,
+{ expiresIn:"8h" }
 );
 
 res.json({
