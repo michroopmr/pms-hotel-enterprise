@@ -364,20 +364,18 @@ app.post("/users", authMiddleware, async (req,res)=>{
 
    const { username, password, role, department } = req.body;
 
-await db.query(
-  `INSERT INTO users(username,password,role,department)
-   VALUES($1,$2,$3,$4)
-   ON CONFLICT (username) DO NOTHING`,
-  ["sistemas","1234","sistemas","sistemas"]
-);
+   await db.query(
+     `INSERT INTO users(username,password,role,department)
+      VALUES($1,$2,$3,$4)
+      ON CONFLICT (username) DO NOTHING`,
+     [username, password, role, department]
+   );
 
    res.json({ok:true});
 
  }catch(err){
-
    console.log(err);
    res.status(500).send("Error creando usuario");
-
  }
 
 });
