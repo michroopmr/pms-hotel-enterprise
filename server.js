@@ -24,14 +24,14 @@ app.use(cors({
 }));
 
 const DEPARTMENTS = [
-  "recepcion",
-  "mantenimiento",
-  "operaciones",
-  "spa",
-  "ama_de_llaves",
-  "alimentos_bebidas",
-  "cocina",
-  "tabaqueria",
+  "Recepcion",
+  "Mantenimiento",
+  "Operaciones",
+  "Spa",
+  "Ama_de_llaves",
+  "Alimentos_Bebidas",
+  "Cocina",
+  "Tabaqueria",
   "Gerencia General"
 ];
 function authMiddleware(req,res,next){
