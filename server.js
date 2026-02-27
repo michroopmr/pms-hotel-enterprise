@@ -29,24 +29,26 @@ const DEPARTMENTS = [
   "Operaciones",
   "Spa",
   "Housekeeping",
-  "Alimentos_Bebidas",
+  "Alimentos Bebidas",
   "Cocina",
   "Tabaqueria",
   "Gerencia General"
 ];
-function authMiddleware(req,res,next){
+function authMiddleware(req, res, next){
 
  const authHeader = req.headers.authorization;
 
- if(!authHeader) return res.sendStatus(401);
+ if(!authHeader){
+   return res.status(401).json({ error:"Token requerido" });
+ }
 
  const token = authHeader.split(" ")[1];
 
  try{
    req.user = jwt.verify(token, SECRET);
    next();
- }catch{
-   return res.sendStatus(403);
+ }catch(err){
+   return res.status(401).json({ error:"Token expirado o inválido" });
  }
 
 }
