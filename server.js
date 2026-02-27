@@ -288,11 +288,26 @@ app.put("/tasks/:id", authMiddleware, async (req,res)=>{
    const { status, comments } = req.body;
 
    if(status !== undefined){
-     await db.query(
-       "UPDATE tasks SET status=$1 WHERE id=$2",
-       [status,id]
-     );
-   }
+
+  let updateQuery = "UPDATE tasks SET status=$1";
+  let values = [status];
+  let index = 2;
+
+  // 🔥 Si pasa a proceso → guardar hora inicio
+  if(status === "proceso"){
+    updateQuery += ", started_at=NOW()";
+  }
+
+  // 🔥 Si se cierra → guardar hora cierre
+  if(status === "terminado"){
+    updateQuery += ", closed_at=NOW()";
+  }
+
+  updateQuery += ` WHERE id=$${index}`;
+  values.push(id);
+
+  await db.query(updateQuery, values);
+}   
 
    if(comments !== undefined){
      await db.query(
