@@ -19,7 +19,7 @@ app.use(express.json());
 app.use(cors({
   origin: "*",
   credentials: false,
-  methods: ["GET","POST","PUT","OPTIONS"],
+  methods: ["GET","POST","PUT","DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"]
 }));
 
@@ -452,6 +452,57 @@ app.get("/create-sistemas", async (req,res)=>{
  }
 
 });   
+
+app.get("/users", authMiddleware, async (req,res)=>{
+
+ if(req.user.role !== "sistemas"){
+   return res.status(403).send("No autorizado");
+ }
+
+ try{
+
+   const result = await db.query(
+     "SELECT id, username, role, department FROM users ORDER BY id DESC"
+   );
+
+   res.json(result.rows);
+
+ }catch(err){
+   console.log(err);
+   res.status(500).send("Error obteniendo usuarios");
+ }
+
+});
+
+app.delete("/users/:id", authMiddleware, async (req,res)=>{
+
+ if(req.user.role !== "sistemas"){
+   return res.status(403).send("No autorizado");
+ }
+
+ try{
+
+   const id = req.params.id;
+
+   // 🔒 Evitar que se elimine a sí mismo
+   if(Number(id) === req.user.id){
+     return res.status(400).send("No puedes eliminarte a ti mismo");
+   }
+
+   await db.query(
+     "DELETE FROM users WHERE id=$1",
+     [id]
+   );
+
+   res.json({ok:true});
+
+ }catch(err){
+   console.log(err);
+   res.status(500).send("Error eliminando usuario");
+ }
+
+});
+
 /* ================= LOGIN ================= */
 app.post("/login", async (req,res)=>{
 
