@@ -7,6 +7,7 @@ const webpush = require("web-push");
 const cors = require("cors");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
+console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
 
 /* ================= APP ================= */
 const SECRET = "mollyhelpers_secret";
