@@ -62,7 +62,10 @@ const io = new Server(server,{
 
 app.use(express.static(__dirname));
 
+
 /* ================= DATABASE (POSTGRESQL) ================= */
+
+console.log("DATABASE_URL =", process.env.DATABASE_URL);
 
 const db = new Pool({
   connectionString: process.env.DATABASE_URL,
