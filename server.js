@@ -112,11 +112,19 @@ initDB();
 
 /* ================= WEB PUSH ================= */
 
-webpush.setVapidDetails(
-  "mailto:admin@mollyhelpers.com",
-  process.env.VAPID_PUBLIC_KEY,
+if (
+  process.env.VAPID_PUBLIC_KEY &&
   process.env.VAPID_PRIVATE_KEY
-);
+) {
+  webpush.setVapidDetails(
+    "mailto:admin@mollyhelpers.com",
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY
+  );
+  console.log("✅ VAPID configurado");
+} else {
+  console.log("⚠ VAPID no configurado, push notifications desactivadas");
+}
 
 /* ================= SOCKET ================= */
 
