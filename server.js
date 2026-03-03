@@ -7,48 +7,6 @@ const webpush = require("web-push");
 const cors = require("cors");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
-const multer = require("multer");
-const cloudinary = require("./config/cloudinary");
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 3 * 1024 * 1024 }
-});
-
-app.post("/tasks/:id/evidence", authMiddleware, upload.single("image"), async (req,res)=>{
-  try{
-
-    if(!req.file){
-      return res.status(400).json({error:"No image provided"});
-    }
-
-    const result = await new Promise((resolve,reject)=>{
-      cloudinary.uploader.upload_stream(
-        {
-          folder:"molly-evidences",
-          resource_type:"image",
-          transformation:[{ width:1200, quality:"auto" }]
-        },
-        (error,result)=>{
-          if(error) reject(error);
-          else resolve(result);
-        }
-      ).end(req.file.buffer);
-    });
-
-    await db.query(
-      `INSERT INTO task_evidences(task_id,image_url,uploaded_by)
-       VALUES($1,$2,$3)`,
-      [req.params.id, result.secure_url, req.user.username]
-    );
-
-    res.json({ ok:true, url: result.secure_url });
-
-  }catch(err){
-    console.error(err);
-    res.status(500).json({error:"Error subiendo evidencia"});
-  }
-});
 
 console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
 
@@ -627,5 +585,48 @@ const PORT = process.env.PORT || 3000;
 
 server.listen(PORT,()=>{
  console.log("🚀 Server running on port",PORT);
+});
+
+const multer = require("multer");
+const cloudinary = require("./config/cloudinary");
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 3 * 1024 * 1024 }
+});
+
+app.post("/tasks/:id/evidence", authMiddleware, upload.single("image"), async (req,res)=>{
+  try{
+
+    if(!req.file){
+      return res.status(400).json({error:"No image provided"});
+    }
+
+    const result = await new Promise((resolve,reject)=>{
+      cloudinary.uploader.upload_stream(
+        {
+          folder:"molly-evidences",
+          resource_type:"image",
+          transformation:[{ width:1200, quality:"auto" }]
+        },
+        (error,result)=>{
+          if(error) reject(error);
+          else resolve(result);
+        }
+      ).end(req.file.buffer);
+    });
+
+    await db.query(
+      `INSERT INTO task_evidences(task_id,image_url,uploaded_by)
+       VALUES($1,$2,$3)`,
+      [req.params.id, result.secure_url, req.user.username]
+    );
+
+    res.json({ ok:true, url: result.secure_url });
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Error subiendo evidencia"});
+  }
 });
 
