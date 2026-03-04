@@ -239,7 +239,7 @@ async function login(){
  if(loginRunning) return;
 
 
- const company_code = document.getElementById("company_code").value;
+ const company_code = document.getElementById("company_code").value.trim(); 
  const username = document.getElementById("u").value.trim();
  const password = document.getElementById("p").value.trim();
 
@@ -256,22 +256,25 @@ fetch("/login",{
  })
 });
 
- if(!username || !password){
-   alert("Ingresa usuario y contraseña");
-   return;
- }
+ if(!company_code || !username || !password){
+ alert("Ingresa empresa, usuario y contraseña");
+ return;
+}
 
  loginRunning = true;
  document.getElementById("loadingScreen").style.display="flex";
 
  try{
 
-   const r = await fetch("https://pms-hotel-enterprise.onrender.com/login",{
+   const r = await fetch("/login",{
      method:"POST",
      headers:{ "Content-Type":"application/json" },
-     body: JSON.stringify({ username, password })
-   });
-
+      body:JSON.stringify({
+        company_code,
+        username,
+        password
+      })
+    });
    if(!r.ok){
      alert("Usuario o contraseña incorrectos");
      document.getElementById("loadingScreen").style.display="none";
