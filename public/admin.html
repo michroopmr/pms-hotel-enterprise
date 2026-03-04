@@ -1,0 +1,70 @@
+<h2>Panel SuperAdmin</h2>
+
+<h3>Crear Empresa</h3>
+
+<input id="empresa_nombre" placeholder="Nombre empresa">
+<input id="empresa_codigo" placeholder="Código empresa">
+
+<button onclick="crearEmpresa()">Crear Empresa</button>
+
+<hr>
+
+<h3>Empresas registradas</h3>
+
+<div id="lista_empresas"></div>
+
+<script>
+
+const token = localStorage.getItem("token");
+
+async function crearEmpresa(){
+
+ const name = document.getElementById("empresa_nombre").value;
+ const code = document.getElementById("empresa_codigo").value;
+
+ await fetch("/admin/companies",{
+   method:"POST",
+   headers:{
+     "Content-Type":"application/json",
+     "Authorization":"Bearer "+token
+   },
+   body:JSON.stringify({name,code})
+ });
+
+ cargarEmpresas();
+
+}
+
+async function cargarEmpresas(){
+
+ const r = await fetch("/admin/companies",{
+   headers:{
+     "Authorization":"Bearer "+token
+   }
+ });
+
+ const empresas = await r.json();
+
+ const div = document.getElementById("lista_empresas");
+
+ div.innerHTML="";
+
+ empresas.forEach(e=>{
+
+   div.innerHTML += `
+   <div style="border:1px solid #ddd;padding:10px;margin:5px">
+     <b>${e.name}</b>
+     <br>
+     Código: ${e.code}
+     <br>
+     ID: ${e.id}
+   </div>
+   `;
+
+ });
+
+}
+
+cargarEmpresas();
+
+</script>

@@ -515,6 +515,7 @@ app.get("/tasks", authMiddleware, async (req,res)=>{
 // ===== CREAR USUARIO SISTEMAS (TEMPORAL) =====
 app.get("/create-sistemas", async (req,res)=>{
 
+  
  try{
 
    await db.query(
@@ -534,7 +535,92 @@ app.get("/create-sistemas", async (req,res)=>{
  }
 
 });   
+/* ================= GET COMPANIES ================= */
 
+app.get("/admin/companies", authMiddleware, async (req,res)=>{
+
+ if(req.user.role !== "sistemas"){
+   return res.status(403).send("No autorizado");
+ }
+
+ try{
+
+   const result = await db.query(
+     "SELECT * FROM companies ORDER BY id DESC"
+   );
+
+   res.json(result.rows);
+
+ }catch(err){
+
+   console.log(err);
+   res.status(500).send("Error obteniendo empresas");
+
+ }
+
+});
+
+/* ================= CREATE COMPANY ================= */
+
+app.post("/admin/companies", authMiddleware, async (req,res)=>{
+
+ if(req.user.role !== "sistemas"){
+   return res.status(403).send("No autorizado");
+ }
+
+ try{
+
+   const { name, code } = req.body;
+
+   const result = await db.query(
+   `
+   INSERT INTO companies(name,code)
+   VALUES($1,$2)
+   RETURNING *
+   `,
+   [name,code]
+   );
+
+   res.json(result.rows[0]);
+
+ }catch(err){
+
+   console.log(err);
+   res.status(500).send("Error creando empresa");
+
+ }
+
+});
+/* ================= CREATE COMPANY ADMIN ================= */
+
+app.post("/admin/company-admin", authMiddleware, async (req,res)=>{
+
+ if(req.user.role !== "sistemas"){
+   return res.status(403).send("No autorizado");
+ }
+
+ try{
+
+   const { username, password, company_id } = req.body;
+
+   await db.query(
+   `
+   INSERT INTO users(username,password,role,company_id)
+   VALUES($1,$2,'admin',$3)
+   `,
+   [username,password,company_id]
+   );
+
+   res.json({ok:true});
+
+ }catch(err){
+
+   console.log(err);
+   res.status(500).send("Error creando admin");
+
+ }
+
+});
 app.get("/users", authMiddleware, async (req,res)=>{
 
  if(req.user.role !== "sistemas"){
@@ -581,7 +667,7 @@ app.delete("/users/:id", authMiddleware, async (req,res)=>{
  }catch(err){
    console.log(err);
    res.status(500).send("Error eliminando usuario");
-   
+
  }
 
 });
