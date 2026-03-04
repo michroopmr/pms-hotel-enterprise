@@ -7,8 +7,9 @@ const webpush = require("web-push");
 const cors = require("cors");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
+const path = require("path");
 
-console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
+
 
 
 /* ================= APP ================= */
@@ -16,8 +17,15 @@ const SECRET = "mollyhelpers_secret";
 const app = express();
 const server = http.createServer(app);
 
+console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
+
 app.use(express.json());
 
+app.use(express.static(path.join(__dirname,"public")));
+
+app.get("/", (req,res)=>{
+ res.sendFile(path.join(__dirname,"public","login.html"));
+});
 
 app.use(cors({
   origin: "*",
@@ -63,8 +71,6 @@ const io = new Server(server,{
   cors:{ origin:"*" }
 });
 
-app.use(express.static(__dirname));
-
 
 /* ================= DATABASE (POSTGRESQL) ================= */
 
@@ -76,6 +82,15 @@ const db = new Pool({
 });
 
 async function initDB(){
+
+  await db.query(`
+ CREATE TABLE IF NOT EXISTS companies(
+   id SERIAL PRIMARY KEY,
+   name TEXT,
+   code TEXT UNIQUE,
+   created_at TIMESTAMP DEFAULT NOW()
+ )
+ `);
 
  await db.query(`
    CREATE TABLE IF NOT EXISTS tasks(
@@ -92,6 +107,10 @@ async function initDB(){
  await db.query(`
   ALTER TABLE tasks
   ADD COLUMN IF NOT EXISTS comments TEXT;
+`);
+await db.query(`
+ALTER TABLE tasks
+ADD COLUMN IF NOT EXISTS company_id INTEGER
 `);
  await db.query(`
    CREATE TABLE IF NOT EXISTS push_subscriptions(
@@ -111,6 +130,10 @@ async function initDB(){
   department TEXT
 )
  `);
+ await db.query(`
+ALTER TABLE users
+ADD COLUMN IF NOT EXISTS company_id INTEGER
+`);
 }
 
 
@@ -273,11 +296,20 @@ app.post("/tasks", authMiddleware, async (req,res)=>{
  }
 
  const result = await db.query(
-   `INSERT INTO tasks(title,description,department,status,created_by,due_date)
-    VALUES($1,$2,$3,$4,$5,$6)
-    RETURNING *`,
-   [title,description,department,"abierto",user,due_date]
- );
+  `INSERT INTO tasks
+  (title,description,department,status,created_by,due_date,company_id)
+  VALUES($1,$2,$3,$4,$5,$6,$7)
+  RETURNING *`,
+  [
+    title,
+    description,
+    department,
+    "abierto",
+    user,
+    due_date,
+    req.user.company_id
+  ]
+);
 
  const nuevaTarea = result.rows[0];
 
@@ -460,7 +492,8 @@ app.get("/tasks", authMiddleware, async (req,res)=>{
    // Sistemas y Admin ven todo
    if(req.user.role === "sistemas" || req.user.role === "admin"){
      const result = await db.query(
-       "SELECT * FROM tasks ORDER BY id DESC"
+       "SELECT * FROM tasks WHERE company_id=$1 ORDER BY id DESC",
+       [req.user.company_id]
      );
      return res.json(result.rows);
    }
@@ -548,6 +581,7 @@ app.delete("/users/:id", authMiddleware, async (req,res)=>{
  }catch(err){
    console.log(err);
    res.status(500).send("Error eliminando usuario");
+   
  }
 
 });
@@ -557,12 +591,19 @@ app.post("/login", async (req,res)=>{
 
  try{
 
-   const { username, password } = req.body;
+   const { company_code, username, password } = req.body;
 
-   const result = await db.query(
-     "SELECT * FROM users WHERE username=$1 AND password=$2",
-     [username, password]
-   );
+const result = await db.query(
+`
+SELECT u.*, c.code
+FROM users u
+JOIN companies c ON u.company_id = c.id
+WHERE u.username=$1
+AND u.password=$2
+AND c.code=$3
+`,
+[username, password, company_code]
+);
 
    if(result.rows.length === 0){
      return res.sendStatus(401);
@@ -575,7 +616,8 @@ const token = jwt.sign(
   id: usuario.id,
   username: usuario.username,
   role: usuario.role,
-  department: usuario.department
+  department: usuario.department,
+  company_id: usuario.company_id
 },
 SECRET,
 { expiresIn:"8h" }

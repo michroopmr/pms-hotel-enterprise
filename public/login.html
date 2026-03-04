@@ -201,7 +201,8 @@ body{
 
    <h1>MollyHelpers</h1>
    <p>Plataforma inteligente para operación hotelera en tiempo real</p>
-
+   
+   <input id="company_code" placeholder="Código empresa">
    <input id="u" type="text" placeholder="Usuario">
    <input id="p" type="password" placeholder="Contraseña">
 
@@ -237,8 +238,23 @@ async function login(){
 
  if(loginRunning) return;
 
+
+ const company_code = document.getElementById("company_code").value;
  const username = document.getElementById("u").value.trim();
  const password = document.getElementById("p").value.trim();
+
+
+fetch("/login",{
+ method:"POST",
+ headers:{
+  "Content-Type":"application/json"
+ },
+ body:JSON.stringify({
+  company_code,
+  username,
+  password
+ })
+});
 
  if(!username || !password){
    alert("Ingresa usuario y contraseña");
