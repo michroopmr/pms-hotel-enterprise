@@ -448,6 +448,25 @@ app.get("/tasks/:department", authMiddleware, async (req,res)=>{
 
    const department = req.params.department;
 
+   const rolesFullAccess = ["sistemas","admin","recepcion"];
+
+   // roles que pueden consultar cualquier departamento
+   if(rolesFullAccess.includes(req.user.role)){
+
+     const result = await db.query(
+       "SELECT * FROM tasks WHERE department=$1 ORDER BY id DESC",
+       [department]
+     );
+
+     return res.json(result.rows);
+
+   }
+
+   // seguridad: evitar que otro departamento consulte
+   if(req.user.department !== department){
+     return res.status(403).send("No autorizado");
+   }
+
    const result = await db.query(
      "SELECT * FROM tasks WHERE department=$1 ORDER BY id DESC",
      [department]
@@ -489,16 +508,20 @@ app.get("/tasks", authMiddleware, async (req,res)=>{
 
  try{
 
-   // Sistemas y Admin ven todo
-   if(req.user.role === "sistemas" || req.user.role === "admin"){
+   // roles que pueden ver todo
+   const rolesFullAccess = ["sistemas","admin","recepcion"];
+
+   if(rolesFullAccess.includes(req.user.role)){
+
      const result = await db.query(
-       "SELECT * FROM tasks WHERE company_id=$1 ORDER BY id DESC",
-       [req.user.company_id]
+       "SELECT * FROM tasks ORDER BY id DESC"
      );
+
      return res.json(result.rows);
+
    }
 
-   // Operador solo su departamento
+   // demás departamentos solo ven su área
    const result = await db.query(
      "SELECT * FROM tasks WHERE department=$1 ORDER BY id DESC",
      [req.user.department]
@@ -507,11 +530,14 @@ app.get("/tasks", authMiddleware, async (req,res)=>{
    res.json(result.rows);
 
  }catch(err){
+
    console.log(err);
    res.status(500).send("Error obteniendo tareas");
+
  }
 
 });
+
 // ===== CREAR USUARIO SISTEMAS (TEMPORAL) =====
 app.get("/create-sistemas", async (req,res)=>{
 
