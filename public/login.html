@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>MollyHelpers | Smart Hotel Assistant</title>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#0b1c36">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+
+/* ===== GLOBAL ===== */
+
+*{
+ box-sizing:border-box;
+ font-family:Inter,Segoe UI,system-ui;
+}
+
+body{
+ margin:0;
+ background:#ffffff;
+}
+
+/* ===== LAYOUT ===== */
+
+.login-wrapper{
+ display:flex;
+ min-height:100vh; /* FIX profesional mobile */
+ animation:fadeIn .8s ease;
+}
+
+@keyframes fadeIn{
+ from{opacity:0; transform:translateY(10px);}
+ to{opacity:1; transform:translateY(0);}
+}
+
+/* ===== LEFT LOGIN ===== */
+
+.login-left{
+ width:40%;
+ display:flex;
+ flex-direction:column;
+ justify-content:center;
+ padding:80px;
+ background:#ffffff;
+
+ max-width:520px;   /* centrado elegante */
+ margin:auto;
+}
+
+.login-left h1{
+ color:#0b1c36;
+ margin-bottom:5px;
+}
+
+.login-left p{
+ color:#777;
+ margin-bottom:25px;
+}
+
+.login-left input{
+ padding:14px;
+ margin-bottom:15px;
+ border-radius:8px;
+ border:1px solid #ddd;
+ font-size:14px;
+ width:100%;
+}
+
+.login-left input:focus{
+ outline:none;
+ border-color:#0b1c36;
+ box-shadow:0 0 0 2px rgba(11,28,54,.1);
+}
+
+.login-left button{
+ background:#0b1c36;
+ color:white;
+ border:none;
+ padding:14px;
+ border-radius:10px;
+ cursor:pointer;
+ font-size:14px;
+ transition:.25s;
+ width:100%;
+}
+
+.login-left button:hover{
+ transform:translateY(-2px);
+ box-shadow:0 6px 15px rgba(0,0,0,.15);
+ background:#14294d;
+}
+
+/* ===== RIGHT IMAGE ===== */
+
+.login-right{
+ width:60%;
+ background-image:url('fondo-login.jpg');
+ background-size:cover;
+ background-position:right center;
+ position:relative;
+}
+
+.login-right::before{
+ content:'';
+ position:absolute;
+ left:0;
+ top:0;
+ width:35%;
+ height:100%;
+ background:linear-gradient(
+   to right,
+   white,
+   rgba(255,255,255,0.8),
+   transparent
+ );
+}
+
+/* ===== LOADING SCREEN ===== */
+
+#loadingScreen{
+ position:fixed;
+ inset:0;
+ background:rgba(255,255,255,0.85);
+ backdrop-filter:blur(10px);
+ display:none;
+ align-items:center;
+ justify-content:center;
+ z-index:999;
+}
+
+.loader-box{
+ text-align:center;
+}
+
+.spinner{
+ width:40px;
+ height:40px;
+ border:4px solid #e5e7eb;
+ border-top:4px solid #0b1c36;
+ border-radius:50%;
+ animation:spin 1s linear infinite;
+ margin:auto;
+ margin-bottom:15px;
+}
+
+@keyframes spin{
+ from{transform:rotate(0deg);}
+ to{transform:rotate(360deg);}
+}
+
+.loading-text{
+ font-size:14px;
+ color:#0b1c36;
+}
+
+.login-footer{
+ font-size:12px;
+ color:#9ca3af;
+ margin-top:40px;
+}
+
+/* ===== MOBILE RESPONSIVE ===== */
+
+@media (max-width: 768px){
+
+  .login-wrapper{
+    flex-direction:column;
+  }
+
+  .login-left{
+    width:100%;
+    padding:40px 25px;
+    max-width:420px;
+  }
+
+  .login-right{
+    display:none; /* estilo SaaS real */
+  }
+
+  .login-left input{
+    font-size:16px; /* evita zoom iPhone */
+  }
+
+  .login-left button{
+    height:48px;
+  }
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="login-wrapper">
+
+ <!-- LOGIN -->
+ <div class="login-left">
+
+   <h1>MollyHelpers</h1>
+   <p>Plataforma inteligente para operación hotelera en tiempo real</p>
+
+   <input id="u" type="text" placeholder="Usuario">
+   <input id="p" type="password" placeholder="Contraseña">
+
+   <button onclick="login()">Entrar</button> 
+
+   <div class="login-footer">
+     © <span id="year"></span> MollyHelpers — Developed by Michelle Romero
+   </div>
+  
+ </div>
+
+ <!-- IMAGEN -->
+ <div class="login-right"></div>
+
+</div>
+
+<!-- ===== LOADING SCREEN ===== -->
+
+<div id="loadingScreen">
+ <div class="loader-box">
+   <div class="spinner"></div>
+   <div class="loading-text">
+     Conectando MollyHelpers...
+   </div>
+ </div>
+</div>
+
+<script>
+
+let loginRunning = false;
+
+async function login(){
+
+ if(loginRunning) return;
+
+ const username = document.getElementById("u").value.trim();
+ const password = document.getElementById("p").value.trim();
+
+ if(!username || !password){
+   alert("Ingresa usuario y contraseña");
+   return;
+ }
+
+ loginRunning = true;
+ document.getElementById("loadingScreen").style.display="flex";
+
+ try{
+
+   const r = await fetch("https://pms-hotel-enterprise.onrender.com/login",{
+     method:"POST",
+     headers:{ "Content-Type":"application/json" },
+     body: JSON.stringify({ username, password })
+   });
+
+   if(!r.ok){
+     alert("Usuario o contraseña incorrectos");
+     document.getElementById("loadingScreen").style.display="none";
+     loginRunning = false;
+     return;
+   }
+
+   const data = await r.json();
+   localStorage.setItem("token", data.token);
+localStorage.setItem("user", JSON.stringify(data.user));
+
+   setTimeout(()=>{
+     location.href="dashboard.html";
+   },600);
+
+ }catch(e){
+
+   alert("Error de conexión");
+   document.getElementById("loadingScreen").style.display="none";
+   loginRunning = false;
+
+ }
+
+}
+
+document.getElementById("year").innerText = new Date().getFullYear();
+
+if ("serviceWorker" in navigator) {
+ window.addEventListener("load", () => {
+   navigator.serviceWorker.register("service-worker.js")
+     .then(()=>console.log("PWA activa"));
+ });
+}
+
+document.addEventListener("keydown",(e)=>{
+ if(e.key === "Enter"){
+   login();
+ }
+});
+
+</script>
+
+</body>
+</html>

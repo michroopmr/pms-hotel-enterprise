@@ -1,0 +1,2536 @@
+<!DOCTYPE html>
+<html lang="es">
+<head><script src="https://pms-hotel-enterprise.onrender.com/socket.io/socket.io.js"></script>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+<style>
+.col-left{
+ display:block;
+}
+
+.col-right{
+ display:flex;
+ flex-direction:column;
+ gap:18px;
+}
+
+*{
+ box-sizing:border-box;
+ font-family:Inter,Segoe UI,system-ui;
+}
+body{
+ margin:0;
+ background:#f4f6f9;
+ color:#111827;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+ width:250px;
+ background:#0f172a;
+ color:white;
+ min-height:100vh;
+ padding:22px;
+ display:flex;
+ flex-direction:column;
+}
+
+.sidebar h2{
+ font-size:16px;
+ margin-bottom:10px;
+}
+
+.menu-item{
+
+ padding:8px 10px;       /* 🔥 más compacto */
+ font-size:13px;         /* 🔥 letra más pequeña */
+ border-radius:8px;
+
+ cursor:pointer;
+ margin-bottom:4px;
+
+ transition:0.2s;
+
+}
+
+
+.menu-item:hover{
+ background:#1e293b;
+ transform:translateX(3px);
+}
+
+/* MAIN */
+
+.main{
+ flex:1;
+ padding:30px;
+}
+
+/* KPI */
+
+.kpis{
+ display:grid;
+ grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+ gap:16px;
+ margin-bottom:24px;
+}
+
+.card{
+ background:#fff;
+ padding:18px;
+ border-radius:14px;
+ cursor:pointer;
+ box-shadow:0 3px 12px rgba(0,0,0,0.06);
+ transition:0.25s;
+}
+
+.card:hover{
+ transform:translateY(-3px);
+ box-shadow:0 8px 20px rgba(0,0,0,0.08);
+}
+
+.card div:first-child{
+ font-size:26px;
+ font-weight:600;
+ margin-bottom:6px;
+}
+
+/* STATUS COLORS */
+
+.abierto{border-left:6px solid #22c55e}
+.proceso{border-left:6px solid #facc15}
+.vencido{border-left:6px solid #ef4444}
+.cerrado{border-left:6px solid #9ca3af}
+.proximo{
+ border-left:6px solid #f97316;
+ background:#fff7ed;
+}
+
+
+/* TASK CARD */
+
+.tarea{
+ background:#fff;
+ padding:16px;
+ margin-bottom:12px;
+ border-radius:14px;
+ box-shadow:0 2px 10px rgba(0,0,0,0.05);
+ transition:0.2s;
+}
+
+.tarea:hover{
+ transform:translateY(-2px);
+}
+
+/* FORM BOX */
+
+.form-box{
+
+ background:#cac6c6;
+
+ padding:12px;           /* 🔥 menos espacio interno */
+ border-radius:10px;
+
+ max-width:420px;        /* 🔥 tamaño más profesional */
+ width:100%;
+
+ margin-bottom:12px;     /* 🔥 menos separación */
+
+ box-shadow:0 1px 6px rgba(0,0,0,0.05);
+
+}
+
+
+/* INPUTS */
+
+input,textarea,select{
+ width:100%;
+ padding:10px;
+ border-radius:8px;
+ border:1px solid #e5e7eb;
+ margin-bottom:10px;
+ transition:0.2s;
+}
+
+input:focus,textarea:focus,select:focus{
+ outline:none;
+ border-color:#2563eb;
+ box-shadow:0 0 0 2px rgba(37,99,235,0.2);
+}
+
+/* BUTTON */
+
+button{
+ padding:8px 12px;
+ border:none;
+ border-radius:8px;
+ background:#2563eb;
+ color:white;
+ cursor:pointer;
+ font-weight:500;
+ transition:0.2s;
+}
+
+button:hover{
+ background:#1d4ed8;
+}
+
+/* FOOTER */
+
+footer{
+ text-align:center;
+ margin-top:40px;
+ color:#6b7280;
+ font-size:13px;
+}
+/* ===== LOGO PRO ALIGN ===== */
+
+#logo{
+
+ height:36px;          /* tamaño profesional */
+ width:auto;
+
+ display:block;
+ margin-bottom:18px;
+
+ object-fit:contain;
+
+}
+
+/* contenedor superior limpio */
+
+.main img#logo{
+
+ align-self:flex-start;
+
+}
+/* ===== ULTRA PRO LAYOUT ===== */
+
+.layout{
+ display:grid;
+ grid-template-columns: auto 1fr;
+}
+
+/* panel derecho limpio */
+
+.form-box{
+ width:100%;
+}
+
+/* lista tareas estilo pro */
+
+#lista{
+ max-width:900px;
+}
+
+
+.col-left{
+ display:block;
+}
+
+.col-right{
+ display:flex;
+ flex-direction:column;
+ gap:18px;
+}
+
+.form-box{
+ width:100%;
+}
+/* ===== PMS CARDS ===== */
+
+.tarea{
+ background:#fff;
+ border-radius:14px;
+ padding:16px;
+ margin-bottom:14px;
+ box-shadow:0 2px 10px rgba(0,0,0,0.05);
+ transition:0.2s;
+}
+
+.tarea:hover{
+ transform:translateY(-2px);
+}
+
+.tarea-header{
+ display:flex;
+ justify-content:space-between;
+ margin-bottom:8px;
+}
+
+.badge{
+ padding:3px 8px;
+ border-radius:8px;
+ font-size:12px;
+ font-weight:600;
+ color:white;
+}
+
+.badge.abierto{ background:#22c55e }
+.badge.proceso{ background:#facc15; color:#000 }
+.badge.vencido{ background:#ef4444 }
+.badge.cerrado{ background:#9ca3af }
+
+.tarea-title{
+ font-size:16px;
+ font-weight:600;
+ margin-bottom:4px;
+}
+
+.tarea-meta{
+ font-size:12px;
+ color:#6b7280;
+ margin-top:6px;
+}
+/* ===== MODO APP REAL (PWA MOBILE) ===== */
+
+.app-mode{
+
+ background:#f4f6f9;
+
+}
+
+/* sidebar compacto tipo app */
+
+.app-mode .sidebar{
+
+ width:80px;
+ padding:15px;
+ align-items:center;
+
+}
+
+/* ocultar texto grande */
+
+.app-mode .sidebar h2{
+
+ display:none;
+
+}
+
+/* iconos centrados estilo mobile */
+
+.app-mode .menu-item{
+
+ text-align:center;
+ font-size:20px;
+ padding:12px 0;
+
+}
+
+/* área principal más mobile */
+
+.app-mode .main{
+
+ padding:15px;
+
+}
+
+/* tarjetas más táctiles */
+
+.app-mode .card{
+
+ padding:22px;
+
+}
+
+/* ================= MOBILE APP MODE ================= */
+
+@media (max-width: 900px){
+
+  /* layout vertical tipo app */
+
+  .layout{
+    grid-template-columns: 1fr;
+  }
+
+  /* sidebar estilo app */
+
+  .sidebar{
+    position:fixed;
+    left:-260px;
+    top:0;
+    height:100%;
+    z-index:1000;
+    transition:0.3s;
+  }
+
+  .sidebar.open{
+    left:0;
+  }
+
+  /* main ocupa todo */
+
+  .main{
+    padding:15px;
+  }
+
+  /* KPIs en columnas mobile */
+
+  .kpis{
+    grid-template-columns:1fr 1fr;
+  }
+
+  /* tarjetas touch friendly */
+
+  .card{
+    padding:22px;
+  }
+
+  /* lista ancho completo */
+
+  #lista{
+    max-width:100%;
+  }
+
+}
+/* ===== MOBILE PRO MODE ===== */
+
+#mobileTopBar{
+ display:none;
+ align-items:center;
+ gap:12px;
+ margin-bottom:15px;
+}
+
+#menuBtn{
+ background:#0f172a;
+ color:white;
+ border:none;
+ font-size:20px;
+ padding:8px 12px;
+ border-radius:8px;
+}
+
+/* MOBILE */
+
+@media (max-width:900px){
+
+ .layout{
+   grid-template-columns:1fr;
+ }
+
+ /* TOP BAR APP */
+
+ #mobileTopBar{
+   display:flex;
+ }
+
+ /* SIDEBAR APP STYLE */
+
+ .sidebar{
+   position:fixed;
+   left:-260px;
+   top:0;
+   height:100%;
+   z-index:1000;
+   transition:0.3s;
+ }
+
+ .sidebar.open{
+   left:0;
+ }
+
+ /* overlay oscuro */
+
+ .overlay{
+   position:fixed;
+   inset:0;
+   background:rgba(0,0,0,0.3);
+   display:none;
+   z-index:999;
+ }
+
+ .overlay.show{
+   display:block;
+ }
+
+ .main{
+   padding:15px;
+ }
+
+ .kpis{
+   grid-template-columns:1fr 1fr;
+ }
+
+ .card{
+   padding:22px;
+ }
+
+ #lista{
+   max-width:100%;
+ }
+
+}
+.appHeader{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ margin-bottom:20px;
+}
+
+.appTitle{
+ font-size:18px;
+ font-weight:600;
+ color:#0f172a;
+}
+
+.appUser{
+ font-size:13px;
+ color:#6b7280;
+}
+.tarea{
+ animation:fadeUp .3s ease;
+}
+
+@keyframes fadeUp{
+ from{
+   opacity:0;
+   transform:translateY(10px);
+ }
+ to{
+   opacity:1;
+   transform:translateY(0);
+ }
+}
+.card{
+ backdrop-filter:blur(4px);
+ border:1px solid #f1f5f9;
+}
+
+.card:hover{
+ transform:translateY(-3px) scale(1.02);
+}
+/* ===== FIX KPI COLORS ===== */
+
+.card.abierto{ border-left:6px solid #22c55e !important; }
+.card.proceso{ border-left:6px solid #facc15 !important; }
+.card.vencido{ border-left:6px solid #ef4444 !important; }
+.card.cerrado{ border-left:6px solid #9ca3af !important; }
+.vencido_cerrado{
+ border-left:6px solid #9ca3af;
+ opacity:0.7;
+}
+/* ===== MOBILE ICON ONLY MODE ===== */
+
+@media (max-width:900px){
+
+  .menu-item{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:0;
+  }
+
+  .menu-item .text{
+    display:none;
+  }
+
+  .menu-item .icon{
+    font-size:22px;
+  }
+
+  .sidebar{
+    width:80px;
+    padding:15px;
+  }
+
+  .sidebar h2{
+    display:none;
+  }
+
+}
+#d{
+ display:none;
+}
+.badgeNotif{
+ background:#ef4444;
+ color:white;
+ font-size:10px;
+ padding:2px 6px;
+ border-radius:20px;
+ margin-left:6px;
+ display:none;
+}
+
+#panelSistemas input,
+#panelSistemas select,
+#panelSistemas button {
+  display:block;
+  width:100%;
+  margin-bottom:10px;
+  padding:6px;
+  border-radius:6px;
+  border:1px solid #333;
+}
+</style>
+
+
+</head>
+
+<body>
+<audio id="alertSound" src="alert.mp3" preload="auto"></audio>
+<div id="overlay" class="overlay" onclick="toggleMenu()"></div>
+<div class="layout">
+
+  <!-- ===== MENU LATERAL ===== -->
+  <div class="sidebar">
+
+    <h2>MollyHelpers</h2>
+
+    <div class="menu-item" id="menuDashboard" onclick="mostrarVista('dashboard')">
+      <span class="icon">📊</span>
+      <span class="text">Dashboard <span id="badgeNotif" class="badgeNotif"></span></span>
+    </div>
+
+    <div class="menu-item" id="menuCrear" onclick="mostrarVista('crear')">
+      <span class="icon">➕</span>
+      <span class="text">Crear tarea</span>
+    </div>
+
+    <div class="menu-item" id="menuReportes" onclick="mostrarVista('reportes')">
+      <span class="icon">📈</span>
+      <span class="text">Reportes</span>
+    </div> 
+
+    <div class="menu-item" id="menuSistemas" onclick="mostrarVista('sistemas')">
+      <span class="icon">🛠️</span>
+      <span class="text">Sistemas</span>
+    </div> 
+
+    <div class="menu-item" id="menuLogout" onclick="logout()">
+      <span class="icon">🚪</span>
+      <span class="text">Logout</span>
+    </div>
+  </div>
+
+  <!-- ===== CONTENIDO PRINCIPAL ===== -->
+  <div class="main">
+    <div id="mobileTopBar">
+
+  <button id="menuBtn" onclick="toggleMenu()">☰</button>
+  <span>MollyHelpers</span>
+
+</div>
+<div class="appHeader">
+
+  <div class="appTitle">
+    Smart Hotel Assistant
+  </div>
+
+  <div class="appUser">
+    👤 <span id="userTop"></span>
+  </div>
+
+</div>
+    <!-- ================= DASHBOARD ================= -->
+    <div id="vista-dashboard" class="vista">
+
+      <img id="logo" src="logo.png">
+      
+
+      <h2>📊 Estado General de Operación</h2>
+
+      <div id="info"></div>
+
+      <!-- KPIs -->
+      <div class="kpis">
+
+        <div class="card abierto" onclick="aplicarFiltro('abierto')">
+          <div id="kA">0</div>Abiertas
+        </div>
+
+        <div class="card proceso" onclick="aplicarFiltro('proceso')">
+          <div id="kP">0</div>Proceso
+        </div>
+
+        <div class="card vencido" onclick="aplicarFiltro('vencido')">
+          <div id="kV">0</div>Vencidas
+        </div>
+
+        <div class="card cerrado" onclick="aplicarFiltro('cerrado')">
+          <div id="kC">0</div>Cerradas
+        </div>
+
+      </div>
+
+      <h3>Tareas</h3>
+
+      <div id="lista"></div>
+
+    </div>
+
+    <!-- ================= CREAR TAREA ================= -->
+    <div id="vista-crear" class="vista" style="display:none">
+
+      <div class="form-box">
+
+        <h4>➕ Crear tarea</h4>
+        <select id="plantilla" onchange="aplicarPlantilla()">
+            <option value="">Seleccionar tarea rápida</option>
+          </select>
+          
+          <textarea id="d" placeholder="Descripción"></textarea>
+
+        <input type="datetime-local" id="due">
+
+        <select id="nr"></select>
+
+        <button onclick="crearTarea()">Crear</button>
+
+      </div>
+
+    </div>
+
+
+<!-- ================= REPORTES ================= -->
+<div id="vista-reportes" class="vista" style="display:none">
+
+  <div id="lista-reportes"></div>
+
+  <div class="form-box">
+
+    <h4>📅 Historial de tareas</h4>
+
+    <div id="filtroActivo" style="
+      display:none;
+      background:#fff3cd;
+      padding:8px;
+      border-radius:8px;
+      margin-bottom:10px;
+      font-size:13px;
+    ">
+
+      🔎 Filtro activo
+
+      <button onclick="limpiarFiltros()" style="margin-left:10px;">
+        Limpiar
+      </button>
+
+    </div>
+
+    <input type="date" id="from">
+    <input type="date" id="to">
+
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+
+      <button onclick="filtrarPorFecha()">Consultar</button>
+      <button onclick="exportarExcel()">Exportar Excel</button>
+      <button onclick="exportarPDF()">Exportar PDF</button>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- ================= SISTEMAS ================= -->
+<div id="vista-sistemas" class="vista" style="display:none">
+      <input type="file" id="logoInput" accept="image/*">
+
+      <div id="panelSistemas">
+
+  <h3>⚙ Sistemas</h3>
+
+  <div style="display:flex; gap:30px; align-items:flex-start;">
+
+    <!-- 🔹 IZQUIERDA: Formularios -->
+    <div style="flex:1;">
+
+      <h4>Crear usuario</h4>
+
+      <input id="nu" placeholder="Usuario">
+      <input id="np" placeholder="Password">
+
+      <select id="userRole">
+        <option value="operador">Operador</option>
+        <option value="admin">Admin</option>
+        <option value="sistemas">Sistemas</option>
+      </select>
+
+      <select id="userDepartment">
+        <option value="Recepción">Recepción</option>
+        <option value="Mantenimiento">Mantenimiento</option>
+        <option value="Spa">Spa</option>
+        <option value="Operaciones">Operaciones</option>
+        <option value="Gerencia General">Gerencia General</option>
+        <option value="Cocina">Cocina</option>
+        <option value="Alimentos Bebidas">Alimentos Bebidas</option>
+      </select>
+
+      <button onclick="crearUsuario()">Crear usuario</button>
+
+      <hr style="margin:20px 0">
+
+      <h4>Cambiar contraseña</h4>
+
+      <input id="cu" placeholder="Usuario">
+      <input id="cp" placeholder="Nueva password">
+      <button onclick="cambiarPassword()">Cambiar</button>
+
+    </div>
+
+    <!-- 🔹 DERECHA: Lista de usuarios -->
+    <div style="flex:1; min-width:320px;">
+
+      <h4>Usuarios creados</h4>
+
+      <table style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Rol</th>
+            <th>Departamento</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="listaUsuarios"></tbody>
+      </table>
+
+    </div>
+
+  </div>
+
+</div>
+
+  </div>
+
+<footer>
+© <span id="year"></span> Michelle Romero para Empresa
+</footer>
+
+<script>
+  /* ===== DETECTAR MODO APP INSTALADA ===== */
+
+const isAppMode =
+ window.matchMedia('(display-mode: standalone)').matches ||
+ window.navigator.standalone === true;
+
+if(isAppMode){
+
+ document.body.classList.add("app-mode");
+
+ console.log("🔥 MollyHelpers APP MODE ACTIVADO");
+
+}
+
+/* ================= SESIÓN ================= */
+let user=null;
+const saved=localStorage.getItem("user");
+if(saved) user=JSON.parse(saved);
+if(!localStorage.getItem("token")){
+ location.href="login.html";
+}
+function aplicarPermisos(){
+
+ if(!user) return;
+
+ // 🔒 Solo Sistemas puede ver panel de usuarios
+ if(user.role !== "sistemas"){
+   const panel = document.getElementById("panelSistemas");
+   if(panel) panel.style.display = "none";
+ }
+
+ // 🔒 Operador no puede ver vista global
+ if(user.role === "operador"){
+   const btnGlobal = document.getElementById("btnVistaGlobal");
+   if(btnGlobal) btnGlobal.style.display = "none";
+ }
+if(user.role === "sistemas"){
+   cargarUsuarios();
+}
+}
+async function secureFetch(url, options = {}) {
+
+ const token = localStorage.getItem("token");
+
+ const response = await fetch(url, {
+   ...options,
+   headers: {
+     ...options.headers,
+     "Authorization": "Bearer " + token
+   }
+ });
+
+ if (response.status === 401) {
+   logoutAuto("Sesión expirada por seguridad.");
+   return null;
+ }
+
+ return response;
+}
+
+info.innerText=`Usuario: ${user.username}`;
+year.innerText=new Date().getFullYear();
+userTop.innerText = user.username;
+
+const esAdmin = user.role && user.role.toLowerCase() === "sistemas";
+
+if(esAdmin){
+  document.getElementById("panelSistemas").style.display = "block";
+  document.getElementById("menuSistemas").style.display = "block";
+}else{
+  document.getElementById("panelSistemas").style.display = "none";
+  document.getElementById("menuSistemas").style.display = "none";
+}
+
+/* ================= DATA ================= */
+let tareas=[];
+let filtroEstado=null;
+let filtroFecha=null;
+let usuarioEditando = false;
+let vistaActual = "dashboard"; // 🔥 saber qué vista está activa
+let logoCloudData = null;
+
+/* ===== PLANTILLAS DE TAREAS ===== */
+
+const plantillas = [
+
+ {nombre:"Tarea Abierta", departamento:"Otros"},
+ {nombre:"Cambio de habitación", departamento:"Recepción"},
+ {nombre:"WC tapado", departamento:"Mantenimiento"},
+ {nombre:"Falla aire acondicionado", departamento:"Mantenimiento"},
+ {nombre:"Falla TV", departamento:"Mantenimiento"},
+ {nombre:"Falla WiFi", departamento:"Operaciones"},
+ {nombre:"Agua caliente", departamento:"Mantenimiento"},
+ {nombre:"Limpieza de habitación", departamento:"Housekeeping"},
+ {nombre:"Recolección de servicios", departamento:"Alimentos y Bebidas"},
+ {nombre:"Foco fundido", departamento:"Mantenimiento"},
+
+];
+function cargarPlantillas(){
+
+ const select = document.getElementById("plantilla");
+
+ plantillas.forEach(p=>{
+   select.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
+ });
+
+}
+function aplicarPlantilla(){
+
+ const nombre = document.getElementById("plantilla").value;
+ const textarea = document.getElementById("d"); // 🔥 este es el textarea real
+ const selectDep = document.getElementById("nr"); // 🔥 este es el select
+
+ if(!textarea) return;
+
+ if(!nombre){
+   textarea.style.display="none";
+   textarea.value="";
+   return;
+ }
+
+ const p = plantillas.find(x=>x.nombre===nombre);
+
+ if(!p) return;
+
+ textarea.style.display="block";
+ textarea.value = nombre; // o p.descripcion si existe
+
+ if(selectDep){
+   selectDep.value = p.departamento;
+ }
+
+}
+async function cargarDepartamentos(){
+
+  try{
+
+    const r = await secureFetch(
+      "https://pms-hotel-enterprise.onrender.com/departments",
+      {
+        headers:{
+          "Authorization":"Bearer "+localStorage.getItem("token")
+        }
+      }
+    );
+
+    if(!r.ok){
+      console.error("Error cargando departamentos");
+      return;
+    }
+
+    const departamentos = await r.json();
+
+    const select = document.getElementById("nr");
+    select.innerHTML = "";
+
+    departamentos.forEach(dep => {
+
+      const option = document.createElement("option");
+      option.value = dep;
+      option.textContent = dep;
+
+      select.appendChild(option);
+
+    });
+
+  }catch(e){
+    console.error("Error:", e);
+  }
+
+}
+/* ================= HELPERS ================= */
+function estado(t){
+
+ const ahora = new Date();
+
+ if(t.status === "terminado"){
+
+   if(t.due_date && new Date(t.due_date) < ahora){
+     return "vencido_cerrado";
+   }
+
+   return "cerrado";
+ }
+
+ if(t.status === "proceso") return "proceso";
+
+ if(t.due_date && new Date(t.due_date) < ahora){
+   return "vencido";
+ }
+
+ return "abierto";
+}
+
+function calcularTiempoTotal(t){
+
+ if(!t.created_at || !t.closed_at) return "-";
+
+ const inicio = new Date(t.created_at);
+ const fin = new Date(t.closed_at);
+
+ const minutos = Math.floor((fin - inicio)/60000);
+
+ const horas = Math.floor(minutos / 60);
+ const mins = minutos % 60;
+
+ if(horas > 0){
+   return `${horas}h ${mins}m`;
+ }
+
+ return `${mins} min`;
+}
+
+function calcularScore(t){
+
+ if(!t.created_at || !t.closed_at) return "-";
+
+ const inicio = new Date(t.created_at);
+ const fin = new Date(t.closed_at);
+
+ const minutos = Math.floor((fin - inicio)/60000);
+
+ if(minutos <= 30) return "Excelente";
+ if(minutos <= 60) return "Bueno";
+ if(minutos <= 120) return "Regular";
+
+ return "Crítico";
+}
+
+function estadoTiempo(t){
+
+ // 🔥 si la tarea ya está cerrada NO evaluar tiempo
+ if(t.status === "terminado"){
+   return "";
+ }
+
+ if(!t.due_date) return "";
+
+ const ahora = new Date();
+ const vence = new Date(t.due_date.replace(" ","T"));
+
+ const diferenciaMs = vence - ahora;
+ const diferenciaMin = diferenciaMs / 60000;
+
+ if(diferenciaMin <= 0){
+   return "vencido";
+ }
+
+ if(diferenciaMin <= 10){
+   return "proximo";
+ }
+
+ return "";
+}
+
+ // 🔥 normalizar formato
+function fechaPMS(fecha){
+
+ if(!fecha) return {fecha:"",hora:""};
+
+ const d = new Date(fecha);
+
+ return {
+
+   fecha: d.toLocaleDateString("es-MX"),
+
+   hora: d.toLocaleTimeString("es-MX",{
+     hour:"numeric",
+     minute:"2-digit",
+     hour12:true
+   })
+
+ };
+
+}
+
+
+/* ================= CARGA ================= */
+async function cargar(){
+
+ const r = await secureFetch("https://pms-hotel-enterprise.onrender.com/tasks");
+ if(!r) return;
+
+ if(!r.ok){
+   const text = await r.text();
+   throw new Error(text);
+ }
+
+ tareas = await r.json();
+ render();
+ kpis();
+}
+/* ================= RENDER PMS SENIOR ================= */
+
+function render(){
+
+ if(usuarioEditando) return;
+
+ const contenedor = (vistaActual === "reportes")
+ ? document.getElementById("lista-reportes")
+ : document.getElementById("lista");
+
+ contenedor.innerHTML="";
+
+ // dataset base limpio
+ let visibles = [...tareas];
+// 🔥 PMS UX: Reportes solo muestra resultados al consultar
+
+if(vistaActual === "reportes" && !filtroFecha){
+
+ contenedor.innerHTML = "<small>Selecciona fechas y presiona Consultar</small>";
+
+ return;
+
+}
+ // ================= DASHBOARD = SOLO HOY =================
+
+ if(vistaActual === "dashboard"){
+
+   const hoy = new Date();
+   hoy.setHours(0,0,0,0);
+
+   const finHoy = new Date();
+   finHoy.setHours(23,59,59,999);
+
+   visibles = visibles.filter(t=>{
+
+     if(!t.due_date) return true;
+
+     const fecha = new Date(t.due_date.replace(" ","T"));
+
+     return fecha >= hoy && fecha <= finHoy;
+ });
+ }
+
+ // KPI solo aplica en dashboard
+
+if(vistaActual === "dashboard" && filtroEstado){
+
+ visibles = visibles.filter(t=>estado(t)===filtroEstado);
+
+}
+
+ // ================= FILTRO HISTORIAL =================
+
+ if(vistaActual === "reportes" && filtroFecha){
+
+   visibles = visibles.filter(t=>{
+
+     if(!t.created_at) return false;
+
+     const d = new Date(t.created_at.replace(" ","T"));
+
+     return d >= filtroFecha.from && d <= filtroFecha.to;
+
+   });
+
+ }
+
+ // ================= SIN RESULTADOS =================
+
+ if(!visibles.length){
+
+   contenedor.innerHTML="<small>No hay tareas</small>";
+   return;
+
+ }
+
+ // ================= RENDER TARJETAS =================
+
+ visibles.forEach(t=>{
+
+  const esCerrada = t.status === "terminado";
+   let comentarios=[];
+
+   try{
+     if(Array.isArray(t.comments)){
+       comentarios=t.comments;
+     }
+     else if(typeof t.comments==="string" && t.comments.trim()!==""){
+       comentarios=JSON.parse(t.comments);
+     }
+   }catch(e){}
+
+   if(esCerrada){
+
+contenedor.innerHTML += `
+
+<div class="tarea cerrado" data-id="${t.id}">
+
+<div class="tarea-header">
+<span class="badge cerrado">CERRADO</span>
+<span>${t.department}</span>
+</div>
+
+<div class="tarea-title">${t.title}</div>
+
+<div id="evidencias-${t.id}" style="margin-top:6px"></div>
+
+<div style="font-size:11px;color:#6b7280;margin-top:6px;">
+
+Create: ${fechaPMS(t.created_at).hora}
+
+&nbsp;&nbsp;
+
+Closed: ${t.closed_at ? fechaPMS(t.closed_at).hora : "-"}
+
+&nbsp;&nbsp;
+
+⏱ ${calcularTiempoTotal(t)}
+
+</div>
+
+`;
+
+}
+else{
+
+contenedor.innerHTML += `
+
+<div class="tarea ${estadoTiempo(t)}" data-id="${t.id}">
+
+<div class="tarea ${estadoTiempo(t)}" data-id="${t.id}">
+
+<div class="tarea-header">
+<span class="badge ${estado(t)}">${estado(t).toUpperCase()}</span>
+<span>${t.department}</span>
+</div>
+
+<div class="tarea-title">${t.title}</div>
+
+<div>${t.description}</div>
+<div style="
+ font-size:11px;
+ color:#6b7280;
+ margin-top:6px;
+">
+
+User: ${t.created_by || t.user || "N/A"} &nbsp;&nbsp;
+Create: ${fechaPMS(t.created_at).fecha}
+&nbsp;&nbsp;
+Time: ${fechaPMS(t.created_at).hora}
+${t.closed_at ? `
+<div style="font-size:11px;color:#6b7280;margin-top:4px;">
+✅ Cerrado: ${fechaPMS(t.closed_at).fecha} ${fechaPMS(t.closed_at).hora}
+</div>
+` : ""}
+${t.closed_at ? `
+<div style="font-size:11px;color:#6b7280;">
+⏱ Tiempo resolución: ${calcularTiempoTotal(t)}
+</div>
+` : ""}
+</div>
+
+${t.due_date ? `
+
+<div style="font-size:11px;color:#6b7280;margin-top:4px;">
+⏰ Vence: ${fechaPMS(t.due_date).fecha} ${fechaPMS(t.due_date).hora}
+</div>
+
+` : ""}
+
+
+<div style="margin-top:10px">
+
+${comentarios.map(c=>`
+
+<div style="background:#f3f4f6;padding:6px;border-radius:8px;margin-bottom:4px;font-size:13px;">
+
+<div style="font-size:11px;color:#6b7280">
+👤 ${c.user} | 🕒 ${c.fecha}
+</div>
+
+${c.texto}
+
+</div>
+
+`).join("")}
+
+</div>
+
+<div style="margin-top:8px;display:flex;gap:6px">
+
+<button onclick="cambiarEstado(${t.id},'proceso')">Proceso</button>
+<button onclick="cambiarEstado(${t.id},'terminado')">Cerrar</button>
+<button onclick="mostrarComentario(${t.id})">Comentario</button>
+
+</div>
+
+<div style="margin-top:10px;">
+  <input type="file" id="file-${t.id}" accept="image/*" style="display:none">
+
+  <button onclick="seleccionarImagen(${t.id})">
+    📎 Evidencia
+  </button>
+</div>
+
+<div id="evidencias-${t.id}" style="margin-top:8px"></div>
+
+<div id="box-comentario-${t.id}" style="display:none;margin-top:8px">
+
+<textarea class="comentario-input" id="comentario-${t.id}" placeholder="Escribir comentario..."></textarea>
+
+<button onclick="guardarComentario(${t.id})">Guardar</button>
+
+</div>
+
+</div>
+
+`;
+
+  setTimeout(()=>{
+  activarInputEvidencia(t.id);
+  cargarEvidencias(t.id);
+},50);
+}
+ });
+}
+
+function renderTareaIndividual(t){
+
+ const contenedor = (vistaActual === "reportes")
+ ? document.getElementById("lista-reportes")
+ : document.getElementById("lista");
+
+ let comentarios = [];
+
+ try{
+   if(Array.isArray(t.comments)){
+     comentarios = t.comments;
+   }
+   else if(typeof t.comments === "string" && t.comments.trim() !== ""){
+     comentarios = JSON.parse(t.comments);
+   }
+ }catch(e){}
+
+ const html = `
+<div class="tarea ${estadoTiempo(t)}" data-id="${t.id}">
+
+<div class="tarea-header">
+<span class="badge ${estado(t)}">${estado(t).toUpperCase()}</span>
+<span>${t.department}</span>
+</div>
+
+<div class="tarea-title">${t.title}</div>
+<div>${t.description}</div>
+
+
+<div style="font-size:11px;color:#6b7280;margin-top:6px;">
+User: ${t.created_by || t.user || "N/A"} 
+&nbsp;&nbsp;
+${fechaPMS(t.created_at).fecha}
+${fechaPMS(t.created_at).hora}
+</div>
+
+${t.due_date ? `
+<div style="font-size:11px;color:#6b7280;margin-top:4px;">
+⏰ Vence: ${fechaPMS(t.due_date).fecha} ${fechaPMS(t.due_date).hora}
+</div>
+` : ""}
+
+<div style="margin-top:10px">
+${comentarios.map(c=>`
+<div style="background:#f3f4f6;padding:6px;border-radius:8px;margin-bottom:4px;font-size:13px;">
+<div style="font-size:11px;color:#6b7280">
+👤 ${c.user} | 🕒 ${c.fecha}
+</div>
+${c.texto}
+</div>
+`).join("")}
+</div>
+
+<div style="margin-top:8px;display:flex;gap:6px">
+<button onclick="cambiarEstado(${t.id},'proceso')">Proceso</button>
+<button onclick="cambiarEstado(${t.id},'terminado')">Cerrar</button>
+<button onclick="mostrarComentario(${t.id})">Comentario</button>
+</div>
+
+<div id="box-comentario-${t.id}" style="display:none;margin-top:8px">
+<textarea class="comentario-input" id="comentario-${t.id}" placeholder="Escribir comentario..."></textarea>
+<button onclick="guardarComentario(${t.id})">Guardar</button>
+</div>
+
+</div>
+`;
+
+ const tarjetaExistente = document.querySelector(`[data-id='${t.id}']`);
+
+ if(tarjetaExistente){
+   tarjetaExistente.outerHTML = html;
+ }else{
+   contenedor.insertAdjacentHTML("afterbegin", html);
+ }
+ activarInputEvidencia(t.id);
+cargarEvidencias(t.id);
+
+}
+/* ================= KPIs ================= */
+function kpis(){
+ let c={abierto:0,proceso:0,vencido:0,cerrado:0};
+ tareas.forEach(t=>c[estado(t)]++);
+ kA.innerText=c.abierto;
+ kP.innerText=c.proceso;
+ kV.innerText=c.vencido;
+ kC.innerText=c.cerrado;
+}
+
+/* ================= FILTROS ================= */
+function aplicarFiltro(e){
+ filtroEstado=e;
+ render();
+}
+function limpiarFiltros(){
+
+ filtroEstado = null;
+ filtroFecha = null;
+
+ console.log("Filtros limpiados PMS");
+
+ render();
+
+}
+function parseJwt(token){
+ try{
+   const base64Payload = token.split('.')[1];
+   const payload = atob(base64Payload);
+   return JSON.parse(payload);
+ }catch{
+   return null;
+ }
+}
+
+function scheduleAutoLogout(){
+
+ const token = localStorage.getItem("token");
+ if(!token) return;
+
+ const decoded = parseJwt(token);
+ if(!decoded || !decoded.exp) return;
+
+ const expirationTime = decoded.exp * 1000; // exp viene en segundos
+ const now = Date.now();
+
+ // ⏳ Cerramos 2 minutos antes
+ const earlyLogout = expirationTime - (2 * 60 * 1000);
+
+ const timeout = earlyLogout - now;
+
+ if(timeout <= 0){
+   logoutAuto("Sesión expirada");
+   return;
+ }
+
+ setTimeout(()=>{
+   logoutAuto("Tu sesión está por expirar por seguridad.");
+ }, timeout);
+
+}
+function logoutAuto(reason){
+
+ localStorage.removeItem("token");
+ localStorage.removeItem("user");
+
+ alert(reason);
+
+ window.location.href="login.html";
+}
+
+function filtrarPorFecha(){
+
+ const fromInput = document.getElementById("from");
+ const toInput = document.getElementById("to");
+
+ if(!fromInput.value || !toInput.value){
+   alert("Selecciona ambas fechas");
+   return;
+ }
+
+ const i = new Date(fromInput.value+"T00:00:00");
+ const f = new Date(toInput.value+"T23:59:59");
+
+ filtroFecha = {from:i,to:f};
+
+ document.getElementById("filtroActivo").style.display="block";
+
+
+ render();
+
+}
+
+
+
+/* ================= CRUD ================= */
+async function crearTarea(){
+
+ try{
+
+   const plantilla = document.getElementById("plantilla");
+   const descripcion = document.getElementById("d");
+   const due = document.getElementById("due");
+   const dep = document.getElementById("nr");
+
+   const currentUser = JSON.parse(localStorage.getItem("user"));
+
+   if(!descripcion.value || !dep.value){
+     alert("Completa los campos");
+     return;
+   }
+
+   const res = await secureFetch("https://pms-hotel-enterprise.onrender.com/tasks",{
+     method:"POST",
+     headers:{
+       "Content-Type":"application/json",
+       "Authorization":"Bearer "+localStorage.getItem("token")
+     },
+     body:JSON.stringify({
+       title: plantilla.value || descripcion.value,
+       description: descripcion.value,
+       department: dep.value,
+       due_date: due.value ? new Date(due.value).toISOString() : null,
+       user: currentUser.username
+     })
+   });
+
+  
+   if(!res) return;
+   
+   if(!res.ok){
+     const text = await res.text();
+     throw new Error(text);
+   }
+
+   const data = await res.json();
+
+   await recargarTareas();
+
+   mostrarVista("dashboard");
+
+   // limpiar formulario
+   plantilla.value="";
+   descripcion.value="";
+   descripcion.style.display="none";
+   due.value="";
+   dep.selectedIndex=0;
+
+ }catch(e){
+
+   console.error("Error creando tarea:", e);
+   alert("No se pudo crear la tarea: " + e.message);
+
+ }
+
+}
+
+async function cambiarEstado(id,s){
+
+ await secureFetch(`https://pms-hotel-enterprise.onrender.com/tasks/${id}`,{
+   method:"PUT",
+   headers:{
+     "Content-Type":"application/json","Authorization":"Bearer "+localStorage.getItem("token")
+   },
+   body:JSON.stringify({
+     status: s
+   })
+ });
+
+ await recargarTareas();
+
+}
+ // 🔥 guardar en backend
+
+async function recargarTareas(){
+
+ const r = await secureFetch(
+   "https://pms-hotel-enterprise.onrender.com/tasks",
+   {
+     headers:{
+       "Authorization":"Bearer "+localStorage.getItem("token")
+     }
+   }
+ );
+
+ if(!r) return; 
+
+ if(!r.ok){
+   const text = await r.text();
+   throw new Error(text);
+ }
+
+ tareas = await r.json();
+ render();
+ kpis();
+
+}
+/* ================= SISTEMAS ================= */
+async function crearUsuario(){
+
+ const res = await secureFetch(
+  "https://pms-hotel-enterprise.onrender.com/users",
+  {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify({
+      username: document.getElementById("nu").value,
+      password: document.getElementById("np").value,
+      role: document.getElementById("userRole").value,
+      department: document.getElementById("userDepartment").value
+    })
+  }
+ );
+
+ if(!res) return;
+
+ if(res.ok){
+   alert("Usuario creado");
+   cargarUsuarios();
+ }else{
+   alert("Error creando usuario");
+ }
+
+}
+
+
+function cambiarPassword(){
+
+ fetch("https://pms-hotel-enterprise.onrender.com/change-password",{
+
+  method:"POST",
+
+  headers:{
+    "Content-Type":"application/json",
+    "Authorization":"Bearer "+localStorage.getItem("token")
+  },
+
+  body:JSON.stringify({
+    username: document.getElementById("cu").value.trim(),
+    newPassword: document.getElementById("cp").value.trim()
+  })
+
+ }).then(()=>alert("Contraseña actualizada"));
+
+}
+
+async function cargarUsuarios(){
+
+ const res = await secureFetch("https://pms-hotel-enterprise.onrender.com/users");
+ if(!res) return;
+
+ const usuarios = await res.json();
+
+ const cont = document.getElementById("listaUsuarios");
+ cont.innerHTML = "";
+
+ usuarios.forEach(u=>{
+
+   cont.innerHTML += `
+     <tr>
+       <td>${u.username}</td>
+       <td>${u.role}</td>
+       <td>${u.department || "-"}</td>
+       <td>
+         <button onclick="borrarUsuario(${u.id})"
+                 style="background:#c0392b;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer;">
+           ❌
+         </button>
+       </td>
+     </tr>
+   `;
+ });
+
+}
+
+async function borrarUsuario(id){
+
+ if(!confirm("¿Eliminar usuario?")) return;
+
+ const res = await secureFetch(
+   `https://pms-hotel-enterprise.onrender.com/users/${id}`,
+   { method:"DELETE" }
+ );
+
+ if(!res) return;
+
+ cargarUsuarios();
+}
+
+function obtenerTareasVisibles(){
+
+ let visibles = [...tareas];
+
+ // ===== DASHBOARD SOLO HOY =====
+ if(vistaActual === "dashboard"){
+
+   const hoy = new Date();
+   hoy.setHours(0,0,0,0);
+
+   const finHoy = new Date();
+   finHoy.setHours(23,59,59,999);
+
+   visibles = visibles.filter(t=>{
+     if(!t.due_date) return true;
+
+     const fecha = new Date(t.due_date.replace(" ","T"));
+     return fecha >= hoy && fecha <= finHoy;
+   });
+ }
+
+ // ===== FILTRO ESTADO =====
+ if(filtroEstado){
+   visibles = visibles.filter(t=>estado(t)===filtroEstado);
+ }
+
+  // ===== FILTRO FECHA (IMPORTANTE - YA NO DEPENDE DE VISTA) =====
+ if(filtroFecha){
+
+   visibles = visibles.filter(t=>{
+
+     if(!t.created_at) return false;
+
+     const d = new Date(t.created_at.replace(" ","T"));
+     return d >= filtroFecha.from && d <= filtroFecha.to;
+
+   });
+
+ }
+
+ return visibles;
+
+}
+
+/* ================= EXPORT ================= */
+function exportarExcel(){
+
+ const data = obtenerTareasVisibles();
+
+ const ws = XLSX.utils.json_to_sheet(data);
+ const wb = XLSX.utils.book_new();   // 🔥 FALTABA
+
+ XLSX.utils.book_append_sheet(wb,ws,"Tareas");
+
+ XLSX.writeFile(wb,"historial_tareas.xlsx");
+}
+
+function exportarPDF(){
+
+  try{
+ const { jsPDF } = window.jspdf;
+
+ const pdf = new jsPDF('l','mm','a4');
+ const logoMollyHelpersData = "icon-192.png";
+
+ let y = 45;
+
+ 
+ // ===== HEADER EXECUTIVO PRO =====
+
+const pageWidth = pdf.internal.pageSize.getWidth();
+
+// LOGO CLIENTE
+if(logoCloudData && logoCloudData.startsWith("data:image")){
+
+   pdf.addImage(
+      logoCloudData,
+      "PNG",
+      14,
+      10,
+      20,
+      20
+   );
+}
+
+
+// LOGO MOLLYHELPERS DERECHA
+pdf.addImage(
+   logoMollyHelpersData,
+   "PNG",
+   pageWidth - 34,
+   10,
+   20,
+   20
+);
+// NOMBRE SISTEMA DERECHA
+pdf.setFontSize(14);
+pdf.setFont(undefined,"bold");
+
+pdf.text(
+   "MollyHelpers",
+   pageWidth - 40,
+   35,
+   { align:"right" }
+);
+
+// TITULO PRINCIPAL IZQUIERDA
+pdf.setFontSize(16);
+pdf.setFont(undefined,"normal");
+
+pdf.text("Reporte Ejecutivo Operativo",50,18);
+pdf.setDrawColor(200);
+pdf.line(14,38,pageWidth-14,38);
+
+// INFO GENERAL
+pdf.setFontSize(10);
+
+pdf.text(`Usuario: ${user.username}`,50,24);
+pdf.text(`Generado: ${new Date().toLocaleString()}`,50,30);
+
+if(filtroFecha){
+ pdf.text(
+   `Periodo: ${filtroFecha.from.toLocaleDateString()} - ${filtroFecha.to.toLocaleDateString()}`,
+   14,
+   34
+ );
+}
+y = 45;
+ // ===== TABLE DATA =====
+
+ pdf.setFontSize(9);
+ const colWidth = [35, 30, 30, 30, 35, 25, 25, 60];
+ pdf.setFont(undefined,"bold");
+
+const headers = [
+ "Tarea",
+ "Departamento",
+ "Estado",
+ "Usuario",
+ "Fecha",
+ "Tiempo Total",
+ "Score",
+ "Comentarios"
+];
+
+let x = 14;
+
+headers.forEach((h,i)=>{
+  pdf.text(h,x,y);
+  x += colWidth[i];
+});
+
+pdf.setFont(undefined,"normal");
+
+y += 8;
+
+ const data = obtenerTareasVisibles();
+ data.forEach(t=>{
+
+   let comentariosTexto="";
+
+   try{
+     let comentarios=[];
+
+     if(Array.isArray(t.comments)) comentarios=t.comments;
+     else if(typeof t.comments==="string")
+       comentarios=JSON.parse(t.comments);
+
+     comentariosTexto = comentarios
+       .map(c=>`${c.user}: ${c.texto}`)
+       .join(" | ");
+
+   }catch(e){}
+
+   const fecha = fechaPMS(t.created_at);
+
+   const row=[
+ t.title || "",
+ t.department || "",
+ estado(t).replace("_"," ").toUpperCase(),
+ t.created_by || "",
+ `${fecha.fecha} ${fecha.hora}`,
+ calcularTiempoTotal(t),
+ calcularScore(t),
+ comentariosTexto
+];
+
+   const splitRow=row.map((col,i)=>
+     pdf.splitTextToSize(String(col),colWidth[i]-5)
+   );
+
+   const rowHeight=Math.max(...splitRow.map(r=>r.length))*5;
+
+   let x=14;
+
+   // 🔥 Verificar si la fila cabe antes de dibujarla
+if(y + rowHeight > 190){
+
+   pdf.addPage();
+   y = 20;
+
+   // Reimprimir header
+   pdf.setFont(undefined,"bold");
+
+   let xHeader = 14;
+
+   headers.forEach((h,i)=>{
+      pdf.text(h,xHeader,y);
+      xHeader += colWidth[i];
+   });
+
+   pdf.setFont(undefined,"normal");
+
+   y += 8;
+}
+
+// Ahora sí dibujar fila
+x = 14;
+
+splitRow.forEach((col,i)=>{
+  pdf.text(col,x,y);
+  x+=colWidth[i];
+});
+
+y += rowHeight;
+
+ });
+agregarFooter(pdf);
+pdf.save("reporte_ejecutivo_operativo.pdf");
+   console.log("✅ PDF GENERADO OK");
+
+ }catch(error){
+
+   console.error("💥 ERROR EXPORT PDF:", error);
+   alert("Error generando PDF — revisa consola (F12)");
+
+ }
+}
+// ================= FOOTER =================
+function agregarFooter(pdf){
+
+ const pageCount = pdf.getNumberOfPages();
+
+ for(let i=1;i<=pageCount;i++){
+
+   pdf.setPage(i);
+   pdf.setFontSize(9);
+
+   pdf.text(
+     `© Michelle Romero para Empresa | Página ${i}/${pageCount}`,
+     105,
+     290,
+     { align:"center" }
+   );
+ }
+}
+function mostrarComentario(id){
+
+ const box = document.getElementById(`box-comentario-${id}`);
+
+ if(!box) return;
+
+ if(box.style.display === "none" || box.style.display === ""){
+
+   box.style.display = "block";
+
+ }else{
+
+   box.style.display = "none";
+
+ }
+
+}
+
+document.addEventListener("input",(e)=>{
+
+ if(!e.target.classList.contains("comentario-input")) return;
+
+
+ usuarioEditando = true;
+
+ clearTimeout(window.timerEdit);
+
+ window.timerEdit = setTimeout(()=>{
+
+   usuarioEditando = false;
+
+ },5000);
+
+});
+
+document.addEventListener("input",()=>{
+
+ if(document.activeElement.classList.contains("comentario-input")
+ || document.activeElement.id==="d"){
+
+   usuarioEditando = true;
+
+   clearTimeout(window.timerEdit);
+
+   window.timerEdit=setTimeout(()=>{
+
+     usuarioEditando=false;
+
+   },4000);
+
+ }
+
+});
+let guardandoComentario=false;
+
+async function guardarComentario(id){
+
+   if(guardandoComentario) return;
+   guardandoComentario = true;
+
+   const tarea = tareas.find(t => String(t.id) === String(id));
+   if(!tarea){
+      guardandoComentario = false;
+      return;
+   }
+
+   const textarea = document.getElementById(`comentario-${id}`);
+   if(!textarea){
+      guardandoComentario = false;
+      return;
+   }
+
+   const texto = textarea.value.trim();
+   if(!texto){
+      guardandoComentario = false;
+      return;
+   }
+
+   const nuevoComentario = {
+      user: user.username,
+      texto: texto,
+      fecha: new Date().toLocaleString()
+   };
+
+   if(typeof tarea.comments === "string"){
+      try{
+         tarea.comments = JSON.parse(tarea.comments);
+      }catch(e){
+         tarea.comments = [];
+      }
+   }
+
+   if(!Array.isArray(tarea.comments)){
+      tarea.comments = [];
+   }
+
+   tarea.comments.push(nuevoComentario);
+
+   renderTareaIndividual(tarea);
+
+   const res = await secureFetch(`https://pms-hotel-enterprise.onrender.com/tasks/${id}`,{
+      method:"PUT",
+      headers:{
+         "Content-Type":"application/json",
+         "Authorization":"Bearer "+localStorage.getItem("token")
+      },
+      body:JSON.stringify({
+         comments: tarea.comments
+      })
+   });
+
+   if(!res) return; 
+
+   if(!res.ok){
+      console.error("Error actualizando comentarios");
+   }
+
+   await recargarTareas();
+
+   textarea.value="";
+   guardandoComentario=false;
+}
+
+function mostrarVista(nombre){
+
+ // guardar vista anterior
+ const vistaAnterior = vistaActual;
+
+ // cambiar vista
+ vistaActual = nombre;
+ if(nombre === "dashboard"){
+ const badge = document.getElementById("badgeNotif");
+ badge.style.display = "none";
+}
+// 🔥 PMS UX — autocompletar fecha y hora al crear tarea
+if(nombre === "crear"){
+
+ const ahora = new Date();
+const vence = new Date(ahora.getTime() + (15 * 60000));
+
+const yyyy = vence.getFullYear();
+const mm = String(vence.getMonth()+1).padStart(2,'0');
+const dd = String(vence.getDate()).padStart(2,'0');
+const hh = String(vence.getHours()).padStart(2,'0');
+const min = String(vence.getMinutes()).padStart(2,'0');
+
+document.getElementById("due").value =
+`${yyyy}-${mm}-${dd}T${hh}:${min}`;
+
+}
+
+ // limpiar filtro SOLO si salimos de reportes
+ if(vistaAnterior === "reportes" && nombre !== "reportes"){
+   filtroFecha = null;
+ }
+
+ document.querySelectorAll(".vista").forEach(v=>{
+   v.style.display="none";
+ });
+
+ document.getElementById("vista-"+nombre).style.display="block";
+
+ render();
+
+}
+
+// cargar inicial
+
+
+
+cargar();
+cargarPlantillas();
+cargarDepartamentos();
+// ================= PUSH SUBSCRIPTION ENTERPRISE =================
+
+if("serviceWorker" in navigator){
+
+ navigator.serviceWorker.register("/sw.js")
+ .then(async reg=>{
+
+   console.log("🔥 SW registrado");
+
+   const permission = await Notification.requestPermission();
+
+   if(permission !== "granted"){
+     console.log("Notificaciones bloqueadas");
+     return;
+   }
+
+   const sub = await reg.pushManager.subscribe({
+     userVisibleOnly:true,
+     applicationServerKey: urlBase64ToUint8Array("BFCjuIrtlaAGysbjuC1YpFH3YZfEL9KNGNMsmqyVdQRHdmYG6g8QcD8qcziJNiPk2ETcC66Esa-K5y_eVqhQ-D4")
+   });
+
+   // 🔥 enviar subscription al backend
+   await secureFetch("https://pms-hotel-enterprise.onrender.com/subscribe", {
+     method:"POST",
+     headers:{
+       "Content-Type":"application/json"
+     },
+     body: JSON.stringify({
+ ...sub,
+ department: user.department
+})
+   });
+
+   console.log("✅ Push suscrito enterprise");
+
+ });
+
+}
+function urlBase64ToUint8Array(base64String) {
+
+ const padding = '='.repeat((4 - base64String.length % 4) % 4);
+ const base64 = (base64String + padding)
+   .replace(/\-/g, '+')
+   .replace(/_/g, '/');
+
+ const rawData = window.atob(base64);
+ const outputArray = new Uint8Array(rawData.length);
+
+ for (let i = 0; i < rawData.length; ++i) {
+   outputArray[i] = rawData.charCodeAt(i);
+ }
+
+ return outputArray;
+}
+// refresh inteligente cada 5 segundos
+let ultimaNotificacion = 0;
+
+const socket = io("https://pms-hotel-enterprise.onrender.com",{
+
+ auth:{
+   token: localStorage.getItem("token")
+ },
+
+ query:{
+   department: user.department
+ }
+
+});
+socket.on("comentarioAgregado", data => {
+
+   console.log("comentario recibido:", data);
+
+   const tarea = tareas.find(t => String(t.id) === String(data.tareaId));
+
+   if(!tarea){
+      console.log("No encontré la tarea");
+      return;
+   }
+
+   tarea.comments.push(data.comentario);
+   renderTareaIndividual(tarea);  
+
+});
+socket.on("connect", () => {
+ console.log("🔥 SOCKET CONECTADO:", socket.id);
+});
+
+// ================= DEEP LINK LISTENER =================
+
+if("serviceWorker" in navigator){
+
+ navigator.serviceWorker.addEventListener("message",(event)=>{
+
+  if(event.data?.type === "OPEN_TASK"){
+
+    const id = event.data.taskId;
+
+    const elemento = document.querySelector(`[data-id='${id}']`);
+
+    if(elemento){
+
+      elemento.scrollIntoView({
+        behavior:"smooth",
+        block:"center"
+      });
+
+      elemento.style.boxShadow="0 0 0 3px #2563eb";
+
+      setTimeout(()=>{
+        elemento.style.boxShadow="";
+      },3000);
+
+    }
+
+  }
+
+ });
+
+}
+// ================= SUBIR LOGO =================
+
+document.getElementById("logoInput").addEventListener("change", function(e){
+
+ const file = e.target.files[0];
+
+ const reader = new FileReader();
+
+ reader.onload = function(){
+
+   fetch("https://pms-hotel-enterprise.onrender.com/settings",{
+     method:"POST",
+     headers:{
+       "Content-Type":"application/json"
+     },
+     body:JSON.stringify({
+       key:"logo",
+       value:reader.result
+     })
+   });
+
+ };
+
+ reader.readAsDataURL(file);
+
+});
+// ================= CARGAR LOGO DESDE CLOUD =================
+
+const logo = document.getElementById("logo");
+
+fetch("https://pms-hotel-enterprise.onrender.com/settings")
+.then(r=>r.json())
+.then(settings=>{
+
+ const logoCloud = settings.find(s=>s.key==="logo");
+
+ if(logoCloud){
+
+   logo.src = logoCloud.value;
+logoCloudData = logoCloud.value;
+
+
+ }
+
+});
+function logout(){
+
+ localStorage.removeItem("token");
+ localStorage.removeItem("user");
+ location.href = "login.html";
+
+}
+function toggleMenu(){
+
+ const sidebar = document.querySelector(".sidebar");
+ const overlay = document.getElementById("overlay");
+
+ sidebar.classList.toggle("open");
+ overlay.classList.toggle("show");
+
+}
+window.addEventListener("load", ()=>{
+ scheduleAutoLogout();
+ aplicarPermisos();
+});
+function reproducirAlerta(){
+
+ const audio = document.getElementById("alertSound");
+
+ if(!audio) return;
+
+ audio.currentTime = 0;
+ audio.play().catch(()=>{});
+
+}
+let audioUnlocked = false;
+
+function unlockAudio(){
+
+ if(audioUnlocked) return;
+
+ const audio = document.getElementById("alertSound");
+
+ if(!audio) return;
+
+ audio.play()
+  .then(()=>{
+    audio.pause();
+    audio.currentTime = 0;
+    audioUnlocked = true;
+    console.log("🔓 Audio desbloqueado");
+  })
+  .catch(()=>{});
+
+}
+socket.on("task_update",(payload)=>{
+
+ if(!payload) return;
+ 
+ if(typeof payload.comments === "string"){
+   try{
+     payload.comments = JSON.parse(payload.comments);
+   }catch(e){}
+ }
+
+ const index = tareas.findIndex(t=>t.id === payload.id);
+
+ if(index !== -1){
+   tareas[index] = payload;
+ }else{
+   tareas.unshift(payload);
+   reproducirAlerta();
+   activarNotificacionVisual();
+   mostrarNotificacionSistema(payload);
+ }
+
+ render();
+ kpis();
+
+});
+function activarNotificacionVisual(){
+
+ const badge = document.getElementById("badgeNotif");
+
+ badge.innerText = "●";
+ badge.style.display = "inline-block";
+
+ // vibración si es móvil
+ if("vibrate" in navigator){
+   navigator.vibrate([200,100,200]);
+ }
+
+}
+document.addEventListener("click",()=>{
+ const audio = document.getElementById("alertSound");
+ if(audio){
+   audio.play().then(()=>{
+     audio.pause();
+     audio.currentTime=0;
+   }).catch(()=>{});
+ }
+},{once:true});
+
+document.addEventListener("pointerdown", unlockAudio);
+document.addEventListener("touchstart", unlockAudio);
+document.addEventListener("keydown", unlockAudio);
+
+function mostrarNotificacionSistema(tarea){
+
+ if(!("Notification" in window)) return;
+
+ if(Notification.permission === "granted"){
+
+   new Notification("Nueva tarea",{
+     body: `${tarea.title} - ${tarea.department}`,
+     icon: "icon-192.png"
+   });
+
+ }
+
+}
+if("Notification" in window && Notification.permission !== "granted"){
+ Notification.requestPermission();
+}
+if(Notification.permission === "granted"){
+
+ navigator.serviceWorker.ready.then(reg=>{
+
+   reg.showNotification("MollyHelpers activo",{
+     body:"Recibirás notificaciones de nuevas tareas",
+     icon:"icon-192.png"
+   });
+
+ });
+
+}
+function seleccionarImagen(id){
+  document.getElementById(`file-${id}`).click();
+}
+
+function activarInputEvidencia(id){
+
+  const input = document.getElementById(`file-${id}`);
+  if(!input) return;
+
+  input.onchange = async () => {
+
+    const file = input.files[0];
+    if(!file) return;
+
+    const token = localStorage.getItem("token");
+
+    const formData = new FormData();
+    formData.append("image", file);
+
+    const res = await fetch(
+      `https://pms-hotel-enterprise.onrender.com/tasks/${id}/evidence`,
+      {
+        method:"POST",
+        headers:{
+          "Authorization":`Bearer ${token}`
+        },
+        body:formData
+      }
+    );
+
+    const data = await res.json();
+
+    if(data.ok){
+      cargarEvidencias(id);
+    }else{
+      alert("Error subiendo evidencia");
+    }
+
+  };
+}
+
+async function cargarEvidencias(id){
+
+  const contenedor = document.getElementById(`evidencias-${id}`);
+  if(!contenedor) return;
+
+  const token = localStorage.getItem("token");
+
+  try{
+
+    const res = await fetch(
+      `https://pms-hotel-enterprise.onrender.com/tasks/${id}/evidences`,
+      {
+        headers:{Authorization:`Bearer ${token}`}
+      }
+    );
+
+    const evidencias = await res.json();
+
+    console.log("Evidencias:", evidencias);
+
+    contenedor.innerHTML = evidencias.map(e=>`
+      <img src="${e.image_url}"
+      style="
+      width:80px;
+      height:80px;
+      object-fit:cover;
+      border-radius:6px;
+      margin:4px;
+      cursor:pointer;
+      "
+      onclick="verImagen('${e.image_url}')">
+    `).join("");
+
+  }catch(err){
+    console.error("Error cargando evidencias",err);
+  }
+
+}
+
+function verImagen(url){
+
+ const modal = document.createElement("div");
+
+ modal.style = `
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,0.8);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ z-index:9999;
+ `;
+
+ modal.innerHTML = `
+ <img src="${url}"
+ style="
+ max-width:90%;
+ max-height:90%;
+ border-radius:10px;
+ ">
+ `;
+
+ modal.onclick = ()=> modal.remove();
+
+ document.body.appendChild(modal);
+}
+</script>
+</div>
+</body>
+</html>

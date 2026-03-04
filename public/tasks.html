@@ -1,0 +1,14 @@
+app.post('/tasks', (req, res) => {
+  const { title, description, department, user } = req.body;
+
+  db.run(
+    `INSERT INTO tasks 
+     (title, description, status, department, created_by, created_at)
+     VALUES (?, ?, 'pendiente', ?, ?, datetime('now'))`,
+    [title, description, department, user],
+    err => {
+      if (err) return res.status(500).json(err);
+      res.json({ ok: true });
+    }
+  );
+});

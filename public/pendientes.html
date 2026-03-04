@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Pendientes</title>
+</head>
+<body>
+
+<h2>Pendientes</h2>
+<ul id="lista"></ul>
+
+<hr>
+
+<h3>Nuevo pendiente</h3>
+<input id="title" placeholder="Título"><br><br>
+<textarea id="desc" placeholder="Descripción"></textarea><br><br>
+
+<label>Fecha límite</label><br>
+<input type="datetime-local" id="due"><br><br>
+
+<select id="dept">
+  <option value="mantenimiento">Mantenimiento</option>
+  <option value="recepcion">Recepción</option>
+  <option value="cocina">Cocina</option>
+</select><br><br>
+
+<button onclick="crear()">Crear</button>
+
+<script>
+const user = JSON.parse(localStorage.getItem("user"));
+if (!user) location.href = "login.html";
+
+function cargar() {
+  fetch(`http://localhost:5000/tasks/department/${user.role}`)
+    .then(r => r.json())
+    .then(data => {
+      lista.innerHTML = "";
+      data.forEach(t => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+          <b>${t.title}</b><br>
+          ${t.description}<br>
+          Estado: ${t.status}<br>
+          Límite: ${t.due_date || "—"}<br>
+          <textarea id="c${t.id}" placeholder="Comentario"></textarea><br>
+          <button onclick="estado(${t.id},'proceso')">En proceso</button>
+          <button onclick="estado(${t.id},'terminado')">Cerrar</button>
+        `;
+        lista.appendChild(li);
+      });
+    });
+}
+
+function crear() {
+  fetch("http://localhost:5000/tasks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      title: title.value,
+      description: desc.value,
+      department: dept.value,
+      due_date: due.value,
+      user: user.username
+    })
+  }).then(() => cargar());
+}
+
+function estado(id, status) {
+  fetch(`http://localhost:5000/tasks/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      status,
+      comment: document.getElementById("c"+id).value,
+      user: user.username
+    })
+  }).then(() => cargar());
+}
+
+cargar();
+</script>
+
+</body>
+</html>

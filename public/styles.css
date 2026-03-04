@@ -1,0 +1,80 @@
+li {
+  padding: 10px;
+  margin-bottom: 8px;
+  list-style: none;
+  border-radius: 6px;
+  color: white;
+}
+
+.pendiente {
+  background-color: #e74c3c;
+}
+
+.en_proceso {
+  background-color: #f1c40f;
+  color: black;
+}
+
+.terminado {
+  background-color: #2ecc71;
+}
+
+.cerrado {
+  border-color: #999;
+  background: #f2f2f2;
+  color: #555;
+}
+
+button {
+  margin-left: 5px;
+}
+.filter-box {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  padding: 8px 10px;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.1);
+  width: fit-content;
+  margin-bottom: 15px;
+}
+
+.filter-box input {
+  font-size: 12px;
+  padding: 3px 6px;
+}
+
+.filter-box button {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+/* ==== FILTRO FECHAS COMPACTO ==== */
+.filter-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff;
+  padding: 6px 8px;
+  border-radius: 6px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.15);
+  margin-bottom: 15px;
+  width: auto !important;
+}
+
+.filter-input {
+  width: 130px !important;
+  font-size: 12px;
+  padding: 3px 5px;
+}
+
+.filter-btn {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.filter-title {
+  font-size: 13px;
+  font-weight: bold;
+  margin-right: 6px;
+}
