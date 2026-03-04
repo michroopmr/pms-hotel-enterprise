@@ -431,6 +431,26 @@ app.get("/tasks/:department", authMiddleware, async (req,res)=>{
  }
 
 });
+
+app.get("/tasks/:id/evidences", authMiddleware, async (req,res)=>{
+
+  try{
+
+    const result = await db.query(
+      "SELECT * FROM task_evidences WHERE task_id=$1 ORDER BY uploaded_at DESC",
+      [req.params.id]
+    );
+
+    res.json(result.rows);
+
+  }catch(err){
+
+    console.error(err);
+    res.status(500).json({error:"Error obteniendo evidencias"});
+
+  }
+
+});
 /* ================= GET ALL TASKS ================= */
 
 app.get("/tasks", authMiddleware, async (req,res)=>{
