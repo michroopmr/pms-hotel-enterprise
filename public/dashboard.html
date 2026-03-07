@@ -1224,15 +1224,15 @@ Closed: ${t.closed_at ? fechaPMS(t.closed_at).hora : "-"}
 
 </div>
 
+</div>
 `;
-
+setTimeout(()=>{
+ cargarEvidencias(t.id);
+},50);
 }
 else{
 
 contenedor.innerHTML += `
-
-<div class="tarea ${estadoTiempo(t)}" data-id="${t.id}">
-
 <div class="tarea ${estadoTiempo(t)}" data-id="${t.id}">
 
 <div class="tarea-header">
@@ -1292,6 +1292,8 @@ ${c.texto}
 
 </div>
 
+${t.status !== "terminado" ? `
+
 <div style="margin-top:8px;display:flex;gap:6px">
 
 <button onclick="cambiarEstado(${t.id},'proceso')">Proceso</button>
@@ -1301,28 +1303,37 @@ ${c.texto}
 </div>
 
 <div style="margin-top:10px;">
-  <input type="file" id="file-${t.id}" accept="image/*" style="display:none">
 
-  <button onclick="seleccionarImagen(${t.id})">
-    📎 Evidencia
-  </button>
+<input type="file"
+       id="file-${t.id}"
+       accept="image/*"
+       style="display:none">
+
+<button onclick="seleccionarImagen(${t.id})">
+📎 Evidencia
+</button>
+
+<div id="evidencias-${t.id}"
+     style="margin-top:8px">
 </div>
 
-<div id="evidencias-${t.id}" style="margin-top:8px"></div>
+</div>
 
-<div id="box-comentario-${t.id}" style="display:none;margin-top:8px">
-
-<textarea class="comentario-input" id="comentario-${t.id}" placeholder="Escribir comentario..."></textarea>
+<div id="box-comentario-${t.id}"
+     style="display:none;margin-top:8px">
+    
+<textarea class="comentario-input"
+id="comentario-${t.id}"
+placeholder="Escribir comentario..."></textarea>
 
 <button onclick="guardarComentario(${t.id})">Guardar</button>
-
 </div>
 
+` : ""} 
 </div>
 
 `;
-
-  setTimeout(()=>{
+setTimeout(()=>{
   activarInputEvidencia(t.id);
   cargarEvidencias(t.id);
 },50);
@@ -1358,9 +1369,8 @@ function renderTareaIndividual(t){
 <div class="tarea-title">${t.title}</div>
 <div>${t.description}</div>
 
-
 <div style="font-size:11px;color:#6b7280;margin-top:6px;">
-User: ${t.created_by || t.user || "N/A"} 
+User: ${t.created_by || t.user || "N/A"}
 &nbsp;&nbsp;
 ${fechaPMS(t.created_at).fecha}
 ${fechaPMS(t.created_at).hora}
@@ -1373,25 +1383,21 @@ ${t.due_date ? `
 ` : ""}
 
 <div style="margin-top:10px">
+
 ${comentarios.map(c=>`
+
 <div style="background:#f3f4f6;padding:6px;border-radius:8px;margin-bottom:4px;font-size:13px;">
+
 <div style="font-size:11px;color:#6b7280">
 👤 ${c.user} | 🕒 ${c.fecha}
 </div>
+
 ${c.texto}
+
 </div>
+
 `).join("")}
-</div>
 
-<div style="margin-top:8px;display:flex;gap:6px">
-<button onclick="cambiarEstado(${t.id},'proceso')">Proceso</button>
-<button onclick="cambiarEstado(${t.id},'terminado')">Cerrar</button>
-<button onclick="mostrarComentario(${t.id})">Comentario</button>
-</div>
-
-<div id="box-comentario-${t.id}" style="display:none;margin-top:8px">
-<textarea class="comentario-input" id="comentario-${t.id}" placeholder="Escribir comentario..."></textarea>
-<button onclick="guardarComentario(${t.id})">Guardar</button>
 </div>
 
 </div>
@@ -1400,18 +1406,42 @@ ${c.texto}
  const tarjetaExistente = document.querySelector(`[data-id='${t.id}']`);
 
  if(tarjetaExistente){
+
    tarjetaExistente.outerHTML = html;
+
  }else{
+
    contenedor.insertAdjacentHTML("afterbegin", html);
+
  }
+
  activarInputEvidencia(t.id);
-cargarEvidencias(t.id);
+ cargarEvidencias(t.id);
 
 }
+
 /* ================= KPIs ================= */
 function kpis(){
- let c={abierto:0,proceso:0,vencido:0,cerrado:0};
- tareas.forEach(t=>c[estado(t)]++);
+
+ let c={
+  abierto:0,
+  proceso:0,
+  vencido:0,
+  cerrado:0
+ };
+
+ tareas.forEach(t=>{
+
+   const e = estado(t);
+
+   if(e === "vencido_cerrado"){
+     c.cerrado++;
+   }else if(c[e] !== undefined){
+ c[e]++;
+}
+
+ });
+
  kA.innerText=c.abierto;
  kP.innerText=c.proceso;
  kV.innerText=c.vencido;
@@ -2345,7 +2375,7 @@ function unlockAudio(){
 socket.on("task_update",(payload)=>{
 
  if(!payload) return;
- 
+
  if(typeof payload.comments === "string"){
    try{
      payload.comments = JSON.parse(payload.comments);
@@ -2363,8 +2393,19 @@ socket.on("task_update",(payload)=>{
    mostrarNotificacionSistema(payload);
  }
 
- render();
+ if(payload.status === "terminado"){
+   render();                // reconstruir tarjeta cerrada
+ }else{
+   renderTareaIndividual(payload);
+ }
+
  kpis();
+
+ setTimeout(()=>{
+   tareas.forEach(t=>{
+     cargarEvidencias(t.id);
+   });
+ },120);
 
 });
 function activarNotificacionVisual(){

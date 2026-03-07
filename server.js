@@ -105,6 +105,15 @@ async function initDB(){
    )
  `);
  await db.query(`
+CREATE TABLE IF NOT EXISTS task_evidences(
+ id SERIAL PRIMARY KEY,
+ task_id INTEGER,
+ image_url TEXT,
+ uploaded_by TEXT,
+ uploaded_at TIMESTAMP DEFAULT NOW()
+)
+`);
+ await db.query(`
   ALTER TABLE tasks
   ADD COLUMN IF NOT EXISTS comments TEXT;
 `);
