@@ -202,8 +202,11 @@ body{
    <h1>MollyHelpers</h1>
    <p>Plataforma inteligente para operación hotelera en tiempo real</p>
 
+   <input id="company" type="text" placeholder="Empresa">
    <input id="u" type="text" placeholder="Usuario">
    <input id="p" type="password" placeholder="Contraseña">
+
+  
 
    <button onclick="login()">Entrar</button> 
 
@@ -237,13 +240,14 @@ async function login(){
 
  if(loginRunning) return;
 
+ const company = document.getElementById("company").value.trim();
  const username = document.getElementById("u").value.trim();
  const password = document.getElementById("p").value.trim();
 
- if(!username || !password){
-   alert("Ingresa usuario y contraseña");
-   return;
- }
+ if(!company || !username || !password){
+ alert("Ingresa empresa, usuario y contraseña");
+ return;
+}
 
  loginRunning = true;
  document.getElementById("loadingScreen").style.display="flex";
@@ -253,8 +257,12 @@ async function login(){
    const r = await fetch("https://pms-hotel-enterprise.onrender.com/login",{
      method:"POST",
      headers:{ "Content-Type":"application/json" },
-     body: JSON.stringify({ username, password })
-   });
+     body: JSON.stringify({
+      company,
+      username,
+      password
+    })
+    });
 
    if(!r.ok){
      alert("Usuario o contraseña incorrectos");
