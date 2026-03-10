@@ -17,6 +17,25 @@ const SECRET = "mollyhelpers_secret";
 const app = express();
 const server = http.createServer(app);
 
+app.use((req,res,next)=>{
+
+ const host = req.headers.host;
+
+ if(
+   host &&
+   host.includes("onrender.com") &&
+   req.method === "GET" &&
+   !req.url.startsWith("/api") &&
+   req.headers.accept &&
+   req.headers.accept.includes("text/html")
+ ){
+   return res.redirect(301,"https://mollyhelpers.com");
+ }
+
+ next();
+
+});
+
 console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
 
 app.use(express.json());
