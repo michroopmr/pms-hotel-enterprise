@@ -377,8 +377,8 @@ app.put("/tasks/:id", authMiddleware, async (req,res)=>{
     updateQuery += ", closed_at=NOW()";
   }
 
-  updateQuery += ` WHERE id=$${index}`;
-  values.push(id);
+  updateQuery += ` WHERE id=$${index} AND company_id=$${index+1}`;
+values.push(id, req.user.company_id);
 
   await db.query(updateQuery, values);
 }   
@@ -391,9 +391,9 @@ app.put("/tasks/:id", authMiddleware, async (req,res)=>{
    }
 
    const result = await db.query(
-     "SELECT * FROM tasks WHERE id=$1",
-     [id]
-   );
+ "SELECT * FROM tasks WHERE id=$1 AND company_id=$2",
+ [id, req.user.company_id]
+);
 
   const tareaActualizada = result.rows[0];
   io.to(tareaActualizada.department)
@@ -454,11 +454,11 @@ app.post("/users", authMiddleware, async (req,res)=>{
    const { username, password, role, department } = req.body;
 
    await db.query(
-     `INSERT INTO users(username,password,role,department)
-      VALUES($1,$2,$3,$4)
-      ON CONFLICT (username) DO NOTHING`,
-     [username, password, role, department]
-   );
+ `INSERT INTO users(username,password,role,department,company_id)
+  VALUES($1,$2,$3,$4,$5)
+  ON CONFLICT (username) DO NOTHING`,
+ [username, password, role, department, req.user.company_id]
+);
 
    res.json({ok:true});
 
@@ -482,9 +482,9 @@ app.get("/tasks/:department", authMiddleware, async (req,res)=>{
    if(rolesFullAccess.includes(req.user.role)){
 
      const result = await db.query(
-       "SELECT * FROM tasks WHERE department=$1 ORDER BY id DESC",
-       [department]
-     );
+ "SELECT * FROM tasks WHERE department=$1 AND company_id=$2 ORDER BY id DESC",
+ [department, req.user.company_id]
+);
 
      return res.json(result.rows);
 
@@ -496,9 +496,9 @@ app.get("/tasks/:department", authMiddleware, async (req,res)=>{
    }
 
    const result = await db.query(
-     "SELECT * FROM tasks WHERE department=$1 ORDER BY id DESC",
-     [department]
-   );
+ "SELECT * FROM tasks WHERE department=$1 AND company_id=$2 ORDER BY id DESC",
+ [department, req.user.company_id]
+);
 
    res.json(result.rows);
 
@@ -516,9 +516,16 @@ app.get("/tasks/:id/evidences", authMiddleware, async (req,res)=>{
   try{
 
     const result = await db.query(
-      "SELECT * FROM task_evidences WHERE task_id=$1 ORDER BY uploaded_at DESC",
-      [req.params.id]
-    );
+`
+SELECT e.*
+FROM task_evidences e
+JOIN tasks t ON e.task_id = t.id
+WHERE e.task_id=$1
+AND t.company_id=$2
+ORDER BY uploaded_at DESC
+`,
+[req.params.id, req.user.company_id]
+);
 
     res.json(result.rows);
 
@@ -536,23 +543,22 @@ app.get("/tasks", authMiddleware, async (req,res)=>{
 
  try{
 
-   // roles que pueden ver todo
    const rolesFullAccess = ["sistemas","admin","recepcion"];
 
    if(rolesFullAccess.includes(req.user.role)){
 
      const result = await db.query(
-       "SELECT * FROM tasks ORDER BY id DESC"
-     );
+ "SELECT * FROM tasks WHERE company_id=$1 ORDER BY id DESC",
+ [req.user.company_id]
+);
 
      return res.json(result.rows);
 
    }
 
-   // demás departamentos solo ven su área
    const result = await db.query(
-     "SELECT * FROM tasks WHERE department=$1 ORDER BY id DESC",
-     [req.user.department]
+     "SELECT * FROM tasks WHERE department=$1 AND company_id=$2 ORDER BY id DESC",
+     [req.user.department, req.user.company_id]
    );
 
    res.json(result.rows);

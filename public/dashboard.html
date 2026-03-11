@@ -1213,11 +1213,11 @@ contenedor.innerHTML += `
 
 <div style="font-size:11px;color:#6b7280;margin-top:6px;">
 
-Create: ${fechaPMS(t.created_at).hora}
+Create: ${fechaPMS(t.created_at).fecha} ${fechaPMS(t.created_at).hora}
 
 &nbsp;&nbsp;
 
-Closed: ${t.closed_at ? fechaPMS(t.closed_at).hora : "-"}
+Closed: ${t.closed_at ? fechaPMS(t.closed_at).fecha + " " + fechaPMS(t.closed_at).hora : "-"}
 
 &nbsp;&nbsp;
 
@@ -1373,8 +1373,7 @@ function renderTareaIndividual(t){
 <div style="font-size:11px;color:#6b7280;margin-top:6px;">
 User: ${t.created_by || t.user || "N/A"}
 &nbsp;&nbsp;
-${fechaPMS(t.created_at).fecha}
-${fechaPMS(t.created_at).hora}
+🕒 ${fechaPMS(t.created_at).fecha} ${fechaPMS(t.created_at).hora}
 </div>
 
 ${t.due_date ? `
@@ -2163,7 +2162,7 @@ cargarDepartamentos();
 
 if("serviceWorker" in navigator){
 
- navigator.serviceWorker.register("/sw.js")
+ navigator.serviceWorker.register("/service-worker.js")
  .then(async reg=>{
 
    console.log("🔥 SW registrado");

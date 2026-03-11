@@ -1,4 +1,4 @@
-const CACHE = "molly-pms-v1";
+const CACHE = "molly-pms-v2";
 
 self.addEventListener("install", event => {
  console.log("PWA instalada");
@@ -19,4 +19,16 @@ self.addEventListener("activate", event => {
  );
 
  self.clients.claim();
+});
+
+/* 🔥 evitar cache en HTML */
+self.addEventListener("fetch", event => {
+
+ const request = event.request;
+
+ if(request.mode === "navigate"){
+   event.respondWith(fetch(request));
+   return;
+ }
+
 });
