@@ -13,7 +13,10 @@ const path = require("path");
 
 
 /* ================= APP ================= */
-const SECRET = process.env.JWT_SECRET;
+if(!SECRET){
+ console.error("JWT_SECRET no definido");
+ process.exit(1);
+}
 const app = express();
 const server = http.createServer(app);
 
@@ -288,6 +291,7 @@ async function sendPushByDepartment(department,title,message,taskId){
  });
 
 }
+} 
 
 
 /* ================= SUBSCRIBE ================= */
@@ -813,7 +817,7 @@ res.json({
 /* ================= START ================= */
 
 const PORT = process.env.PORT || 3000;
-
+console.log("Starting server...");
 server.listen(PORT,()=>{
  console.log("🚀 Server running on port",PORT);
 });
