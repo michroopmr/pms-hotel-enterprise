@@ -1,0 +1,31 @@
+[33mcommit ea500ffa05067455f0b6ab0d0258d2b0a94c8346[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmaster[m[33m, [m[1;31morigin/master[m[33m)[m
+Author: michroopmr <michroop.mr@gmail.com>
+Date:   Wed Mar 11 10:42:06 2026 -0600
+
+    fix dashboard fecha + service worker
+
+[1mdiff --git a/server.js b/server.js[m
+[1mindex c24179e..8120274 100644[m
+[1m--- a/server.js[m
+[1m+++ b/server.js[m
+[36m@@ -40,12 +40,16 @@[m [mconsole.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);[m
+ [m
+ app.use(express.json());[m
+ [m
+[31m-app.use(express.static(path.join(__dirname,"public")));[m
+[31m-[m
+[31m-app.get("/", (req,res)=>{[m
+[31m- res.sendFile(path.join(__dirname,"public","login.html"));[m
+[32m+[m[32m/* 🔥 evitar cache en Safari / PWA */[m
+[32m+[m[32mapp.use((req,res,next)=>{[m
+[32m+[m[32m if(req.url.endsWith(".html")){[m
+[32m+[m[32m   res.setHeader("Cache-Control","no-store");[m
+[32m+[m[32m }[m
+[32m+[m[32m next();[m
+ });[m
+ [m
+[32m+[m[32mapp.use(express.static(path.join(__dirname,"public")));[m
+[32m+[m
+ app.use(cors({[m
+   origin: "*",[m
+   credentials: false,[m

@@ -36,15 +36,19 @@ app.use((req,res,next)=>{
 
 });
 
-console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
+console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);S
 
 app.use(express.json());
 
-app.use(express.static(path.join(__dirname,"public")));
-
-app.get("/", (req,res)=>{
- res.sendFile(path.join(__dirname,"public","login.html"));
+/* 🔥 evitar cache en Safari / PWA */
+app.use((req,res,next)=>{
+ if(req.url.endsWith(".html")){
+   res.setHeader("Cache-Control","no-store");
+ }
+ next();
 });
+
+app.use(express.static(path.join(__dirname,"public")));
 
 app.use(cors({
   origin: "*",
