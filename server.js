@@ -13,6 +13,7 @@ const path = require("path");
 
 
 /* ================= APP ================= */
+const SECRET = process.env.JWT_SECRET;
 if(!SECRET){
  console.error("JWT_SECRET no definido");
  process.exit(1);
