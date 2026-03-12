@@ -1,4 +1,4 @@
-const CACHE = "molly-pms-v3";
+const CACHE = "molly-pms-v4";
 
 self.addEventListener("install", event => {
  console.log("PWA instalada");

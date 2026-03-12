@@ -1,7 +1,7 @@
 {
   "name": "MollyHelpers",
   "short_name": "Molly",
-  "start_url": "/dashboard.html",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
