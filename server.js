@@ -13,7 +13,7 @@ const path = require("path");
 
 
 /* ================= APP ================= */
-const SECRET = "mollyhelpers_secret";
+const SECRET = process.env.JWT_SECRET;
 const app = express();
 const server = http.createServer(app);
 
@@ -36,7 +36,7 @@ app.use((req,res,next)=>{
 
 });
 
-console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);S
+console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
 
 app.use(express.json());
 
@@ -254,31 +254,52 @@ async function sendPushByDepartment(department,title,message,taskId){
 
  for(const row of result.rows){
 
-   const sub = JSON.parse(row.subscription);
+ let sub;
 
-   webpush.sendNotification(sub,payload)
-   .catch(async e=>{
-
-     console.log("Push error:",e.message);
-
-     if(e.statusCode===410 || e.statusCode===404){
-       await db.query(
-         "DELETE FROM push_subscriptions WHERE endpoint=$1",
-         [sub.endpoint]
-       );
-     }
-
-   });
-
+ try{
+   sub = JSON.parse(row.subscription);
+ }catch(e){
+   console.log("⚠ Suscripción inválida (JSON corrupto)");
+   continue;
  }
 
+ // 🔒 validar endpoint
+ if(!sub || !sub.endpoint){
+   console.log("⚠ Suscripción sin endpoint, ignorada");
+   continue;
+ }
+
+ webpush.sendNotification(sub,payload)
+ .catch(async e=>{
+
+   console.log("Push error:",e.message);
+
+   if(e.statusCode === 410 || e.statusCode === 404){
+
+     await db.query(
+       "DELETE FROM push_subscriptions WHERE endpoint=$1",
+       [sub.endpoint]
+     );
+
+     console.log("🧹 Suscripción eliminada");
+
+   }
+
+ });
+
 }
+
 
 /* ================= SUBSCRIBE ================= */
 
 app.post("/subscribe", async (req,res)=>{
 
  const subscription = req.body;
+
+ if(!subscription || !subscription.endpoint){
+   return res.status(400).json({error:"Invalid subscription"});
+ }
+
  const endpoint = subscription.endpoint;
  const department = subscription.department || "general";
 
@@ -288,8 +309,6 @@ app.post("/subscribe", async (req,res)=>{
     ON CONFLICT(endpoint) DO NOTHING`,
    [endpoint,department,JSON.stringify(subscription)]
  );
-
- console.log(`🔥 Subscription guardada (${department})`);
 
  res.sendStatus(201);
 
@@ -841,4 +860,3 @@ app.post("/tasks/:id/evidence", authMiddleware, upload.single("image"), async (r
     res.status(500).json({error:"Error subiendo evidencia"});
   }
 });
-
