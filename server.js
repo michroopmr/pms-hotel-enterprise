@@ -426,6 +426,14 @@ values.push(id, req.user.company_id);
 );
 
   const tareaActualizada = result.rows[0];
+
+  const evidences = await db.query(
+  "SELECT * FROM task_evidences WHERE task_id=$1 ORDER BY uploaded_at DESC",
+  [id]
+);
+
+tareaActualizada.evidences = evidences.rows;
+
   io.to(tareaActualizada.department)
   .emit("task_update", tareaActualizada);
 
@@ -597,6 +605,35 @@ app.get("/tasks", authMiddleware, async (req,res)=>{
 
    console.log(err);
    res.status(500).send("Error obteniendo tareas");
+
+ }
+
+});
+
+// ===== KPIs DASHBOARD =====
+app.get("/kpis", authMiddleware, async (req,res)=>{
+
+ try{
+
+   const result = await db.query(`
+     SELECT
+       COUNT(*) FILTER (WHERE status='abierto') AS abiertas,
+       COUNT(*) FILTER (WHERE status='proceso') AS proceso,
+       COUNT(*) FILTER (
+         WHERE status!='terminado'
+         AND due_date IS NOT NULL
+         AND due_date < NOW()
+       ) AS vencidas,
+       COUNT(*) FILTER (WHERE status='terminado') AS cerradas
+     FROM tasks
+   `);
+
+   res.json(result.rows[0]);
+
+ }catch(err){
+
+   console.error("Error KPIs:",err);
+   res.status(500).json({error:"Error obteniendo KPIs"});
 
  }
 

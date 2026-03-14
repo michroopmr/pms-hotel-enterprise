@@ -1116,7 +1116,7 @@ async function cargar(){
 
  tareas = await r.json();
  render();
- kpis();
+ cargarKPIs();
 }
 /* ================= RENDER PMS SENIOR ================= */
 
@@ -1462,9 +1462,36 @@ function kpis(){
  kC.innerText=c.cerrado;
 }
 
+async function cargarKPIs(){
+
+ const r = await secureFetch(
+   "https://pms-hotel-enterprise.onrender.com/kpis"
+ );
+
+ if(!r) return;
+
+ const k = await r.json();
+
+ kA.innerText = k.abiertas;
+ kP.innerText = k.proceso;
+ kV.innerText = k.vencidas;
+ kC.innerText = k.cerradas;
+
+}
 /* ================= FILTROS ================= */
 function aplicarFiltro(e){
- filtroEstado=e;
+
+ filtroEstado = e;
+
+ if(e === "cerrado"){
+   tareasFiltradas = tareas.filter(t=>{
+     const est = estado(t);
+     return est === "cerrado" || est === "vencido_cerrado";
+   });
+ }else{
+   tareasFiltradas = tareas.filter(t=>estado(t)===e);
+ }
+
  render();
 }
 function limpiarFiltros(){
@@ -1646,7 +1673,7 @@ async function recargarTareas(){
 
  tareas = await r.json();
  render();
- kpis();
+ cargarKPIs();
 
 }
 /* ================= SISTEMAS ================= */
@@ -2419,7 +2446,7 @@ socket.on("task_update",(payload)=>{
    renderTareaIndividual(payload);
  }
 
- kpis();
+ cargarKPIs();
 
  setTimeout(()=>{
    cargarEvidencias(payload.id);
