@@ -25,24 +25,24 @@ self.addEventListener("fetch", event => {
 
  const request = event.request;
 
- // 🔹 No interferir con API o sockets
  if(request.url.includes("/tasks") ||
     request.url.includes("/auth") ||
     request.url.includes("socket.io")){
    return;
  }
 
- // 🔹 HTML siempre desde red
  if(request.mode === "navigate"){
-  event.respondWith(
-    fetch(request, { cache: "no-store" }).catch(()=>{
-      return fetch("/login.html", { cache: "no-store" });
-    })
-  );
-  return;
-}
 
- // 🔹 Archivos estáticos
+   event.respondWith(
+     fetch(request,{ cache:"no-store" })
+       .then(response => response)
+       .catch(()=> fetch("/login.html",{ cache:"no-store" }))
+   );
+
+   return;
+
+ }
+
  event.respondWith(
    caches.match(request).then(response=>{
      return response || fetch(request);
