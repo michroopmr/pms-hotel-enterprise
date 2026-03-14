@@ -44,10 +44,12 @@ console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
 
 app.use(express.json());
 
-/* 🔥 evitar cache en Safari / PWA */
+/* 🔥 evitar cache HTML */
 app.use((req,res,next)=>{
  if(req.url.endsWith(".html")){
-   res.setHeader("Cache-Control","no-store");
+   res.setHeader("Cache-Control","no-store, no-cache, must-revalidate, proxy-revalidate");
+   res.setHeader("Pragma","no-cache");
+   res.setHeader("Expires","0");
  }
  next();
 });

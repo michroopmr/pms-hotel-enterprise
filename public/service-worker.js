@@ -34,13 +34,13 @@ self.addEventListener("fetch", event => {
 
  // 🔹 HTML siempre desde red
  if(request.mode === "navigate"){
-   event.respondWith(
-     fetch(request).catch(()=>{
-       return caches.match("/dashboard.html");
-     })
-   );
-   return;
- }
+  event.respondWith(
+    fetch(request, { cache: "no-store" }).catch(()=>{
+      return fetch("/login.html", { cache: "no-store" });
+    })
+  );
+  return;
+}
 
  // 🔹 Archivos estáticos
  event.respondWith(
