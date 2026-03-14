@@ -2399,8 +2399,14 @@ socket.on("task_update",(payload)=>{
  const index = tareas.findIndex(t=>t.id === payload.id);
 
  if(index !== -1){
-   tareas[index] = payload;
- }else{
+
+   tareas[index] = {
+     ...tareas[index],  // mantiene evidencias actuales
+     ...payload
+   };
+
+}else{
+
    tareas.unshift(payload);
    reproducirAlerta();
    activarNotificacionVisual();
@@ -2416,10 +2422,8 @@ socket.on("task_update",(payload)=>{
  kpis();
 
  setTimeout(()=>{
-   tareas.forEach(t=>{
-     cargarEvidencias(t.id);
-   });
- },120);
+   cargarEvidencias(payload.id);
+},120);
 
 });
 function activarNotificacionVisual(){
