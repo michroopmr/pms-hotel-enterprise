@@ -1165,7 +1165,17 @@ if(vistaActual === "reportes" && !filtroFecha){
 
 if(vistaActual === "dashboard" && filtroEstado){
 
- visibles = visibles.filter(t=>estado(t)===filtroEstado);
+ visibles = visibles.filter(t=>{
+
+   const est = estado(t);
+
+   if(filtroEstado === "cerrado"){
+     return est === "cerrado" || est === "vencido_cerrado";
+   }
+
+   return est === filtroEstado;
+
+ });
 
 }
 
@@ -1210,7 +1220,7 @@ if(vistaActual === "dashboard" && filtroEstado){
      }
    }catch(e){}
 
-   if(esCerrada){
+if(esCerrada){
 
 contenedor.innerHTML += `
 
@@ -1223,7 +1233,14 @@ contenedor.innerHTML += `
 
 <div class="tarea-title">${t.title}</div>
 
-<div id="evidencias-${t.id}" style="margin-top:6px"></div>
+<div id="evidencias-${t.id}" style="margin-top:6px">
+
+${(t.evidences || []).map(e => `
+<img src="${e.image_url}"
+style="width:80px;border-radius:6px;margin-right:6px;margin-top:6px;">
+`).join("")}
+
+</div>
 
 <div style="font-size:11px;color:#6b7280;margin-top:6px;">
 
@@ -1241,9 +1258,6 @@ Closed: ${t.closed_at ? fechaPMS(t.closed_at).fecha + " " + fechaPMS(t.closed_at
 
 </div>
 `;
-setTimeout(()=>{
- cargarEvidencias(t.id);
-},50);
 }
 else{
 
@@ -1330,6 +1344,12 @@ ${t.status !== "terminado" ? `
 
 <div id="evidencias-${t.id}"
      style="margin-top:8px">
+
+${(t.evidences || []).map(e => `
+<img src="${e.image_url}"
+style="width:80px;border-radius:6px;margin-right:6px;margin-top:6px;">
+`).join("")}
+
 </div>
 
 </div>
@@ -1350,7 +1370,6 @@ placeholder="Escribir comentario..."></textarea>
 `;
 setTimeout(()=>{
   activarInputEvidencia(t.id);
-  cargarEvidencias(t.id);
 },50);
 }
  });
@@ -1429,8 +1448,7 @@ ${c.texto}
 
  }
 
- activarInputEvidencia(t.id);
- cargarEvidencias(t.id);
+activarInputEvidencia(t.id);
 
 }
 
@@ -1483,17 +1501,12 @@ function aplicarFiltro(e){
 
  filtroEstado = e;
 
- if(e === "cerrado"){
-   tareasFiltradas = tareas.filter(t=>{
-     const est = estado(t);
-     return est === "cerrado" || est === "vencido_cerrado";
-   });
- }else{
-   tareasFiltradas = tareas.filter(t=>estado(t)===e);
- }
+ console.log("Filtro aplicado:", e);
 
  render();
+
 }
+
 function limpiarFiltros(){
 
  filtroEstado = null;

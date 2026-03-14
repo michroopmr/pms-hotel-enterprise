@@ -585,19 +585,44 @@ app.get("/tasks", authMiddleware, async (req,res)=>{
 
    if(rolesFullAccess.includes(req.user.role)){
 
-     const result = await db.query(
- "SELECT * FROM tasks WHERE company_id=$1 ORDER BY id DESC",
- [req.user.company_id]
+   const result = await db.query(`
+SELECT
+ t.*,
+ COALESCE(
+   json_agg(e.*) FILTER (WHERE e.id IS NOT NULL),
+   '[]'
+ ) AS evidences
+FROM tasks t
+LEFT JOIN task_evidences e
+ ON e.task_id = t.id
+WHERE t.company_id = $1
+GROUP BY t.id
+ORDER BY t.id DESC
+`,
+[req.user.company_id]
 );
 
      return res.json(result.rows);
 
    }
-
-   const result = await db.query(
-     "SELECT * FROM tasks WHERE department=$1 AND company_id=$2 ORDER BY id DESC",
-     [req.user.department, req.user.company_id]
-   );
+const result = await db.query(`
+SELECT
+ t.*,
+ COALESCE(
+   json_agg(e.*) FILTER (WHERE e.id IS NOT NULL),
+   '[]'
+ ) AS evidences
+FROM tasks t
+LEFT JOIN task_evidences e
+ ON e.task_id = t.id
+WHERE t.department = $1
+AND t.company_id = $2
+GROUP BY t.id
+ORDER BY t.id DESC
+`,
+[req.user.department, req.user.company_id]
+);
+   
 
    res.json(result.rows);
 
@@ -616,17 +641,19 @@ app.get("/kpis", authMiddleware, async (req,res)=>{
  try{
 
    const result = await db.query(`
-     SELECT
-       COUNT(*) FILTER (WHERE status='abierto') AS abiertas,
-       COUNT(*) FILTER (WHERE status='proceso') AS proceso,
-       COUNT(*) FILTER (
-         WHERE status!='terminado'
-         AND due_date IS NOT NULL
-         AND due_date < NOW()
-       ) AS vencidas,
-       COUNT(*) FILTER (WHERE status='terminado') AS cerradas
-     FROM tasks
-   `);
+    SELECT
+    COUNT(*) FILTER (WHERE status='abierto') AS abiertas,
+    COUNT(*) FILTER (WHERE status='proceso') AS proceso,
+    COUNT(*) FILTER (
+    WHERE status!='terminado'
+    AND due_date IS NOT NULL
+    AND due_date < NOW()
+    ) AS vencidas,
+    COUNT(*) FILTER (WHERE status='terminado') AS cerradas
+    FROM tasks
+    WHERE company_id = $1
+    `,
+    [req.user.company_id]);
 
    res.json(result.rows[0]);
 
