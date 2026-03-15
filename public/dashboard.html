@@ -759,7 +759,6 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
 
       <button onclick="filtrarPorFecha()">Consultar</button>
-      <button onclick="exportarExcel()">Exportar Excel</button>
       <button onclick="exportarPDF()">Exportar PDF</button>
 
     </div>
@@ -1022,16 +1021,16 @@ function estado(t){
 
  if(t.status === "terminado"){
 
-   if(t.due_date && new Date(t.due_date) < ahora){
+   if(t.due_date && new Date(t.due_date.replace(" ","T")) < ahora){
      return "vencido_cerrado";
    }
 
    return "cerrado";
- }
+}
 
  if(t.status === "proceso") return "proceso";
 
- if(t.due_date && new Date(t.due_date) < ahora){
+if(t.due_date && new Date(t.due_date.replace(" ","T")) < ahora){
    return "vencido";
  }
 
@@ -1071,6 +1070,22 @@ function calcularScore(t){
  if(minutos <= 120) return "Regular";
 
  return "Crítico";
+}
+
+function calcularSLA(t){
+
+ if(!t.created_at || !t.closed_at || !t.due_date){
+   return "-";
+ }
+
+ const cierre = new Date(t.closed_at.replace(" ","T"));
+ const limite = new Date(t.due_date.replace(" ","T"));
+
+ if(cierre <= limite){
+   return "✔ En tiempo";
+ }
+
+ return "❌ Fuera de tiempo";
 }
 
 function estadoTiempo(t){
@@ -1975,18 +1990,6 @@ function obtenerTareasVisibles(){
 }
 
 /* ================= EXPORT ================= */
-function exportarExcel(){
-
- const data = obtenerTareasVisibles();
-
- const ws = XLSX.utils.json_to_sheet(data);
- const wb = XLSX.utils.book_new();   // 🔥 FALTABA
-
- XLSX.utils.book_append_sheet(wb,ws,"Tareas");
-
- XLSX.writeFile(wb,"historial_tareas.xlsx");
-}
-
 function exportarPDF(){
 
   try{
@@ -1994,9 +1997,35 @@ function exportarPDF(){
 
  const pdf = new jsPDF('l','mm','a4');
  const logoMollyHelpersData = "icon-192.png";
+ 
+ const data = obtenerTareasVisibles();
 
- let y = 45;
+let total = data.length;
+let enTiempo = 0;
+let fueraTiempo = 0;
+let tiempoTotal = 0;
 
+data.forEach(t=>{
+
+ if(!t.closed_at) return;
+
+ const inicio = new Date(t.created_at.replace(" ","T"));
+ const fin = new Date(t.closed_at.replace(" ","T"));
+ const limite = t.due_date ? new Date(t.due_date.replace(" ","T")) : null;
+
+ const minutos = Math.floor((fin - inicio)/60000);
+ tiempoTotal += minutos;
+
+ if(limite && fin <= limite){
+   enTiempo++;
+ }else if(limite){
+   fueraTiempo++;
+ }
+
+});
+
+const promedio = total ? Math.round(tiempoTotal/total) : 0;
+const cumplimiento = total ? Math.round((enTiempo/total)*100) : 0;
  
  // ===== HEADER EXECUTIVO PRO =====
 
@@ -2050,6 +2079,15 @@ pdf.setFontSize(10);
 pdf.text(`Usuario: ${user.username}`,50,24);
 pdf.text(`Generado: ${new Date().toLocaleString()}`,50,30);
 
+pdf.setFontSize(11);
+
+pdf.text(`Total tareas: ${total}`,14,45);
+pdf.text(`Cumplimiento SLA: ${cumplimiento}%`,60,45);
+pdf.text(`Fuera de tiempo: ${fueraTiempo}`,120,45);
+pdf.text(`Tiempo promedio resolución: ${promedio} min`,170,45);
+
+y = 55;
+
 if(filtroFecha){
  pdf.text(
    `Periodo: ${filtroFecha.from.toLocaleDateString()} - ${filtroFecha.to.toLocaleDateString()}`,
@@ -2061,7 +2099,7 @@ y = 45;
  // ===== TABLE DATA =====
 
  pdf.setFontSize(9);
- const colWidth = [35, 30, 30, 30, 35, 25, 25, 60];
+ const colWidth = [35, 30, 30, 30, 35, 25, 25, 25, 60];
  pdf.setFont(undefined,"bold");
 
 const headers = [
@@ -2071,6 +2109,7 @@ const headers = [
  "Usuario",
  "Fecha",
  "Tiempo Total",
+ "SLA",
  "Score",
  "Comentarios"
 ];
@@ -2086,7 +2125,6 @@ pdf.setFont(undefined,"normal");
 
 y += 8;
 
- const data = obtenerTareasVisibles();
  data.forEach(t=>{
 
    let comentariosTexto="";
@@ -2113,6 +2151,7 @@ y += 8;
  t.created_by || "",
  `${fecha.fecha} ${fecha.hora}`,
  calcularTiempoTotal(t),
+ calcularSLA(t),
  calcularScore(t),
  comentariosTexto
 ];
@@ -2150,8 +2189,19 @@ if(y + rowHeight > 190){
 x = 14;
 
 splitRow.forEach((col,i)=>{
+
+  // 🎯 COLOR SLA
+  if(i === 6){
+     if(String(col).includes("✔")) pdf.setTextColor(0,150,0);
+     else if(String(col).includes("❌")) pdf.setTextColor(200,0,0);
+  }
+
   pdf.text(col,x,y);
+
+  pdf.setTextColor(0,0,0); // reset color
+
   x+=colWidth[i];
+
 });
 
 y += rowHeight;
