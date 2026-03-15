@@ -589,6 +589,11 @@ footer{
   border-radius:6px;
   border:1px solid #333;
 }
+.card.active{
+ transform:scale(1.05);
+ box-shadow:0 10px 25px rgba(0,0,0,0.15);
+ border:2px solid #2563eb;
+}
 </style>
 
 
@@ -679,6 +684,9 @@ footer{
         </div>
 
       </div>
+      <div style="margin-bottom:15px">
+<button onclick="verTodas()">Ver todas</button>
+</div>
 
       <h3>Tareas</h3>
 
@@ -1143,7 +1151,7 @@ if(vistaActual === "reportes" && !filtroFecha){
 }
  // ================= DASHBOARD = SOLO HOY =================
 
- if(vistaActual === "dashboard"){
+ if(vistaActual === "dashboard" && !filtroEstado){
 
    const hoy = new Date();
    hoy.setHours(0,0,0,0);
@@ -1433,6 +1441,16 @@ ${c.texto}
 
 </div>
 
+
+<div id="evidencias-${t.id}" style="margin-top:8px">
+
+${(t.evidences || []).map(e => `
+<img src="${e.image_url}"
+style="width:80px;border-radius:6px;margin-right:6px;margin-top:6px;">
+`).join("")}
+
+</div>
+
 </div>
 `;
 
@@ -1501,7 +1519,21 @@ function aplicarFiltro(e){
 
  filtroEstado = e;
 
- console.log("Filtro aplicado:", e);
+ // quitar activo de todos
+ document.querySelectorAll(".card").forEach(c=>{
+   c.classList.remove("active");
+ });
+
+ // activar el seleccionado
+ const mapa = {
+   abierto:0,
+   proceso:1,
+   vencido:2,
+   cerrado:3
+ };
+
+ const card = document.querySelectorAll(".card")[mapa[e]];
+ if(card) card.classList.add("active");
 
  render();
 
@@ -1586,7 +1618,17 @@ function filtrarPorFecha(){
 }
 
 
+function verTodas(){
 
+ filtroEstado = null;
+
+ document.querySelectorAll(".card").forEach(c=>{
+   c.classList.remove("active");
+ });
+
+ render();
+
+}
 /* ================= CRUD ================= */
 async function crearTarea(){
 
@@ -1788,21 +1830,25 @@ function obtenerTareasVisibles(){
  let visibles = [...tareas];
 
  // ===== DASHBOARD SOLO HOY =====
- if(vistaActual === "dashboard"){
+ if(vistaActual === "dashboard" && !filtroEstado){
 
-   const hoy = new Date();
-   hoy.setHours(0,0,0,0);
+ const hoy = new Date();
+ hoy.setHours(0,0,0,0);
 
-   const finHoy = new Date();
-   finHoy.setHours(23,59,59,999);
+ const finHoy = new Date();
+ finHoy.setHours(23,59,59,999);
 
-   visibles = visibles.filter(t=>{
-     if(!t.due_date) return true;
+ visibles = visibles.filter(t=>{
 
-     const fecha = new Date(t.due_date.replace(" ","T"));
-     return fecha >= hoy && fecha <= finHoy;
-   });
- }
+   if(!t.due_date) return true;
+
+   const fecha = new Date(t.due_date.replace(" ","T"));
+
+   return fecha >= hoy && fecha <= finHoy;
+
+ });
+
+}
 
  // ===== FILTRO ESTADO =====
  if(filtroEstado){
@@ -2460,10 +2506,6 @@ socket.on("task_update",(payload)=>{
  }
 
  cargarKPIs();
-
- setTimeout(()=>{
-   cargarEvidencias(payload.id);
-},120);
 
 });
 function activarNotificacionVisual(){
