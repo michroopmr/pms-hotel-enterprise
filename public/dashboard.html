@@ -1245,7 +1245,8 @@ contenedor.innerHTML += `
 
 ${(t.evidences || []).map(e => `
 <img src="${e.image_url}"
-style="width:80px;border-radius:6px;margin-right:6px;margin-top:6px;">
+style="width:80px;height:80px;object-fit:cover;border-radius:6px;margin:4px;cursor:pointer;"
+onclick="verImagen('${e.image_url}')">
 `).join("")}
 
 </div>
@@ -1355,7 +1356,8 @@ ${t.status !== "terminado" ? `
 
 ${(t.evidences || []).map(e => `
 <img src="${e.image_url}"
-style="width:80px;border-radius:6px;margin-right:6px;margin-top:6px;">
+style="width:80px;height:80px;object-fit:cover;border-radius:6px;margin:4px;cursor:pointer;"
+onclick="verImagen('${e.image_url}')">
 `).join("")}
 
 </div>
@@ -1446,8 +1448,41 @@ ${c.texto}
 
 ${(t.evidences || []).map(e => `
 <img src="${e.image_url}"
-style="width:80px;border-radius:6px;margin-right:6px;margin-top:6px;">
+style="width:80px;height:80px;object-fit:cover;border-radius:6px;margin:4px;cursor:pointer;"
+onclick="verImagen('${e.image_url}')">
 `).join("")}
+
+</div>
+
+<div style="margin-top:8px;display:flex;gap:6px">
+
+<button onclick="cambiarEstado(${t.id},'proceso')">Proceso</button>
+<button onclick="cambiarEstado(${t.id},'terminado')">Cerrar</button>
+<button onclick="mostrarComentario(${t.id})">Comentario</button>
+
+</div>
+
+<div style="margin-top:10px;">
+
+<input type="file"
+       id="file-${t.id}"
+       accept="image/*"
+       style="display:none">
+
+<button onclick="seleccionarImagen(${t.id})">
+📎 Evidencia
+</button>
+
+</div>
+
+<div id="box-comentario-${t.id}"
+     style="display:none;margin-top:8px">
+    
+<textarea class="comentario-input"
+id="comentario-${t.id}"
+placeholder="Escribir comentario..."></textarea>
+
+<button onclick="guardarComentario(${t.id})">Guardar</button>
 
 </div>
 
