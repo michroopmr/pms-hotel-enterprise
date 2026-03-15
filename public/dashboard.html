@@ -1574,15 +1574,37 @@ function kpis(){
 function actividadDepartamento(){
 
  const data = {};
- const visibles = obtenerTareasVisibles();
+ const ahora = new Date();
 
- visibles.forEach(t=>{
-   data[t.department] = (data[t.department] || 0) + 1;
+ const mesActual = ahora.getMonth();
+ const anioActual = ahora.getFullYear();
+
+ tareas.forEach(t=>{
+
+   if(!t.created_at) return;
+
+   const fecha = new Date(String(t.created_at).replace(" ","T"));
+
+   if(
+     fecha.getMonth() === mesActual &&
+     fecha.getFullYear() === anioActual
+   ){
+
+     if(!data[t.department]){
+        data[t.department] = 0;
+     }
+
+     data[t.department]++;
+
+   }
+
  });
 
- const max = Math.max(...Object.values(data),1);
-
  const cont = document.getElementById("deptChart");
+
+ if(!cont) return;
+
+ const max = Math.max(...Object.values(data),1);
 
  cont.innerHTML = Object.entries(data)
  .sort((a,b)=>b[1]-a[1])
