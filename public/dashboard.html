@@ -1997,6 +1997,8 @@ function exportarPDF(){
 
  const pdf = new jsPDF('l','mm','a4');
  const logoMollyHelpersData = "icon-192.png";
+
+ let y = 65;
  
  const data = obtenerTareasVisibles();
 
@@ -2098,7 +2100,7 @@ if(filtroFecha){
  // ===== TABLE DATA =====
 
  pdf.setFontSize(9);
- const colWidth = [45, 35, 35, 35, 40, 30, 30, 30, 80];
+ const colWidth = [40, 30, 28, 30, 35, 25, 25, 25, 55];
  pdf.setFont(undefined,"bold");
 
 const headers = [
@@ -2156,7 +2158,7 @@ y += 8;
 ];
 
    const splitRow=row.map((col,i)=>
-     pdf.splitTextToSize(String(col),colWidth[i]-5)
+     pdf.splitTextToSize(String(col),colWidth[i]-8)
    );
 
    const rowHeight=Math.max(...splitRow.map(r=>r.length))*5;
@@ -2191,9 +2193,13 @@ splitRow.forEach((col,i)=>{
 
   // 🎯 COLOR SLA
   if(i === 6){
-     if(String(col).includes("✔")) pdf.setTextColor(0,150,0);
-     else if(String(col).includes("❌")) pdf.setTextColor(200,0,0);
-  }
+   if(String(col).includes("En tiempo")){
+      pdf.setTextColor(0,150,0);
+   }
+   else if(String(col).includes("Fuera")){
+      pdf.setTextColor(200,0,0);
+   }
+}
 
   pdf.text(col,x,y);
 
