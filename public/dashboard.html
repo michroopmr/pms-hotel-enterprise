@@ -1017,24 +1017,36 @@ async function cargarDepartamentos(){
 /* ================= HELPERS ================= */
 function estado(t){
 
- const ahora = new Date();
-
  if(t.status === "terminado"){
 
-   if(t.due_date && new Date(t.due_date.replace(" ","T")) < ahora){
-     return "vencido_cerrado";
+   if(t.closed_at && t.due_date){
+
+      const cierre = new Date(String(t.closed_at).replace(" ","T"));
+      const limite = new Date(String(t.due_date).replace(" ","T"));
+
+      // validar fechas
+      if(!isNaN(cierre) && !isNaN(limite)){
+
+         if(cierre > limite){
+            return "vencido_cerrado";
+         }
+
+      }
+
    }
 
    return "cerrado";
-}
-
- if(t.status === "proceso") return "proceso";
-
-if(t.due_date && new Date(t.due_date.replace(" ","T")) < ahora){
-   return "vencido";
  }
 
- return "abierto";
+ if(t.status === "proceso"){
+   return "proceso";
+ }
+
+ if(t.status === "abierto"){
+   return "abierto";
+ }
+
+ return t.status;
 }
 
 function calcularTiempoTotal(t){
