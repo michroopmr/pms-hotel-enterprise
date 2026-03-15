@@ -1066,8 +1066,8 @@ function calcularScore(t){
  const minutos = Math.floor((fin - inicio)/60000);
 
  if(minutos <= 30) return "Excelente";
- if(minutos <= 60) return "Bueno";
- if(minutos <= 120) return "Regular";
+ if(minutos <= 60) return "Regular"
+ if(minutos <= 120) return "Critico"
 
  return "Crítico";
 }
@@ -1082,10 +1082,10 @@ function calcularSLA(t){
  const limite = new Date(t.due_date.replace(" ","T"));
 
  if(cierre <= limite){
-   return "✔ En tiempo";
+   return "En tiempo";
  }
 
- return "❌ Fuera de tiempo";
+ return  "Fuera de tiempo"
 }
 
 function estadoTiempo(t){
@@ -2086,7 +2086,7 @@ pdf.text(`Cumplimiento SLA: ${cumplimiento}%`,60,45);
 pdf.text(`Fuera de tiempo: ${fueraTiempo}`,120,45);
 pdf.text(`Tiempo promedio resolución: ${promedio} min`,170,45);
 
-y = 55;
+y = 65;
 
 if(filtroFecha){
  pdf.text(
@@ -2095,11 +2095,10 @@ if(filtroFecha){
    34
  );
 }
-y = 45;
  // ===== TABLE DATA =====
 
  pdf.setFontSize(9);
- const colWidth = [35, 30, 30, 30, 35, 25, 25, 25, 60];
+ const colWidth = [45, 35, 35, 35, 40, 30, 30, 30, 80];
  pdf.setFont(undefined,"bold");
 
 const headers = [
