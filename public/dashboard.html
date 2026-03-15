@@ -688,6 +688,16 @@ footer{
 <button onclick="verTodas()">Ver todas</button>
 </div>
 
+<div id="actividadDepto" style="
+background:white;
+padding:12px;
+border-radius:10px;
+margin-bottom:15px;
+box-shadow:0 2px 8px rgba(0,0,0,0.05);
+">
+<h4 style="margin:0 0 10px 0;">Actividad por departamento</h4>
+<div id="deptChart"></div>
+</div>
       <h3>Tareas</h3>
 
       <div id="lista"></div>
@@ -1167,6 +1177,7 @@ if(vistaActual === "reportes" && !filtroFecha){
 
      return fecha >= hoy && fecha <= finHoy;
  });
+ actividadDepartamento();
  }
 
  // KPI solo aplica en dashboard
@@ -1531,6 +1542,61 @@ function kpis(){
  kP.innerText=c.proceso;
  kV.innerText=c.vencido;
  kC.innerText=c.cerrado;
+}
+
+function actividadDepartamento(){
+
+ const data = {};
+ const visibles = obtenerTareasVisibles();
+
+ visibles.forEach(t=>{
+   data[t.department] = (data[t.department] || 0) + 1;
+ });
+
+ const max = Math.max(...Object.values(data),1);
+
+ const cont = document.getElementById("deptChart");
+
+ cont.innerHTML = Object.entries(data)
+ .sort((a,b)=>b[1]-a[1])
+ .map(([dep,total])=>{
+
+ const width = (total/max)*100;
+
+ return `
+ <div style="margin-bottom:10px">
+
+ <div style="
+ display:flex;
+ justify-content:space-between;
+ font-size:12px;
+ margin-bottom:3px;
+ ">
+ <span>${dep}</span>
+ <span>${total}</span>
+ </div>
+
+ <div style="
+ height:10px;
+ background:#e5e7eb;
+ border-radius:8px;
+ overflow:hidden;
+ ">
+
+ <div style="
+ width:${width}%;
+ height:100%;
+ background:linear-gradient(90deg,#2563eb,#3b82f6);
+ border-radius:8px;
+ ">
+ </div>
+
+ </div>
+
+ </div>
+ `;
+ }).join("");
+
 }
 
 async function cargarKPIs(){
@@ -2298,37 +2364,44 @@ cargarDepartamentos();
 if("serviceWorker" in navigator){
 
  navigator.serviceWorker.register("/service-worker.js")
- .then(async reg=>{
+.then(async reg=>{
 
-   console.log("🔥 SW registrado");
+ console.log("🔥 SW registrado");
 
-   const permission = await Notification.requestPermission();
+ const permission = await Notification.requestPermission();
 
-   if(permission !== "granted"){
-     console.log("Notificaciones bloqueadas");
-     return;
-   }
+ if(permission !== "granted"){
+   console.log("Notificaciones bloqueadas");
+   return;
+ }
 
-   const sub = await reg.pushManager.subscribe({
+ let sub = await reg.pushManager.getSubscription();
+
+ if(!sub){
+
+   sub = await reg.pushManager.subscribe({
      userVisibleOnly:true,
      applicationServerKey: urlBase64ToUint8Array("BFCjuIrtlaAGysbjuC1YpFH3YZfEL9KNGNMsmqyVdQRHdmYG6g8QcD8qcziJNiPk2ETcC66Esa-K5y_eVqhQ-D4")
    });
 
-   // 🔥 enviar subscription al backend
-   await secureFetch("https://pms-hotel-enterprise.onrender.com/subscribe", {
-     method:"POST",
-     headers:{
-       "Content-Type":"application/json"
-     },
-     body: JSON.stringify({
- ...sub,
- department: user.department
+ }
+
+ await secureFetch("https://pms-hotel-enterprise.onrender.com/subscribe",{
+   method:"POST",
+   headers:{
+     "Content-Type":"application/json"
+   },
+   body:JSON.stringify({
+ subscription: sub,
+ department: user.department,
+ username: user.username,
+ device: navigator.userAgent
 })
-   });
-
-   console.log("✅ Push suscrito enterprise");
-
  });
+
+ console.log("✅ Push suscrito enterprise");
+
+});
 
 }
 function urlBase64ToUint8Array(base64String) {

@@ -299,25 +299,42 @@ async function sendPushByDepartment(department,title,message,taskId){
 
 /* ================= SUBSCRIBE ================= */
 
-app.post("/subscribe", async (req,res)=>{
+app.post("/subscribe", authMiddleware, async (req,res)=>{
 
- const subscription = req.body;
+ try{
 
- if(!subscription || !subscription.endpoint){
-   return res.status(400).json({error:"Invalid subscription"});
+   const { subscription, department, username, device } = req.body;
+
+   if(!subscription?.endpoint){
+     return res.status(400).json({error:"Invalid subscription"});
+   }
+
+   await db.query(`
+     INSERT INTO push_subscriptions
+     (endpoint, subscription, department, username, device)
+     VALUES ($1,$2,$3,$4,$5)
+     ON CONFLICT (endpoint)
+     DO UPDATE SET
+       department = EXCLUDED.department,
+       username = EXCLUDED.username,
+       device = EXCLUDED.device
+   `,
+   [
+     subscription.endpoint,
+     JSON.stringify(subscription),
+     department,
+     username,
+     device
+   ]);
+
+   res.json({ok:true});
+
+ }catch(err){
+
+   console.error("Subscribe error:",err);
+   res.status(500).json({error:"subscribe failed"});
+
  }
-
- const endpoint = subscription.endpoint;
- const department = subscription.department || "general";
-
- await db.query(
-   `INSERT INTO push_subscriptions(endpoint,department,subscription)
-    VALUES($1,$2,$3)
-    ON CONFLICT(endpoint) DO NOTHING`,
-   [endpoint,department,JSON.stringify(subscription)]
- );
-
- res.sendStatus(201);
 
 });
 // ================= SETTINGS =================
