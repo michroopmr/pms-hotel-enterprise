@@ -42,6 +42,11 @@ console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
 
 app.use(express.json());
 
+const db = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  ssl:{ rejectUnauthorized:false }
+});
+
 
 // ==========================
 // CHATBOT - HUÉSPEDES
@@ -49,45 +54,77 @@ app.use(express.json());
 
 // Registrar huésped
 app.post("/guest/login", async (req,res)=>{
- const {name, room} = req.body;
+ try{
 
- const result = await db.query(
-  "INSERT INTO guests (name, room) VALUES ($1,$2) RETURNING *",
-  [name, room]
- );
+  const { name, room } = req.body;
 
- res.json(result.rows[0]);
+  if(!name || !room){
+   return res.status(400).json({error:"Datos incompletos"});
+  }
+
+  const result = await db.query(
+   "INSERT INTO guests (name, room) VALUES ($1,$2) RETURNING *",
+   [name, room]
+  );
+
+  res.json(result.rows[0]);
+
+ }catch(err){
+  console.error("ERROR guest/login:", err);
+  res.status(500).json({error:"Error creando huésped"});
+ }
 });
 
 // Guardar mensaje
 app.post("/chat/message", async (req,res)=>{
- const {guest_id, message, sender} = req.body;
+ try{
 
- await pool.query(
-  "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
-  [guest_id, message, sender]
- );
+  const {guest_id, message, sender} = req.body;
 
- res.json({ok:true});
+  await db.query(
+   "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
+   [guest_id, message, sender]
+  );
+
+  res.json({ok:true});
+
+ }catch(err){
+  console.error("ERROR chat/message:", err);
+  res.status(500).json({error:"Error guardando mensaje"});
+ }
 });
 
 // Obtener chat
 app.get("/chat/:guest_id", async (req,res)=>{
- const result = await pool.query(
-  "SELECT * FROM messages WHERE guest_id=$1 ORDER BY created_at",
-  [req.params.guest_id]
- );
+ try{
 
- res.json(result.rows);
+  const result = await db.query(
+   "SELECT * FROM messages WHERE guest_id=$1 ORDER BY created_at",
+   [req.params.guest_id]
+  );
+
+  res.json(result.rows);
+
+ }catch(err){
+  console.error("ERROR chat:", err);
+  res.status(500).json({error:"Error obteniendo chat"});
+ }
 });
 
 // Lista de huéspedes
 app.get("/guests", async (req,res)=>{
- const result = await pool.query(
-  "SELECT * FROM guests WHERE active=true ORDER BY created_at DESC"
- );
+ try{
 
- res.json(result.rows);
+  const result = await db.query(
+   "SELECT * FROM guests WHERE active=true ORDER BY created_at DESC"
+  );
+
+  res.json(result.rows);
+
+ }catch(err){
+  console.error("ERROR guests:", err);
+  res.status(500).json({error:"Error obteniendo huéspedes"});
+ }
 });
 
 /* 🔥 evitar cache HTML */
@@ -100,7 +137,7 @@ app.use((req,res,next)=>{
  next();
 });
 
-app.use(express.static(path.join(__dirname,"public")));
+app.use(express.static(path.join(__dirname,"../public")));
 
 app.use(cors({
   origin: "*",
@@ -150,11 +187,6 @@ const io = new Server(server,{
 /* ================= DATABASE (POSTGRESQL) ================= */
 
 console.log("DATABASE_URL =", process.env.DATABASE_URL);
-
-const db = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl:{ rejectUnauthorized:false }
-});
 
 async function initDB(){
 
