@@ -1,0 +1,67 @@
+<div style="display:flex">
+
+  <div id="guests" style="width:30%; border-right:1px solid #ccc;"></div>
+
+  <div style="width:70%">
+    <div id="chat"></div>
+
+    <input id="msg">
+    <button onclick="sendStaff()">Enviar</button>
+  </div>
+
+</div>
+
+<script>
+let currentGuest = null;
+
+async function loadGuests(){
+ const res = await fetch("/guests");
+ const data = await res.json();
+
+ const guestsDiv = document.getElementById("guests");
+ guestsDiv.innerHTML="";
+
+ data.forEach(g=>{
+  const div = document.createElement("div");
+  div.innerText = g.name + " - " + g.room;
+
+  div.onclick = ()=>loadChat(g.id);
+
+  guestsDiv.appendChild(div);
+ });
+}
+
+async function loadChat(id){
+ currentGuest = id;
+
+ const res = await fetch("/chat/"+id);
+ const messages = await res.json();
+
+ const chat = document.getElementById("chat");
+ chat.innerHTML="";
+
+ messages.forEach(m=>{
+  const div = document.createElement("div");
+  div.innerText = m.sender + ": " + m.message;
+  chat.appendChild(div);
+ });
+}
+
+async function sendStaff(){
+ const text = document.getElementById("msg").value;
+
+ await fetch("/chat/message",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({
+   guest_id: currentGuest,
+   message: text,
+   sender: "staff"
+  })
+ });
+
+ loadChat(currentGuest);
+}
+
+loadGuests();
+</script>

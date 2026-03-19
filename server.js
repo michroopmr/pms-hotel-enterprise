@@ -29,12 +29,10 @@ app.use((req,res,next)=>{
    host &&
    host.includes("onrender.com") &&
    req.method === "GET" &&
-   !req.url.startsWith("/api") &&
-   req.headers.accept &&
-   req.headers.accept.includes("text/html")
- ){
+   req.url === "/"
+){
    return res.redirect(301,"https://mollyhelpers.com");
- }
+}
 
  next();
 
@@ -43,6 +41,54 @@ app.use((req,res,next)=>{
 console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
 
 app.use(express.json());
+
+
+// ==========================
+// CHATBOT - HUÉSPEDES
+// ==========================
+
+// Registrar huésped
+app.post("/guest/login", async (req,res)=>{
+ const {name, room} = req.body;
+
+ const result = await db.query(
+  "INSERT INTO guests (name, room) VALUES ($1,$2) RETURNING *",
+  [name, room]
+ );
+
+ res.json(result.rows[0]);
+});
+
+// Guardar mensaje
+app.post("/chat/message", async (req,res)=>{
+ const {guest_id, message, sender} = req.body;
+
+ await pool.query(
+  "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
+  [guest_id, message, sender]
+ );
+
+ res.json({ok:true});
+});
+
+// Obtener chat
+app.get("/chat/:guest_id", async (req,res)=>{
+ const result = await pool.query(
+  "SELECT * FROM messages WHERE guest_id=$1 ORDER BY created_at",
+  [req.params.guest_id]
+ );
+
+ res.json(result.rows);
+});
+
+// Lista de huéspedes
+app.get("/guests", async (req,res)=>{
+ const result = await pool.query(
+  "SELECT * FROM guests WHERE active=true ORDER BY created_at DESC"
+ );
+
+ res.json(result.rows);
+});
 
 /* 🔥 evitar cache HTML */
 app.use((req,res,next)=>{

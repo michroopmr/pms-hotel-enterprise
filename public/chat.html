@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+ font-family: Arial;
+ background:#e5e7eb;
+}
+
+.chat{
+ padding:10px;
+}
+
+.msg{
+ margin:10px 0;
+ padding:10px;
+ border-radius:10px;
+ max-width:70%;
+}
+
+.user{
+ background:#2563eb;
+ color:white;
+ margin-left:auto;
+}
+
+.bot{
+ background:white;
+}
+
+input{
+ width:80%;
+ padding:10px;
+}
+
+button{
+ padding:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="chat" id="chat"></div>
+
+<div>
+<input id="input" placeholder="Escribe aquí...">
+<button onclick="send()">Enviar</button>
+</div>
+
+<script>
+if(!guest){
+ window.location.href = "/guest.html";
+}
+function addMsg(text, type){
+ const div = document.createElement("div");
+ div.className = "msg " + type;
+ div.innerText = text;
+ document.getElementById("chat").appendChild(div);
+}
+
+async function send(){
+ const input = document.getElementById("input");
+ const text = input.value;
+
+ if(!text) return;
+
+ addMsg(text,"user");
+
+ await fetch("/chat/message",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({
+   guest_id: guest.id,
+   message: text,
+   sender: "guest"
+  })
+ });
+
+ input.value="";
+
+ botReply(text);
+}
+
+async function botReply(msg){
+
+ let reply = "¿En qué puedo ayudarte?";
+
+ if(msg.toLowerCase().includes("problema")){
+   reply = "Describe el problema por favor";
+ }
+
+ if(msg.toLowerCase().includes("horario")){
+   reply = "Restaurante: 7am - 10pm";
+ }
+
+ addMsg(reply,"bot");
+
+ await fetch("/chat/message",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({
+   guest_id: guest.id,
+   message: reply,
+   sender: "bot"
+  })
+ });
+}
+
+// saludo inicial
+addMsg("Hola " + guest.name + " 👋 Habitación " + guest.room,"bot");
+</script>
+
+</body>
+</html>

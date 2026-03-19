@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asistente del Hotel</title>
+
+<style>
+body{
+ font-family: Arial;
+ background:#f3f4f6;
+ display:flex;
+ justify-content:center;
+ align-items:center;
+ height:100vh;
+}
+
+.card{
+ background:white;
+ padding:20px;
+ border-radius:12px;
+ width:90%;
+ max-width:350px;
+ box-shadow:0 5px 15px rgba(0,0,0,0.1);
+}
+
+input{
+ width:100%;
+ padding:12px;
+ margin-top:10px;
+ border-radius:8px;
+ border:1px solid #ccc;
+}
+
+button{
+ width:100%;
+ padding:12px;
+ margin-top:15px;
+ border:none;
+ background:#111827;
+ color:white;
+ border-radius:8px;
+ font-size:16px;
+}
+</style>
+
+</head>
+
+<body>
+
+<div class="card">
+<h2>Bienvenido 👋</h2>
+<p>Ingresa tus datos para continuar</p>
+
+<input type="text" id="name" placeholder="Nombre">
+<input type="text" id="room" placeholder="Número de habitación">
+
+<button onclick="login()">Entrar</button>
+</div>
+
+<script>
+async function login(){
+ const name = document.getElementById("name").value;
+ const room = document.getElementById("room").value;
+
+ if(!name || !room){
+   alert("Completa todos los campos");
+   return;
+ }
+
+ const res = await fetch("/guest/login",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({name, room})
+ });
+
+ const guest = await res.json();
+
+ localStorage.setItem("guest", JSON.stringify(guest));
+
+ window.location.href = "/chat.html";
+}
+</script>
+
+</body>
+</html>

@@ -1,4 +1,4 @@
-const CACHE = "molly-pms-v4";
+const CACHE = "molly-pms-v5";
 
 self.addEventListener("install", event => {
  console.log("PWA instalada");
@@ -25,24 +25,30 @@ self.addEventListener("fetch", event => {
 
  const request = event.request;
 
+ // 🔥 NO interceptar HTML (MUY IMPORTANTE)
+ if(request.url.endsWith(".html")){
+   return;
+ }
+
+ // 🔥 ignorar APIs y sockets
  if(request.url.includes("/tasks") ||
     request.url.includes("/auth") ||
     request.url.includes("socket.io")){
    return;
  }
 
+ // 🔥 navegación (páginas)
  if(request.mode === "navigate"){
 
    event.respondWith(
      fetch(request,{ cache:"no-store" })
-       .then(response => response)
        .catch(()=> fetch("/login.html",{ cache:"no-store" }))
    );
 
    return;
-
  }
 
+ // 🔥 cache normal
  event.respondWith(
    caches.match(request).then(response=>{
      return response || fetch(request);
