@@ -79,23 +79,30 @@ button{
 
 <script>
 
-if(company_code && guest){
-  guest.company_code = company_code;
-  localStorage.setItem("guest", JSON.stringify(guest));
+// 🔥 1. obtener guest
+const guest = JSON.parse(localStorage.getItem("guest"));
+
+// 🔥 2. validar sesión primero
+if(!guest){
+ alert("Sesión expirada");
+ window.location.href = "/guest.html";
 }
 
+// 🔥 3. obtener empresa
 const params = new URLSearchParams(window.location.search);
 const company_code = params.get("empresa");
 
+// 🔥 4. guardar empresa
 if(company_code){
   guest.company_code = company_code;
   localStorage.setItem("guest", JSON.stringify(guest));
 }
 
-if(!guest){
- alert("Sesión expirada");
- window.location.href = "/guest.html";
-}
+// 🔥 DEBUG
+console.log("Guest:", guest);
+console.log("Empresa:", guest.company_code);
+console.log("Empresa actual:", guest.company_code);
+
 const audio = new Audio("https://actions.google.com/sounds/v1/notifications/notification_simple-01.mp3");
 
 function showToast(msg){
@@ -175,6 +182,11 @@ async function send(){
 
  const input = document.getElementById("input");
  const text = input.value.trim();
+
+ if(!guest || !guest.id){
+  console.error("Guest inválido");
+  return;
+}
 
  if(!text) return;
 
@@ -277,7 +289,7 @@ async function botReply(msg){
   department: dept,
   guest_name: guest.name,
   room: guest.room,
-  company_code: guest.company_code // 🔥 NUEVO
+  company_code: guest.company_code || "DEMO01"
 })
     });
 

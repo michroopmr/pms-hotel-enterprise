@@ -67,6 +67,9 @@ app.post("/guest/task", async (req,res)=>{
 
   const {title, description, department, guest_name, room, company_code } = req.body;
 
+  if(!company_code){
+  return res.status(400).json({error:"Empresa requerida"});
+}
   const company_id = await getCompanyId(company_code); // 🔥 AQUÍ
 
   const result = await db.query(
