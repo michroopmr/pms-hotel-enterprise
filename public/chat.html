@@ -182,7 +182,7 @@ async function send(){
  input.value="";
  input.focus();
 
- botReply(text);
+ await botReply(text);
 }
 function detectarDepartamento(msg){
 
@@ -207,7 +207,6 @@ async function botReply(msg){
 
  let reply = "¿En qué puedo ayudarte?";
 
- // 🔥 mostrar "escribiendo..."
  const typing = document.createElement("div");
  typing.className = "msg bot";
  typing.innerHTML = "<strong>Luka 🤖:</strong><br>Luka está escribiendo...";
@@ -220,15 +219,30 @@ async function botReply(msg){
 
  try{
 
-  if(msg.toLowerCase().includes("horario")){
+  const texto = msg.toLowerCase();
+
+  const esFalla = [
+   "no funciona",
+   "problema",
+   "falla",
+   "no sirve",
+   "no jala",
+   "no prende",
+   "descompuesto",
+   "no enfría",
+   "no calienta",
+   "no hay",
+   "no tengo"
+  ].some(p => texto.includes(p));
+
+  console.log("Mensaje:", msg);
+  console.log("Es falla:", esFalla);
+
+  if(texto.includes("horario")){
     reply = "Restaurante: 7am - 10pm";
   }
 
-  else if(
-   msg.toLowerCase().includes("no funciona") ||
-   msg.toLowerCase().includes("problema") ||
-   msg.toLowerCase().includes("falla")
-  ){
+  else if(esFalla){
 
     const dept = detectarDepartamento(msg);
 
@@ -247,23 +261,30 @@ async function botReply(msg){
     });
 
     if(!res.ok){
+      const errorText = await res.text();
+      console.error("Error backend:", errorText);
       throw new Error("No se pudo crear el ticket");
     }
+
+    const data = await res.json();
+    console.log("Ticket creado:", data);
 
     reply = "Ya reporté tu solicitud 🛠️\nEn breve el equipo acudirá a tu habitación.";
   }
 
- }catch(err){
+  else{
+    reply = "Puedo ayudarte con:\n🛠️ Reportar fallas\n🧹 Limpieza\n🍽️ Room service\n\nSolo dime qué necesitas 😊";
+  }
+
+}catch(err){
 
   console.error(err);
 
   reply = "No pude generar el reporte 😔\nIntenta nuevamente o contacta recepción.";
- }
+}
 
- // 🔥 reemplazar mensaje typing
  typing.innerHTML = `<strong>Luka 🤖:</strong><br>${reply}`;
 
- // 🔥 guardar respuesta
  await fetch("/chat/message",{
   method:"POST",
   headers:{"Content-Type":"application/json"},
@@ -275,29 +296,31 @@ async function botReply(msg){
  });
 
 }
+
 // 🔥 mensaje de bienvenida PRO
+(async () => {
+
 if(!sessionStorage.getItem("welcome_shown")){
-  
- addMsg(`Hola ${guest.name} 👋  
+
+ const mensaje = `Hola ${guest.name} 👋  
 Soy Luka 🤖, tu asistente virtual del hotel.  
 
-¿En qué puedo ayudarte hoy?`, "bot");
+¿En qué puedo ayudarte hoy?`;
 
- sessionStorage.setItem("welcome_shown", "true");
-
-}
-(async ()=>{
+ addMsg(mensaje, "bot");
 
  await fetch("/chat/message",{
   method:"POST",
   headers:{"Content-Type":"application/json"},
   body: JSON.stringify({
     guest_id: guest.id,
-    message: "Mensaje de bienvenida",
+    message: mensaje,
     sender: "bot"
   })
  });
 
+ sessionStorage.setItem("welcome_shown", "true");
+}
 })();
 
 const hora = new Date().getHours();
