@@ -8,48 +8,73 @@
 <style>
 body{
  font-family: Arial;
- background:#e5e7eb;
+ background:#ece5dd;
+ margin:0;
 }
 
 .chat{
  padding:10px;
+ height:80vh;
+ overflow-y:auto;
+ display:flex;
+ flex-direction:column;
 }
 
 .msg{
- margin:10px 0;
+ margin:5px 0;
  padding:10px;
  border-radius:10px;
  max-width:70%;
+ position:relative;
 }
 
 .user{
- background:#2563eb;
- color:white;
- margin-left:auto;
+ background:#dcf8c6;
+ align-self:flex-end;
 }
 
 .bot{
  background:white;
+ align-self:flex-start;
+}
+
+.msg strong{
+ font-size:11px;
+ opacity:0.6;
+}
+
+.input-area{
+ display:flex;
+ padding:10px;
+ background:#f0f0f0;
 }
 
 input{
- width:80%;
+ flex:1;
  padding:10px;
+ border-radius:20px;
+ border:none;
+ outline:none;
 }
 
 button{
- padding:10px;
+ margin-left:10px;
+ padding:10px 15px;
+ border:none;
+ border-radius:20px;
+ background:#25d366;
+ color:white;
 }
 </style>
 </head>
 
 <body>
-
+<script src="/socket.io/socket.io.js"></script>
 <div class="chat" id="chat"></div>
 
-<div>
-<input id="input" placeholder="Escribe aquí...">
-<button onclick="send()">Enviar</button>
+<div class="input-area">
+  <input id="input" placeholder="Escribe un mensaje...">
+  <button onclick="send()">➤</button>
 </div>
 
 <script>
@@ -60,19 +85,50 @@ if(!guest){
  window.location.href = "/guest.html";
 }
 
-if(!guest){
- window.location.href = "/guest.html";
-}
+// 🔥 AHORA SÍ SOCKET
+const socket = io();
+socket.emit("join_guest", guest.id);
+
+socket.on("new_message", (data)=>{
+
+ if(data.sender === "guest") return;
+
+ if(data.sender === "staff"){
+   addMsg("👨‍💼 " + data.message, "bot");
+   return;
+ }
+
+});
+
 function addMsg(text, type){
+
  const div = document.createElement("div");
  div.className = "msg " + type;
- div.innerText = text;
- document.getElementById("chat").appendChild(div);
+
+ // 🔥 Nombre del emisor
+ let sender = "";
+
+ if(type === "bot"){
+   sender = "Luka 🤖";
+ }else{
+   sender = "Tú";
+ }
+
+ div.innerHTML = `
+  <strong>${sender}</strong>
+  <div>${text}</div>
+`;
+
+ const chat = document.getElementById("chat");
+ chat.appendChild(div);
+
+ chat.scrollTop = chat.scrollHeight;
 }
 
 async function send(){
+
  const input = document.getElementById("input");
- const text = input.value;
+ const text = input.value.trim();
 
  if(!text) return;
 
@@ -89,24 +145,89 @@ async function send(){
  });
 
  input.value="";
+ input.focus();
 
  botReply(text);
+}
+function detectarDepartamento(msg){
+
+ msg = msg.toLowerCase();
+
+ if(msg.includes("aire") || msg.includes("clima") || msg.includes("tv") || msg.includes("luz")){
+   return "Mantenimiento";
+ }
+
+ if(msg.includes("toalla") || msg.includes("limpieza") || msg.includes("sábanas")){
+   return "Housekeeping";
+ }
+
+ if(msg.includes("comida") || msg.includes("room service") || msg.includes("hambre")){
+   return "Alimentos Bebidas";
+ }
+
+ return "Recepción";
 }
 
 async function botReply(msg){
 
  let reply = "¿En qué puedo ayudarte?";
 
- if(msg.toLowerCase().includes("problema")){
-   reply = "Describe el problema por favor";
+ // 🔥 mostrar "escribiendo..."
+ const typing = document.createElement("div");
+ typing.className = "msg bot";
+ typing.innerHTML = "<strong>Luka 🤖:</strong><br>Luka está escribiendo...";
+
+ const chat = document.getElementById("chat");
+ chat.appendChild(typing);
+ chat.scrollTop = chat.scrollHeight;
+
+ await new Promise(r => setTimeout(r, 800));
+
+ try{
+
+  if(msg.toLowerCase().includes("horario")){
+    reply = "Restaurante: 7am - 10pm";
+  }
+
+  else if(
+   msg.toLowerCase().includes("no funciona") ||
+   msg.toLowerCase().includes("problema") ||
+   msg.toLowerCase().includes("falla")
+  ){
+
+    const dept = detectarDepartamento(msg);
+
+    const res = await fetch("/tasks",{
+     method:"POST",
+     headers:{
+      "Content-Type":"application/json"
+     },
+     body: JSON.stringify({
+      title: "Reporte habitación " + guest.room,
+      description: msg,
+      department: dept,
+      user: guest.name
+     })
+    });
+
+    if(!res.ok){
+      throw new Error("No se pudo crear el ticket");
+    }
+
+    reply = "Ya reporté tu solicitud 🛠️\nEn breve el equipo acudirá a tu habitación.";
+  }
+
+ }catch(err){
+
+  console.error(err);
+
+  reply = "No pude generar el reporte 😔\nIntenta nuevamente o contacta recepción.";
  }
 
- if(msg.toLowerCase().includes("horario")){
-   reply = "Restaurante: 7am - 10pm";
- }
+ // 🔥 reemplazar mensaje typing
+ typing.innerHTML = `<strong>Luka 🤖:</strong><br>${reply}`;
 
- addMsg(reply,"bot");
-
+ // 🔥 guardar respuesta
  await fetch("/chat/message",{
   method:"POST",
   headers:{"Content-Type":"application/json"},
@@ -116,10 +237,8 @@ async function botReply(msg){
    sender: "bot"
   })
  });
-}
 
-// saludo inicial
-addMsg("Hola " + guest.name + " 👋 Habitación " + guest.room,"bot");
+}
 </script>
 
 </body>

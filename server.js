@@ -85,6 +85,17 @@ app.post("/chat/message", async (req,res)=>{
    "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
    [guest_id, message, sender]
   );
+  io.to("guest_" + guest_id).emit("new_message", {
+  guest_id,
+  message,
+  sender
+});
+io.to("admin_room").emit("new_message_admin", {
+  guest_id,
+  message,
+  sender
+});
+
 
   res.json({ok:true});
 
@@ -137,7 +148,7 @@ app.use((req,res,next)=>{
  next();
 });
 
-app.use(express.static(path.join(process.cwd(), "public")));
+app.use(express.static(path.join(__dirname, "public")));
 
 app.use(cors({
   origin: "*",
@@ -276,6 +287,14 @@ if (
 const onlineDepartments = {};
 
 io.on("connection",(socket)=>{
+
+  socket.on("join_admin", ()=>{
+  socket.join("admin_room");
+});
+
+  socket.on("join_guest", (guest_id)=>{
+  socket.join("guest_" + guest_id);
+});
 
  const token = socket.handshake.auth?.token;
  const department = socket.handshake.query?.department;

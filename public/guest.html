@@ -74,11 +74,16 @@ async function login(){
   body: JSON.stringify({name, room})
  });
 
- const guest = await res.json();
+ const data = await res.json();
 
- localStorage.setItem("guest", JSON.stringify(guest));
+if(!res.ok){
+ alert(data.error || "Error al registrar huésped");
+ return;
+}
 
- window.location.href = "/chat.html";
+localStorage.setItem("guest", JSON.stringify(data));
+
+window.location.href = "/chat.html";
 }
 </script>
 

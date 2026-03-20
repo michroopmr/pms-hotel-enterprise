@@ -1,54 +1,150 @@
-<div style="display:flex">
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Admin Chat</title>
 
-  <div id="guests" style="width:30%; border-right:1px solid #ccc;"></div>
+<style>
+body{
+ display:flex;
+ margin:0;
+ font-family:Arial;
+}
 
-  <div style="width:70%">
-    <div id="chat"></div>
+/* sidebar */
+.sidebar{
+ width:30%;
+ background:#111;
+ color:white;
+ height:100vh;
+ overflow-y:auto;
+}
 
-    <input id="msg">
-    <button onclick="sendStaff()">Enviar</button>
-  </div>
+.user{
+ padding:15px;
+ border-bottom:1px solid #333;
+ cursor:pointer;
+}
 
+/* chat */
+.chat{
+ flex:1;
+ display:flex;
+ flex-direction:column;
+}
+
+.messages{
+ flex:1;
+ padding:10px;
+ overflow-y:auto;
+ background:#ece5dd;
+}
+
+.msg{
+ margin:5px 0;
+ padding:10px;
+ border-radius:10px;
+ max-width:60%;
+}
+
+.me{
+ background:#dcf8c6;
+ margin-left:auto;
+}
+
+.other{
+ background:white;
+}
+
+/* input */
+.input{
+ display:flex;
+ padding:10px;
+ background:#ddd;
+}
+
+input{
+ flex:1;
+ padding:10px;
+}
+
+button{
+ padding:10px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar" id="users"></div>
+
+<div class="chat">
+ <div class="messages" id="messages"></div>
+
+ <div class="input">
+  <input id="msgInput">
+  <button onclick="send()">Enviar</button>
+ </div>
 </div>
 
+<script src="/socket.io/socket.io.js"></script>
+
 <script>
+const socket = io();
+socket.emit("join_admin");
+
 let currentGuest = null;
 
+// 🔥 cargar huéspedes
 async function loadGuests(){
  const res = await fetch("/guests");
- const data = await res.json();
+ const guests = await res.json();
 
- const guestsDiv = document.getElementById("guests");
- guestsDiv.innerHTML="";
+ const container = document.getElementById("users");
+ container.innerHTML = "";
 
- data.forEach(g=>{
-  const div = document.createElement("div");
-  div.innerText = g.name + " - " + g.room;
+ guests.forEach(g=>{
+   const div = document.createElement("div");
+   div.className = "user";
+   div.innerText = g.name + " - Hab " + g.room;
 
-  div.onclick = ()=>loadChat(g.id);
+   div.onclick = ()=> selectGuest(g.id);
 
-  guestsDiv.appendChild(div);
+   container.appendChild(div);
  });
 }
 
-async function loadChat(id){
+async function selectGuest(id){
  currentGuest = id;
 
- const res = await fetch("/chat/"+id);
- const messages = await res.json();
+ const res = await fetch("/chat/" + id);
+ const msgs = await res.json();
 
- const chat = document.getElementById("chat");
- chat.innerHTML="";
+ const box = document.getElementById("messages");
+ box.innerHTML = "";
 
- messages.forEach(m=>{
-  const div = document.createElement("div");
-  div.innerText = m.sender + ": " + m.message;
-  chat.appendChild(div);
+ msgs.forEach(m=>{
+   addMsg(m.message, m.sender === "staff");
  });
 }
 
-async function sendStaff(){
- const text = document.getElementById("msg").value;
+function addMsg(text, isMe){
+ const div = document.createElement("div");
+ div.className = "msg " + (isMe ? "me" : "other");
+ div.innerText = text;
+
+ const box = document.getElementById("messages");
+ box.appendChild(div);
+ box.scrollTop = box.scrollHeight;
+}
+
+async function send(){
+ const input = document.getElementById("msgInput");
+ const text = input.value;
+
+ if(!text || !currentGuest) return;
+
+ addMsg(text, true);
 
  await fetch("/chat/message",{
   method:"POST",
@@ -60,8 +156,20 @@ async function sendStaff(){
   })
  });
 
- loadChat(currentGuest);
+ input.value="";
 }
+
+// 🔥 tiempo real
+socket.on("new_message_admin", (data)=>{
+
+ if(data.guest_id !== currentGuest) return;
+
+ addMsg(data.message, data.sender === "staff");
+
+});
 
 loadGuests();
 </script>
+
+</body>
+</html>
