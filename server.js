@@ -26,12 +26,12 @@ app.use((req,res,next)=>{
  const host = req.headers.host;
 
  if(
-   host &&
-   host.includes("onrender.com") &&
-   req.method === "GET" &&
-   req.url === "/"
+ host &&
+ host.includes("onrender.com") &&
+ req.method === "GET" &&
+ !req.url.includes("socket.io")
 ){
-   return res.redirect(301,"https://mollyhelpers.com");
+ return res.redirect(301,"https://mollyhelpers.com");
 }
 
  next();
@@ -191,7 +191,11 @@ app.get("/departments", authMiddleware, (req,res)=>{
 });
 
 const io = new Server(server,{
-  cors:{ origin:"*" }
+  cors:{
+    origin: ["https://mollyhelpers.com"],
+    methods: ["GET","POST"],
+    credentials: true
+  }
 });
 
 

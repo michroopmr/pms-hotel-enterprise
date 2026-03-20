@@ -86,7 +86,10 @@ if(!guest){
 }
 
 // 🔥 AHORA SÍ SOCKET
-const socket = io();
+const socket = io("https://mollyhelpers.com",{
+  transports: ["websocket"]
+});
+
 socket.emit("join_guest", guest.id);
 
 socket.on("new_message", (data)=>{
@@ -96,6 +99,10 @@ socket.on("new_message", (data)=>{
  if(data.sender === "staff"){
    addMsg("👨‍💼 " + data.message, "bot");
    return;
+ }
+
+ if(data.sender === "bot"){
+   return; // evitar duplicar bot local
  }
 
 });
@@ -239,6 +246,53 @@ async function botReply(msg){
  });
 
 }
+// 🔥 mensaje de bienvenida PRO
+addMsg(
+`Hola ${guest.name} 👋  
+Soy Luka 🤖, tu asistente virtual del hotel.
+
+Puedo ayudarte con:
+• Reportar problemas 🛠️  
+• Consultar horarios 🍽️  
+• Solicitar servicios 🛎️  
+
+¿En qué puedo ayudarte hoy?`,
+"bot"
+);
+(async ()=>{
+
+ await fetch("/chat/message",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({
+    guest_id: guest.id,
+    message: "Mensaje de bienvenida",
+    sender: "bot"
+  })
+ });
+
+})();
+
+const hora = new Date().getHours();
+
+let saludo = "Hola";
+
+if(hora < 12) saludo = "Buenos días";
+else if(hora < 19) saludo = "Buenas tardes";
+else saludo = "Buenas noches";
+
+addMsg(
+`${saludo} ${guest.name} 👋  
+Soy Luka 🤖, tu asistente virtual del hotel.
+
+Puedo ayudarte con:
+• Reportar problemas 🛠️  
+• Consultar horarios 🍽️  
+• Solicitar servicios 🛎️  
+
+¿En qué puedo ayudarte hoy?`,
+"bot"
+);
 </script>
 
 </body>
