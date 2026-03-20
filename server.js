@@ -47,22 +47,40 @@ const db = new Pool({
   ssl:{ rejectUnauthorized:false }
 });
 
+// 🔥 HELPER MULTIEMPRESA
+async function getCompanyId(code){
+
+ const result = await db.query(
+  "SELECT id FROM companies WHERE code=$1",
+  [code]
+ );
+
+ if(result.rows.length === 0){
+  throw new Error("Empresa no encontrada");
+ }
+
+ return result.rows[0].id;
+}
+
 app.post("/guest/task", async (req,res)=>{
  try{
 
-  const {title, description, department, guest_name, room} = req.body;
+  const {title, description, department, guest_name, room, company_code } = req.body;
+
+  const company_id = await getCompanyId(company_code); // 🔥 AQUÍ
 
   const result = await db.query(
    `INSERT INTO tasks
-    (title, description, department, status, created_by)
-    VALUES($1,$2,$3,$4,$5)
+    (title, description, department, status, created_by, company_id)
+    VALUES($1,$2,$3,$4,$5,$6)
     RETURNING *`,
    [
     title,
     description,
     department,
     "abierto",
-    guest_name + " - Hab " + room
+    guest_name + " - Hab " + room,
+    company_id
    ]
   );
 

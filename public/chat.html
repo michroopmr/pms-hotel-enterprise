@@ -79,7 +79,18 @@ button{
 
 <script>
 
-const guest = JSON.parse(localStorage.getItem("guest"));
+if(company_code && guest){
+  guest.company_code = company_code;
+  localStorage.setItem("guest", JSON.stringify(guest));
+}
+
+const params = new URLSearchParams(window.location.search);
+const company_code = params.get("empresa");
+
+if(company_code){
+  guest.company_code = company_code;
+  localStorage.setItem("guest", JSON.stringify(guest));
+}
 
 if(!guest){
  alert("Sesión expirada");
@@ -167,6 +178,12 @@ async function send(){
 
  if(!text) return;
 
+ if(text.toLowerCase() === "menu"){
+  addMsg(text,"user"); // 🔥 agrega esto
+  await botReply("menu");
+  return;
+}
+
  addMsg(text,"user");
 
  await fetch("/chat/message",{
@@ -222,18 +239,21 @@ async function botReply(msg){
   const texto = msg.toLowerCase();
 
   const esFalla = [
-   "no funciona",
-   "problema",
-   "falla",
-   "no sirve",
-   "no jala",
-   "no prende",
-   "descompuesto",
-   "no enfría",
-   "no calienta",
-   "no hay",
-   "no tengo"
-  ].some(p => texto.includes(p));
+ "no funciona",
+ "problema",
+ "falla",
+ "no sirve",
+ "no jala",
+ "no prende",
+ "descompuesto",
+ "no enfría",
+ "no calienta",
+ "no hay",
+ "no tengo",
+ "no sirve el",
+ "no hay agua",
+ "sin servicio"
+].some(p => texto.includes(p));
 
   console.log("Mensaje:", msg);
   console.log("Es falla:", esFalla);
@@ -252,12 +272,13 @@ async function botReply(msg){
       "Content-Type":"application/json"
      },
      body: JSON.stringify({
-      title: "Reporte habitación " + guest.room,
-      description: msg,
-      department: dept,
-      guest_name: guest.name,
-      room: guest.room
-     })
+  title: "Reporte habitación " + guest.room,
+  description: msg,
+  department: dept,
+  guest_name: guest.name,
+  room: guest.room,
+  company_code: guest.company_code // 🔥 NUEVO
+})
     });
 
     if(!res.ok){
@@ -269,11 +290,19 @@ async function botReply(msg){
     const data = await res.json();
     console.log("Ticket creado:", data);
 
-    reply = "Ya reporté tu solicitud 🛠️\nEn breve el equipo acudirá a tu habitación.";
+    reply = `✅ Ticket generado (#${data.id})  
+Departamento: ${dept}  
+
+🛠️ En breve el equipo acudirá a tu habitación.`;
   }
 
   else{
-    reply = "Puedo ayudarte con:\n🛠️ Reportar fallas\n🧹 Limpieza\n🍽️ Room service\n\nSolo dime qué necesitas 😊";
+    reply = `Puedo ayudarte con:
+
+🛠️ Reportar fallas
+🧹 Limpieza / toallas
+
+Solo dime qué necesitas 😊`;
   }
 
 }catch(err){
@@ -298,11 +327,20 @@ async function botReply(msg){
 }
 
 // 🔥 mensaje de bienvenida PRO
+
+const hora = new Date().getHours();
+
+let saludo = "Hola";
+
+if(hora < 12) saludo = "Buenos días";
+else if(hora < 19) saludo = "Buenas tardes";
+else saludo = "Buenas noches";
+
 (async () => {
 
 if(!sessionStorage.getItem("welcome_shown")){
 
- const mensaje = `Hola ${guest.name} 👋  
+ const mensaje = `${saludo} ${guest.name} 👋  
 Soy Luka 🤖, tu asistente virtual del hotel.  
 
 ¿En qué puedo ayudarte hoy?`;
@@ -322,14 +360,6 @@ Soy Luka 🤖, tu asistente virtual del hotel.
  sessionStorage.setItem("welcome_shown", "true");
 }
 })();
-
-const hora = new Date().getHours();
-
-let saludo = "Hola";
-
-if(hora < 12) saludo = "Buenos días";
-else if(hora < 19) saludo = "Buenas tardes";
-else saludo = "Buenas noches";
 
 </script>
 
