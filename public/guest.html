@@ -59,6 +59,9 @@ button{
 </div>
 
 <script>
+  const params = new URLSearchParams(window.location.search);
+const company_code = params.get("empresa") || "DEMO01";
+
 async function login(){
  const name = document.getElementById("name").value;
  const room = document.getElementById("room").value;
@@ -71,19 +74,28 @@ async function login(){
  const res = await fetch("/guest/login",{
   method:"POST",
   headers:{"Content-Type":"application/json"},
-  body: JSON.stringify({name, room})
+  body: JSON.stringify({
+    name,
+    room,
+    company_code // 🔥 importante
+  })
  });
 
  const data = await res.json();
 
-if(!res.ok){
- alert(data.error || "Error al registrar huésped");
- return;
-}
+ if(!res.ok){
+  alert(data.error || "Error al registrar huésped");
+  return;
+ }
 
-localStorage.setItem("guest", JSON.stringify(data));
+ localStorage.setItem("guest", JSON.stringify({
+  id: data.id,
+  name: name,
+  room: room,
+  company_code: company_code
+ }));
 
-window.location.href = "/chat.html";
+ window.location.href = `/chat.html?empresa=${company_code}`;
 }
 </script>
 

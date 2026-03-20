@@ -42,6 +42,7 @@ console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
 
 app.use(express.json());
 
+
 const db = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl:{ rejectUnauthorized:false }
@@ -87,7 +88,7 @@ app.post("/guest/task", async (req,res)=>{
    ]
   );
 
-  io.to("admin_room").emit("new_guest_task", result.rows[0]);
+  io.to("admin_" + company_code).emit("new_guest_task", result.rows[0]);
 
   res.json(result.rows[0]);
 
@@ -96,6 +97,7 @@ app.post("/guest/task", async (req,res)=>{
   res.status(500).json({error:"Error creando tarea"});
  }
 });
+
 // ==========================
 // CHATBOT - HUÉSPEDES
 // ==========================
@@ -104,15 +106,17 @@ app.post("/guest/task", async (req,res)=>{
 app.post("/guest/login", async (req,res)=>{
  try{
 
-  const { name, room } = req.body;
+  const { name, room, company_code } = req.body;
 
-  if(!name || !room){
+  if(!name || !room || !company_code){
    return res.status(400).json({error:"Datos incompletos"});
   }
 
+  const company_id = await getCompanyId(company_code);
+
   const result = await db.query(
-   "INSERT INTO guests (name, room) VALUES ($1,$2) RETURNING *",
-   [name, room]
+   "INSERT INTO guests (name, room, company_id) VALUES ($1,$2,$3) RETURNING *",
+   [name, room, company_id]
   );
 
   res.json(result.rows[0]);
@@ -129,6 +133,14 @@ app.post("/chat/message", async (req,res)=>{
 
   const {guest_id, message, sender} = req.body;
 
+  if(!guest_id || !message || !sender){
+  return res.status(400).json({error:"Datos incompletos"});
+}
+
+if(sender !== "guest" && sender !== "staff" && sender !== "bot"){
+  return res.status(400).json({error:"Sender inválido"});
+}
+
   await db.query(
    "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
    [guest_id, message, sender]
@@ -138,7 +150,25 @@ app.post("/chat/message", async (req,res)=>{
   message,
   sender
 });
-io.to("admin_room").emit("new_message_admin", {
+
+const guestRes = await db.query(
+  "SELECT company_id FROM guests WHERE id=$1",
+  [guest_id]
+);
+
+if(guestRes.rows.length === 0){
+  return res.status(404).json({error:"Guest no encontrado"});
+}
+const company_id = guestRes.rows[0].company_id;
+
+const companyRes = await db.query(
+  "SELECT code FROM companies WHERE id=$1",
+  [company_id]
+);
+
+const company_code = companyRes.rows[0].code;
+
+io.to("admin_" + company_code).emit("new_message", {
   guest_id,
   message,
   sender
@@ -171,11 +201,14 @@ app.get("/chat/:guest_id", async (req,res)=>{
 });
 
 // Lista de huéspedes
-app.get("/guests", async (req,res)=>{
+app.get("/guests/:company_code", async (req,res)=>{
  try{
 
+  const company_id = await getCompanyId(req.params.company_code);
+
   const result = await db.query(
-   "SELECT * FROM guests WHERE active=true ORDER BY created_at DESC"
+   "SELECT * FROM guests WHERE active=true AND company_id=$1 ORDER BY created_at DESC",
+   [company_id]
   );
 
   res.json(result.rows);
@@ -313,6 +346,21 @@ ADD COLUMN IF NOT EXISTS company_id INTEGER
 ALTER TABLE users
 ADD COLUMN IF NOT EXISTS company_id INTEGER
 `);
+
+await db.query(`
+CREATE TABLE IF NOT EXISTS guests(
+ id SERIAL PRIMARY KEY,
+ name TEXT,
+ room TEXT,
+ active BOOLEAN DEFAULT true,
+ created_at TIMESTAMP DEFAULT NOW()
+)
+`);
+
+await db.query(`
+ALTER TABLE guests
+ADD COLUMN IF NOT EXISTS company_id INTEGER
+`);
 }
 
 
@@ -340,12 +388,23 @@ const onlineDepartments = {};
 
 io.on("connection",(socket)=>{
 
-  socket.on("join_admin", ()=>{
-  socket.join("admin_room");
+  socket.on("join_admin", (company_code)=>{
+  socket.join("admin_" + company_code);
 });
 
   socket.on("join_guest", (guest_id)=>{
   socket.join("guest_" + guest_id);
+});
+socket.on("call_staff", (data) => {
+
+  console.log("🔔 Solicitud de staff:", data);
+
+  io.to("admin_" + data.company_code).emit("staff_alert", {
+    guest_id: data.guest_id,
+    message: data.message,
+    company_code: data.company_code
+  });
+
 });
 
 const token = socket.handshake.auth?.token;
@@ -463,22 +522,18 @@ app.post("/subscribe", authMiddleware, async (req,res)=>{
    }
 
    await db.query(`
-     INSERT INTO push_subscriptions
-     (endpoint, subscription, department, username, device)
-     VALUES ($1,$2,$3,$4,$5)
-     ON CONFLICT (endpoint)
-     DO UPDATE SET
-       department = EXCLUDED.department,
-       username = EXCLUDED.username,
-       device = EXCLUDED.device
-   `,
-   [
-     subscription.endpoint,
-     JSON.stringify(subscription),
-     department,
-     username,
-     device
-   ]);
+ INSERT INTO push_subscriptions
+ (endpoint, subscription, department)
+ VALUES ($1,$2,$3)
+ ON CONFLICT (endpoint)
+ DO UPDATE SET
+   department = EXCLUDED.department
+`,
+[
+ subscription.endpoint,
+ JSON.stringify(subscription),
+ department
+]);
 
    res.json({ok:true});
 
@@ -540,8 +595,18 @@ app.post("/tasks", authMiddleware, async (req,res)=>{
 );
 
  const nuevaTarea = result.rows[0];
+ // 🔥 obtener empresa
+const companyRes = await db.query(
+  "SELECT code FROM companies WHERE id=$1",
+  [req.user.company_id]
+);
 
- io.to(department).emit("task_update", nuevaTarea);
+const company_code = companyRes.rows[0].code;
+
+// 🔥 emitir SOLO a esa empresa
+io.to("admin_" + company_code).emit("task_update", nuevaTarea);
+
+
 
  await sendPushByDepartment(
    department,
@@ -604,8 +669,15 @@ values.push(id, req.user.company_id);
 
 tareaActualizada.evidences = evidences.rows;
 
-  io.to(tareaActualizada.department)
-  .emit("task_update", tareaActualizada);
+const companyRes = await db.query(
+  "SELECT code FROM companies WHERE id=$1",
+  [req.user.company_id]
+);
+
+const company_code = companyRes.rows[0].code;
+
+io.to("admin_" + company_code)
+.emit("task_update", tareaActualizada);
 
    if(status !== undefined){
      await sendPushByDepartment(
@@ -1069,6 +1141,15 @@ const upload = multer({
 
 app.post("/tasks/:id/evidence", authMiddleware, upload.single("image"), async (req,res)=>{
   try{
+
+    const taskCheck = await db.query(
+ "SELECT * FROM tasks WHERE id=$1 AND company_id=$2",
+ [req.params.id, req.user.company_id]
+);
+
+if(taskCheck.rows.length === 0){
+ return res.status(403).json({error:"No autorizado"});
+}
 
     if(!req.file){
       return res.status(400).json({error:"No image provided"});

@@ -79,18 +79,21 @@ button{
 
 <script>
 
-// 🔥 1. obtener guest
-const guest = JSON.parse(localStorage.getItem("guest"));
+const params = new URLSearchParams(window.location.search);
+const company_code = params.get("empresa") || "DEMO01";
 
-// 🔥 2. validar sesión primero
-if(!guest){
- alert("Sesión expirada");
- window.location.href = "/guest.html";
+let guest = null;
+
+try{
+ guest = JSON.parse(localStorage.getItem("guest"));
+}catch(e){
+ console.error("Error parsing guest");
 }
 
-// 🔥 3. obtener empresa
-const params = new URLSearchParams(window.location.search);
-const company_code = params.get("empresa");
+if(!guest){
+ window.location.replace(`/guest.html?empresa=${company_code}`);
+ return; // 🔥 IMPORTANTE
+}
 
 // 🔥 4. guardar empresa
 if(company_code){
@@ -127,6 +130,9 @@ function showToast(msg){
 
  setTimeout(()=>toast.remove(),3000);
 }
+
+let inactivityTimer;
+
 // 🔥 AHORA SÍ SOCKET
 const socket = io("https://mollyhelpers.com",{
   transports: ["websocket"]
@@ -139,10 +145,13 @@ socket.on("new_message", (data)=>{
  if(data.sender === "guest") return;
 
  if(data.sender === "staff"){
-   addMsg("👨‍💼 " + data.message, "bot");
+   addMsg("👨‍💼 " + data.message + "\n\n👍 Estoy contigo para ayudarte", "bot");
 
-   // 🔥 NUEVO
    showToast("Nuevo mensaje del staff");
+
+   resetInactivity(); // ✅ SOLO AQUÍ
+   sessionStorage.removeItem("despedida_enviada");
+   
 
    return;
  }
@@ -152,6 +161,7 @@ socket.on("new_message", (data)=>{
  }
 
 });
+
 
 function addMsg(text, type){
 
@@ -178,10 +188,40 @@ function addMsg(text, type){
  chat.scrollTop = chat.scrollHeight;
 }
 
+function resetInactivity(){
+
+ clearTimeout(inactivityTimer);
+
+ inactivityTimer = setTimeout(async () => {
+
+  // 🔥 evitar duplicado
+  if(sessionStorage.getItem("despedida_enviada")) return;
+
+  const despedida = "Gracias por contactarnos 🙌\nEsperamos que tu solicitud haya sido atendida.";
+
+  addMsg(despedida, "bot");
+
+  await fetch("/chat/message",{
+   method:"POST",
+   headers:{"Content-Type":"application/json"},
+   body: JSON.stringify({
+     guest_id: guest.id,
+     message: despedida,
+     sender: "bot"
+   })
+  });
+
+  sessionStorage.setItem("despedida_enviada", "true");
+
+ }, 180000);
+}
+
 async function send(){
 
  const input = document.getElementById("input");
  const text = input.value.trim();
+
+ sessionStorage.removeItem("despedida_enviada");
 
  if(!guest || !guest.id){
   console.error("Guest inválido");
@@ -212,7 +252,11 @@ async function send(){
  input.focus();
 
  await botReply(text);
+ resetInactivity();
+
 }
+
+
 function detectarDepartamento(msg){
 
  msg = msg.toLowerCase();
@@ -308,6 +352,20 @@ Departamento: ${dept}
 🛠️ En breve el equipo acudirá a tu habitación.`;
   }
 
+else if(
+ texto.includes("humano") ||
+ texto.includes("asesor") ||
+ texto.includes("persona")
+){
+
+ reply = "Te comunico con nuestro equipo 👨‍💼";
+
+ socket.emit("call_staff", {
+   guest_id: guest.id,
+   message: msg,
+   company_code: guest.company_code
+ });
+}
   else{
     reply = `Puedo ayudarte con:
 
@@ -373,6 +431,7 @@ Soy Luka 🤖, tu asistente virtual del hotel.
 }
 })();
 
+resetInactivity();
 </script>
 
 </body>

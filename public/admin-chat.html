@@ -2,31 +2,39 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Admin Chat</title>
 
 <style>
 body{
- display:flex;
  margin:0;
- font-family:Arial;
+ font-family: Arial;
+ display:flex;
+ height:100vh;
 }
 
-/* sidebar */
+/* SIDEBAR */
 .sidebar{
  width:30%;
- background:#111;
+ background:#111827;
  color:white;
- height:100vh;
  overflow-y:auto;
 }
 
 .user{
  padding:15px;
- border-bottom:1px solid #333;
+ border-bottom:1px solid #374151;
  cursor:pointer;
 }
 
-/* chat */
+.user.active{
+ background:#25d366;
+}
+
+/* ALERTA */
+.user.alert{
+ background:#dc2626;
+}
+
+/* CHAT */
 .chat{
  flex:1;
  display:flex;
@@ -35,9 +43,9 @@ body{
 
 .messages{
  flex:1;
- padding:10px;
- overflow-y:auto;
+ padding:15px;
  background:#ece5dd;
+ overflow-y:auto;
 }
 
 .msg{
@@ -47,29 +55,29 @@ body{
  max-width:60%;
 }
 
-.me{
- background:#dcf8c6;
- margin-left:auto;
-}
+.me{ background:#dcf8c6; align-self:flex-end; }
+.guest{ background:white; align-self:flex-start; }
 
-.other{
- background:white;
-}
-
-/* input */
 .input{
  display:flex;
  padding:10px;
- background:#ddd;
+ background:#f3f4f6;
 }
 
 input{
  flex:1;
  padding:10px;
+ border-radius:20px;
+ border:none;
 }
 
 button{
+ margin-left:10px;
  padding:10px;
+ border:none;
+ border-radius:20px;
+ background:#25d366;
+ color:white;
 }
 </style>
 </head>
@@ -79,100 +87,163 @@ button{
 <div class="sidebar" id="users"></div>
 
 <div class="chat">
- <div class="messages" id="messages"></div>
+  <div class="messages" id="messages"></div>
 
- <div class="input">
-  <input id="msgInput">
-  <button onclick="send()">Enviar</button>
- </div>
+  <div class="input">
+    <input id="msgInput">
+    <button onclick="send()">➤</button>
+  </div>
 </div>
 
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
 const socket = io("https://mollyhelpers.com");
-socket.emit("join_admin");
+
+const params = new URLSearchParams(window.location.search);
+const company_code = params.get("empresa") || "DEMO01";
+const API = "https://mollyhelpers.com";
+
+socket.emit("join_admin", company_code);
 
 let currentGuest = null;
+let alerts = {};
 
-// 🔥 cargar huéspedes
+const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+
+socket.on("connect", ()=>{
+  console.log("✅ Conectado como admin");
+});
+
+socket.on("disconnect", ()=>{
+  console.log("❌ Socket desconectado");
+});
+socket.io.on("reconnect", ()=>{
+  console.log("🔄 Reconectado");
+  loadGuests();
+});
+// 🔥 CARGAR HUÉSPEDES
 async function loadGuests(){
- const res = await fetch("/guests");
+
+const res = await fetch(`${API}/guests/${company_code}`);
+
+if(!res.ok){
+  console.error("Error cargando huéspedes");
+  return;
+}
  const guests = await res.json();
 
  const container = document.getElementById("users");
  container.innerHTML = "";
 
  guests.forEach(g=>{
-   const div = document.createElement("div");
-   div.className = "user";
-   div.innerText = g.name + " - Hab " + g.room;
 
-   div.onclick = ()=> selectGuest(g.id);
+  const div = document.createElement("div");
+  div.className = "user";
+  div.id = "guest-"+g.id;
 
-   container.appendChild(div);
+  div.innerText = `${g.name} - Hab ${g.room}`;
+
+  div.onclick = ()=>{
+    selectGuest(g);
+    div.classList.remove("alert");
+  };
+
+  container.appendChild(div);
  });
+ if(guests.length > 0){
+  selectGuest(guests[0]);
+}
 }
 
-async function selectGuest(id){
- currentGuest = id;
+// 🔥 SELECCIONAR CHAT
+async function selectGuest(g){
 
- const res = await fetch("/chat/" + id);
- const msgs = await res.json();
+ currentGuest = g;
+
+ document.querySelectorAll(".user").forEach(u=>u.classList.remove("active"));
+ document.getElementById("guest-"+g.id).classList.add("active");
+
+ const res = await fetch(`${API}/chat/${g.id}`);
+
+if(!res.ok){
+  console.error("Error cargando chat");
+  return;
+}
+
+const msgs = await res.json();
 
  const box = document.getElementById("messages");
  box.innerHTML = "";
 
  msgs.forEach(m=>{
-   addMsg(m.message, m.sender === "staff");
+  addMsg(m.message, m.sender === "staff" ? "me" : "guest");
  });
 }
 
-function addMsg(text, isMe){
+// 🔥 MENSAJES
+function addMsg(text, type){
  const div = document.createElement("div");
- div.className = "msg " + (isMe ? "me" : "other");
+ div.className = "msg " + type;
  div.innerText = text;
 
  const box = document.getElementById("messages");
  box.appendChild(div);
- box.scrollTop = box.scrollHeight;
+
+ box.scrollTop = box.scrollHeight; // 🔥 NUEVO
 }
 
+// 🔥 ENVIAR
 async function send(){
+
  const input = document.getElementById("msgInput");
  const text = input.value;
 
  if(!text || !currentGuest) return;
 
- addMsg(text, true);
+ addMsg(text, "me");
 
- await fetch("/chat/message",{
+ await fetch(`${API}/chat/message`,{
   method:"POST",
   headers:{"Content-Type":"application/json"},
   body: JSON.stringify({
-   guest_id: currentGuest,
-   message: text,
-   sender: "staff"
+    guest_id: currentGuest.id,
+    message: text,
+    sender: "staff"
   })
  });
 
  input.value="";
 }
 
-// 🔥 tiempo real
-socket.on("new_guest_task", (task)=>{
- showToast("Nuevo reporte de huésped 🛎️");
+// 🔥 ALERTA DE STAFF
+socket.on("staff_alert", (data)=>{
+
+ console.log("🔔 ALERTA STAFF:", data);
+
+ const div = document.getElementById("guest-"+data.guest_id);
+
+ if(div){
+   div.classList.add("alert");
+ }
+
+ audio.play();
 });
 
-socket.on("new_message_admin", (data)=>{
+// 🔥 MENSAJES EN VIVO
+socket.on("new_message", (data)=>{
 
- if(data.guest_id !== currentGuest) return;
+  if(currentGuest && data.guest_id === currentGuest.id){
 
- addMsg(data.message, data.sender === "staff");
+    if(data.sender !== "staff"){
+      addMsg(data.message, "guest");
+    }
 
+  }
 });
 
 loadGuests();
+
 </script>
 
 </body>
