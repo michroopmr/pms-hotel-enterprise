@@ -47,7 +47,34 @@ const db = new Pool({
   ssl:{ rejectUnauthorized:false }
 });
 
+app.post("/guest/task", async (req,res)=>{
+ try{
 
+  const {title, description, department, guest_name, room} = req.body;
+
+  const result = await db.query(
+   `INSERT INTO tasks
+    (title, description, department, status, created_by)
+    VALUES($1,$2,$3,$4,$5)
+    RETURNING *`,
+   [
+    title,
+    description,
+    department,
+    "abierto",
+    guest_name + " - Hab " + room
+   ]
+  );
+
+  io.to("admin_room").emit("new_guest_task", result.rows[0]);
+
+  res.json(result.rows[0]);
+
+ }catch(err){
+  console.error(err);
+  res.status(500).json({error:"Error creando tarea"});
+ }
+});
 // ==========================
 // CHATBOT - HUÉSPEDES
 // ==========================
@@ -302,6 +329,12 @@ io.on("connection",(socket)=>{
 
  const token = socket.handshake.auth?.token;
  const department = socket.handshake.query?.department;
+
+ if(!token){
+  // 🔥 permitir invitados (chatbot sin login)
+  console.log("👤 Guest conectado sin token");
+  return;
+}
 
  try{
 

@@ -90,7 +90,7 @@ button{
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
-const socket = io();
+const socket = io("https://mollyhelpers.com");
 socket.emit("join_admin");
 
 let currentGuest = null;
@@ -160,6 +160,10 @@ async function send(){
 }
 
 // 🔥 tiempo real
+socket.on("new_guest_task", (task)=>{
+ showToast("Nuevo reporte de huésped 🛎️");
+});
+
 socket.on("new_message_admin", (data)=>{
 
  if(data.guest_id !== currentGuest) return;
