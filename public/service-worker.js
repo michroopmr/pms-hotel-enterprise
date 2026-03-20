@@ -25,30 +25,34 @@ self.addEventListener("fetch", event => {
 
  const request = event.request;
 
- // 🔥 NO interceptar HTML (MUY IMPORTANTE)
- if(request.url.endsWith(".html")){
+ // 🔥 ignorar externos (onrender, APIs externas)
+ if (!request.url.includes("mollyhelpers.com")) {
    return;
  }
 
- // 🔥 ignorar APIs y sockets
- if(request.url.includes("/tasks") ||
-    request.url.includes("/auth") ||
-    request.url.includes("socket.io")){
+ // 🔥 ignorar APIs críticas
+ if(
+   request.url.includes("/tasks") ||
+   request.url.includes("/auth") ||
+   request.url.includes("/chat") ||
+   request.url.includes("/guest") ||
+   request.url.includes("socket.io")
+ ){
    return;
  }
 
- // 🔥 navegación (páginas)
+ // 🔥 navegación (HTML)
  if(request.mode === "navigate"){
 
    event.respondWith(
      fetch(request,{ cache:"no-store" })
-       .catch(()=> fetch("/login.html",{ cache:"no-store" }))
+       .catch(()=> caches.match("/login.html"))
    );
 
    return;
  }
 
- // 🔥 cache normal
+ // 🔥 cache estático (css, js, imágenes)
  event.respondWith(
    caches.match(request).then(response=>{
      return response || fetch(request);

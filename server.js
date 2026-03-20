@@ -27,12 +27,12 @@ app.use((req,res,next)=>{
 
  if(
  host &&
- host.includes("onrender.com") &&
+ host.includes("https://mollyhelpers.com") &&
  req.method === "GET" &&
  !req.url.includes("socket.io")
 ){
- return res.redirect(301,"https://mollyhelpers.com");
-}
+ return res.redirect(301,);
+}"https://mollyhelpers.com"
 
  next();
 
@@ -178,7 +178,7 @@ app.use((req,res,next)=>{
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use(cors({
-  origin: "*",
+  origin: ["https://mollyhelpers.com"],
   credentials: false,
   methods: ["GET","POST","PUT","DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"]
