@@ -26,15 +26,15 @@ app.use((req,res,next)=>{
  const host = req.headers.host;
 
  if(
- host &&
- host.includes("https://mollyhelpers.com") &&
- req.method === "GET" &&
- !req.url.includes("socket.io")
-){
- return res.redirect(301,);
-}"https://mollyhelpers.com"
+  host &&
+  host.includes("onrender.com") &&
+  req.method === "GET" &&
+  !req.url.includes("socket.io")
+ ){
+   return res.redirect(301,"https://mollyhelpers.com");
+ }
 
- next();
+ next(); // 🔥 ESTO ES CLAVE
 
 });
 
@@ -327,40 +327,38 @@ io.on("connection",(socket)=>{
   socket.join("guest_" + guest_id);
 });
 
- const token = socket.handshake.auth?.token;
- const department = socket.handshake.query?.department;
+const token = socket.handshake.auth?.token;
+const department = socket.handshake.query?.department;
 
- if(!token){
-  // 🔥 permitir invitados (chatbot sin login)
-  console.log("👤 Guest conectado sin token");
+if(!token){
+  console.log("👤 Guest conectado");
   return;
 }
 
- try{
+let decoded;
 
-   const decoded = jwt.verify(token, SECRET);
-   socket.user = decoded;
+try{
+  decoded = jwt.verify(token, SECRET);
+  socket.user = decoded;
+}catch(e){
+  console.log("⛔ Socket no autorizado");
+  socket.disconnect();
+  return;
+}
 
-   if(department){
-     socket.join(department);
-     onlineDepartments[department] = true;
-     console.log(`🟢 ${department} online`);
-   }
+// 🔥 unir a departamento
+if(department){
+  socket.join(department);
+  onlineDepartments[department] = true;
+  console.log(`🟢 ${department} online`);
+}
 
-   // 🔥 sistemas escucha todos los departamentos
-   if(decoded.role === "sistemas"){
+// 🔥 sistemas escucha todo
+if(decoded.role === "sistemas"){
   DEPARTMENTS.forEach(dep=>{
     socket.join(dep);
   });
 }
-
- }catch(e){
-
-   console.log("⛔ Socket no autorizado");
-   socket.disconnect();
-   return;
-
- }
 
  socket.on("disconnect",()=>{
 

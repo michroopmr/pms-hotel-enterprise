@@ -32,14 +32,17 @@ self.addEventListener("fetch", event => {
 
  // 🔥 ignorar APIs críticas
  if(
-   request.url.includes("/tasks") ||
-   request.url.includes("/auth") ||
-   request.url.includes("/chat") ||
-   request.url.includes("/guest") ||
-   request.url.includes("socket.io")
- ){
-   return;
- }
+ request.url.includes("/tasks") ||
+ request.url.includes("/auth") ||
+ request.url.includes("/chat") ||
+ request.url.includes("/guest") ||
+ request.url.includes("/users") ||
+ request.url.includes("/departments") ||
+ request.url.includes("/subscribe") ||
+ request.url.includes("socket.io")
+){
+ return;
+}
 
  // 🔥 navegación (HTML)
  if(request.mode === "navigate"){
