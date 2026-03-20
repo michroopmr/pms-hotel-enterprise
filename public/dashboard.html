@@ -23,7 +23,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 <!-- socket -->
-<script src="https://pms-hotel-enterprise.onrender.com/socket.io/socket.io.js"></script>
+<script src="https://mollyhelpers.com/socket.io/socket.io.js"></script>
 
 </head>
 
@@ -998,7 +998,7 @@ async function cargarDepartamentos(){
   try{
 
     const r = await secureFetch(
-      "https://pms-hotel-enterprise.onrender.com/departments",
+      "https://mollyhelpers.com/departments",
       {
         headers:{
           "Authorization":"Bearer "+localStorage.getItem("token")
@@ -1168,7 +1168,7 @@ function fechaPMS(fecha){
 /* ================= CARGA ================= */
 async function cargar(){
 
- const r = await secureFetch("https://pms-hotel-enterprise.onrender.com/tasks");
+ const r = await secureFetch("https://mollyhelpers.com/tasks");
  if(!r) return;
 
  if(!r.ok){
@@ -1668,7 +1668,7 @@ function actividadDepartamento(){
 async function cargarKPIs(){
 
  const r = await secureFetch(
-   "https://pms-hotel-enterprise.onrender.com/kpis"
+   "https://mollyhelpers.com/kpis"
  );
 
  if(!r) return;
@@ -1813,7 +1813,7 @@ async function crearTarea(){
      return;
    }
 
-   const res = await secureFetch("https://pms-hotel-enterprise.onrender.com/tasks",{
+   const res = await secureFetch("https://mollyhelpers.com/tasks",{
      method:"POST",
      headers:{
        "Content-Type":"application/json",
@@ -1860,7 +1860,7 @@ async function crearTarea(){
 
 async function cambiarEstado(id,s){
 
- await secureFetch(`https://pms-hotel-enterprise.onrender.com/tasks/${id}`,{
+ await secureFetch(`https://mollyhelpers.com/tasks/${id}`,{
    method:"PUT",
    headers:{
      "Content-Type":"application/json","Authorization":"Bearer "+localStorage.getItem("token")
@@ -1878,7 +1878,7 @@ async function cambiarEstado(id,s){
 async function recargarTareas(){
 
  const r = await secureFetch(
-   "https://pms-hotel-enterprise.onrender.com/tasks",
+   "https://mollyhelpers.com/tasks",
    {
      headers:{
        "Authorization":"Bearer "+localStorage.getItem("token")
@@ -1902,7 +1902,7 @@ async function recargarTareas(){
 async function crearUsuario(){
 
  const res = await secureFetch(
-  "https://pms-hotel-enterprise.onrender.com/users",
+  "https://mollyhelpers.com/users",
   {
     method:"POST",
     headers:{
@@ -1931,7 +1931,7 @@ async function crearUsuario(){
 
 function cambiarPassword(){
 
- fetch("https://pms-hotel-enterprise.onrender.com/change-password",{
+ fetch("https://mollyhelpers.com/change-password",{
 
   method:"POST",
 
@@ -1951,7 +1951,7 @@ function cambiarPassword(){
 
 async function cargarUsuarios(){
 
- const res = await secureFetch("https://pms-hotel-enterprise.onrender.com/users");
+ const res = await secureFetch("https://mollyhelpers.com/users");
  if(!res) return;
 
  const usuarios = await res.json();
@@ -1983,7 +1983,7 @@ async function borrarUsuario(id){
  if(!confirm("¿Eliminar usuario?")) return;
 
  const res = await secureFetch(
-   `https://pms-hotel-enterprise.onrender.com/users/${id}`,
+   `https://mollyhelpers.com/users/${id}`,
    { method:"DELETE" }
  );
 
@@ -2392,7 +2392,7 @@ async function guardarComentario(id){
 
    renderTareaIndividual(tarea);
 
-   const res = await secureFetch(`https://pms-hotel-enterprise.onrender.com/tasks/${id}`,{
+   const res = await secureFetch(`https://mollyhelpers.com/tasks/${id}`,{
       method:"PUT",
       headers:{
          "Content-Type":"application/json",
@@ -2492,7 +2492,7 @@ if("serviceWorker" in navigator){
 
  }
 
- await secureFetch("https://pms-hotel-enterprise.onrender.com/subscribe",{
+ await secureFetch("https://mollyhelpers.com/subscribe",{
    method:"POST",
    headers:{
      "Content-Type":"application/json"
@@ -2529,7 +2529,7 @@ function urlBase64ToUint8Array(base64String) {
 // refresh inteligente cada 5 segundos
 let ultimaNotificacion = 0;
 
-const socket = io("https://pms-hotel-enterprise.onrender.com",{
+const socket = io("https://mollyhelpers.com",{
 
  auth:{
    token: localStorage.getItem("token")
@@ -2601,7 +2601,7 @@ document.getElementById("logoInput").addEventListener("change", function(e){
 
  reader.onload = function(){
 
-   fetch("https://pms-hotel-enterprise.onrender.com/settings",{
+   fetch("https://mollyhelpers.com/settings",{
      method:"POST",
      headers:{
        "Content-Type":"application/json"
@@ -2798,7 +2798,7 @@ function activarInputEvidencia(id){
     formData.append("image", file);
 
     const res = await fetch(
-      `https://pms-hotel-enterprise.onrender.com/tasks/${id}/evidence`,
+      `https://mollyhelpers.com/tasks/${id}/evidence`,
       {
         method:"POST",
         headers:{
@@ -2829,7 +2829,7 @@ async function cargarEvidencias(id){
   try{
 
     const res = await fetch(
-      `https://pms-hotel-enterprise.onrender.com/tasks/${id}/evidences`,
+      `https://mollyhelpers.com/tasks/${id}/evidences`,
       {
         headers:{Authorization:`Bearer ${token}`}
       }
