@@ -1,15 +1,29 @@
 /* ================= IMPORTS ================= */
 
 const express = require("express");
+const app = express();
+
 const http = require("http");
 const { Server } = require("socket.io");
+
 const webpush = require("web-push");
 const cors = require("cors");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
 const path = require("path");
 
+// 🔥 SERVER + SOCKET
 
+const server = http.createServer(app);
+
+const io = new Server(server, {
+  cors: {
+    origin: "*"
+  }
+});
+
+// 🔥 DISPONIBLE EN TODAS LAS RUTAS
+app.set("io", io);
 
 
 /* ================= APP ================= */
@@ -18,8 +32,6 @@ if(!SECRET){
  console.error("JWT_SECRET no definido");
  process.exit(1);
 }
-const app = express();
-const server = http.createServer(app);
 
 app.use((req,res,next)=>{
 
@@ -88,7 +100,9 @@ app.post("/guest/task", async (req,res)=>{
    ]
   );
 
-  io.to("admin_" + company_code).emit("new_guest_task", result.rows[0]);
+  const io = req.app.get("io");
+
+io.to("admin_" + company_code).emit("task_update", result.rows[0]);
 
   res.json(result.rows[0]);
 
@@ -128,54 +142,32 @@ app.post("/guest/login", async (req,res)=>{
 });
 
 // Guardar mensaje
-app.post("/chat/message", async (req,res)=>{
+app.post("/chat/message", async (req, res) => {
  try{
 
-  const {guest_id, message, sender} = req.body;
+  const io = req.app.get("io");
 
-  if(!guest_id || !message || !sender){
-  return res.status(400).json({error:"Datos incompletos"});
-}
+  const { guest_id, message, sender, company_code } = req.body;
 
-if(sender !== "guest" && sender !== "staff" && sender !== "bot"){
-  return res.status(400).json({error:"Sender inválido"});
-}
-
-  await db.query(
-   "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
-   [guest_id, message, sender]
-  );
   io.to("guest_" + guest_id).emit("new_message", {
-  guest_id,
-  message,
-  sender
-});
+    guest_id,
+    message,
+    sender
+  });
 
-const guestRes = await db.query(
-  "SELECT company_id FROM guests WHERE id=$1",
-  [guest_id]
-);
+  io.to("admin_" + company_code).emit("new_message", {
+    guest_id,
+    message,
+    sender
+  });
 
-if(guestRes.rows.length === 0){
-  return res.status(404).json({error:"Guest no encontrado"});
-}
-const company_id = guestRes.rows[0].company_id;
+  if(sender !== "staff"){
+    io.to("admin_" + company_code).emit("staff_alert", {
+      guest_id
+    });
+  }
 
-const companyRes = await db.query(
-  "SELECT code FROM companies WHERE id=$1",
-  [company_id]
-);
-
-const company_code = companyRes.rows[0].code;
-
-io.to("admin_" + company_code).emit("new_message", {
-  guest_id,
-  message,
-  sender
-});
-
-
-  res.json({ok:true});
+  res.json({ ok: true });
 
  }catch(err){
   console.error("ERROR chat/message:", err);
@@ -269,14 +261,6 @@ function authMiddleware(req, res, next){
 }
 app.get("/departments", authMiddleware, (req,res)=>{
   res.json(DEPARTMENTS);
-});
-
-const io = new Server(server,{
-  cors:{
-    origin: ["https://mollyhelpers.com"],
-    methods: ["GET","POST"],
-    credentials: true
-  }
 });
 
 
@@ -603,27 +587,18 @@ const companyRes = await db.query(
 
 const company_code = companyRes.rows[0].code;
 
-// 🔥 emitir SOLO a esa empresa
-app.post("/guest/task", async (req,res)=>{
 
- const nuevaTarea = await crearTarea(req.body);
+  // 🔥 ESTA LÍNEA ES LA CLAVE
+  io.to("admin_" + company_code).emit("task_update", nuevaTarea);
 
- io.to("admin_" + req.body.company_code).emit("task_update", nuevaTarea);
+  await sendPushByDepartment(
+  department,
+  "Nueva tarea",
+  `${title} - ${department}`,
+  nuevaTarea.id
+);
 
- res.json(nuevaTarea);
-});
-
-
-
- await sendPushByDepartment(
-   department,
-   "Nueva tarea",
-   `${title} - ${department}`,
-   nuevaTarea.id
- );
-
- res.json({ok:true});
-
+  res.json(nuevaTarea);
 });
 
 app.put("/tasks/:id", authMiddleware, async (req,res)=>{

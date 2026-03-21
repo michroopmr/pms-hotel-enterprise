@@ -426,8 +426,6 @@ else saludo = "Buenas noches";
 
 (async () => {
 
-if(!sessionStorage.getItem("welcome_shown") || performance.navigation.type === 1){
-
  const mensaje = `${saludo} ${guest.name} 👋  
 Soy Luka 🤖, tu asistente virtual del hotel.  
 
@@ -445,8 +443,6 @@ Soy Luka 🤖, tu asistente virtual del hotel.
   })
  });
 
- sessionStorage.setItem("welcome_shown", "true");
-}
 })();
 
 resetInactivity();
