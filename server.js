@@ -604,7 +604,14 @@ const companyRes = await db.query(
 const company_code = companyRes.rows[0].code;
 
 // 🔥 emitir SOLO a esa empresa
-io.to("admin_" + company_code).emit("task_update", nuevaTarea);
+app.post("/guest/task", async (req,res)=>{
+
+ const nuevaTarea = await crearTarea(req.body);
+
+ io.to("admin_" + req.body.company_code).emit("task_update", nuevaTarea);
+
+ res.json(nuevaTarea);
+});
 
 
 
