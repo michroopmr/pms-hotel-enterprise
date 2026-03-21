@@ -297,6 +297,16 @@ async function botReply(msg){
 
   const texto = msg.toLowerCase();
 
+  const esServicio = [
+  "toalla", "toallas",
+  "limpieza", "limpiar",
+  "aseo", "servicio",
+  "sabanas", "cama",
+  "sabana", "almohada",
+  "jabón", "shampoo",
+  "crema",
+].some(p => texto.includes(p));
+
   const esFalla = [
  "no funciona",
  "problema",
@@ -331,6 +341,27 @@ async function botReply(msg){
   if(texto.includes("horario")){
     reply = "Restaurante: 7am - 10pm";
   }
+else if(esServicio){
+
+  const dept = "Housekeeping";
+
+  addMsg("🛎️ Solicitando servicio...", "bot");
+
+  const res = await fetch("/guest/task",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      title: "Solicitud de servicio",
+      description: msg,
+      department: dept,
+      guest_name: guest.name,
+      room: guest.room,
+      company_code: guest.company_code
+    })
+  });
+
+  addMsg("🧹 En breve acudiremos a tu habitación.", "bot");
+}
 
  else if(esFalla){
 

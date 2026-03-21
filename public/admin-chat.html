@@ -99,7 +99,6 @@ button{
 
 <script>
 const socket = io("https://mollyhelpers.com");
-
 const params = new URLSearchParams(window.location.search);
 const company_code = params.get("empresa") || "DEMO01";
 const API = "https://mollyhelpers.com";
@@ -110,6 +109,13 @@ let currentGuest = null;
 let alerts = {};
 
 const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
+// 🔥 ACTIVAR AUDIO CON INTERACCIÓN (OBLIGATORIO)
+document.body.addEventListener("click", () => {
+  audio.play().then(()=>{
+    audio.pause();
+    audio.currentTime = 0;
+  }).catch(()=>{});
+}, { once: true });
 
 socket.on("connect", ()=>{
   console.log("✅ Conectado como admin");
@@ -207,10 +213,11 @@ async function send(){
   method:"POST",
   headers:{"Content-Type":"application/json"},
   body: JSON.stringify({
-    guest_id: currentGuest.id,
-    message: text,
-    sender: "staff"
-  })
+  guest_id: currentGuest.id,
+  message: text,
+  sender: "staff",
+  company_code: company_code
+})
  });
 
  input.value="";
@@ -227,11 +234,19 @@ socket.on("staff_alert", (data)=>{
    div.classList.add("alert");
  }
 
- audio.play();
+ audio.currentTime = 0;
+audio.play().catch(()=>{});
 });
 
-// 🔥 MENSAJES EN VIVO
 socket.on("new_message", (data)=>{
+
+  // 🔥 si no es el chat actual → alerta
+  if(!currentGuest || data.guest_id !== currentGuest.id){
+    const div = document.getElementById("guest-"+data.guest_id);
+    if(div){
+      div.classList.add("alert");
+    }
+  }
 
   if(currentGuest && data.guest_id === currentGuest.id){
 
@@ -240,9 +255,14 @@ socket.on("new_message", (data)=>{
     }
 
   }
+
+});
+socket.on("task_update", (tarea)=>{
+  console.log("Nueva tarea:", tarea);
+
+  loadGuests(); // 🔥 esto refresca el PMS
 });
 
-loadGuests();
 
 </script>
 
