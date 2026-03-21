@@ -92,7 +92,7 @@ try{
 
 if(!guest){
  window.location.replace(`/guest.html?empresa=${company_code}`);
- return; // 🔥 IMPORTANTE
+ throw new Error("Redirigiendo...");
 }
 
 // 🔥 4. guardar empresa
@@ -137,8 +137,11 @@ let inactivityTimer;
 const socket = io("https://mollyhelpers.com",{
   transports: ["websocket"]
 });
-
 socket.emit("join_guest", guest.id);
+
+if(!guest.company_code){
+ console.warn("Guest sin empresa");
+}
 
 socket.on("new_message", (data)=>{
 
