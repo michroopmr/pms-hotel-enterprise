@@ -148,6 +148,14 @@ app.post("/chat/message", async (req, res) => {
   const io = req.app.get("io");
 
   const { guest_id, message, sender, company_code } = req.body;
+  if(!company_code){
+  return res.status(400).json({error:"company_code requerido"});
+}
+
+  await db.query(
+  "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
+  [guest_id, message, sender]
+);
 
   io.to("guest_" + guest_id).emit("new_message", {
     guest_id,
@@ -271,82 +279,93 @@ console.log("DATABASE_URL =", process.env.DATABASE_URL);
 async function initDB(){
 
   await db.query(`
- CREATE TABLE IF NOT EXISTS companies(
-   id SERIAL PRIMARY KEY,
-   name TEXT,
-   code TEXT UNIQUE,
-   created_at TIMESTAMP DEFAULT NOW()
- )
- `);
+  CREATE TABLE IF NOT EXISTS companies(
+    id SERIAL PRIMARY KEY,
+    name TEXT,
+    code TEXT UNIQUE,
+    created_at TIMESTAMP DEFAULT NOW()
+  )
+  `);
 
- await db.query(`
-   CREATE TABLE IF NOT EXISTS tasks(
-     id SERIAL PRIMARY KEY,
-     title TEXT,
-     description TEXT,
-     department TEXT,
-     status TEXT,
-     created_by TEXT,
-     created_at TIMESTAMP DEFAULT NOW(),
-     due_date TIMESTAMP
-   )
- `);
- await db.query(`
-CREATE TABLE IF NOT EXISTS task_evidences(
- id SERIAL PRIMARY KEY,
- task_id INTEGER,
- image_url TEXT,
- uploaded_by TEXT,
- uploaded_at TIMESTAMP DEFAULT NOW()
-)
-`);
- await db.query(`
-  ALTER TABLE tasks
-  ADD COLUMN IF NOT EXISTS comments TEXT;
-`);
-await db.query(`
-ALTER TABLE tasks
-ADD COLUMN IF NOT EXISTS company_id INTEGER
-`);
- await db.query(`
-   CREATE TABLE IF NOT EXISTS push_subscriptions(
-     id SERIAL PRIMARY KEY,
-     endpoint TEXT UNIQUE,
-     department TEXT,
-     subscription TEXT
-   )
- `);
- // 👇 USERS DENTRO DE LA FUNCION
- await db.query(`
-   CREATE TABLE IF NOT EXISTS users(
-  id SERIAL PRIMARY KEY,
-  username TEXT UNIQUE,
-  password TEXT,
-  role TEXT,
-  department TEXT
-)
- `);
- await db.query(`
-ALTER TABLE users
-ADD COLUMN IF NOT EXISTS company_id INTEGER
-`);
+  await db.query(`
+  CREATE TABLE IF NOT EXISTS tasks(
+    id SERIAL PRIMARY KEY,
+    title TEXT,
+    description TEXT,
+    department TEXT,
+    status TEXT,
+    created_by TEXT,
+    created_at TIMESTAMP DEFAULT NOW(),
+    due_date TIMESTAMP
+  )
+  `);
 
-await db.query(`
-CREATE TABLE IF NOT EXISTS guests(
- id SERIAL PRIMARY KEY,
- name TEXT,
- room TEXT,
- active BOOLEAN DEFAULT true,
- created_at TIMESTAMP DEFAULT NOW()
-)
-`);
+  await db.query(`
+  CREATE TABLE IF NOT EXISTS task_evidences(
+    id SERIAL PRIMARY KEY,
+    task_id INTEGER,
+    image_url TEXT,
+    uploaded_by TEXT,
+    uploaded_at TIMESTAMP DEFAULT NOW()
+  )
+  `);
 
-await db.query(`
-ALTER TABLE guests
-ADD COLUMN IF NOT EXISTS company_id INTEGER
-`);
+  await db.query(`
+  ALTER TABLE tasks ADD COLUMN IF NOT EXISTS comments TEXT;
+  `);
+
+  await db.query(`
+  ALTER TABLE tasks ADD COLUMN IF NOT EXISTS company_id INTEGER
+  `);
+
+  await db.query(`
+  CREATE TABLE IF NOT EXISTS push_subscriptions(
+    id SERIAL PRIMARY KEY,
+    endpoint TEXT UNIQUE,
+    department TEXT,
+    subscription TEXT
+  )
+  `);
+
+  await db.query(`
+  CREATE TABLE IF NOT EXISTS users(
+    id SERIAL PRIMARY KEY,
+    username TEXT UNIQUE,
+    password TEXT,
+    role TEXT,
+    department TEXT
+  )
+  `);
+
+  await db.query(`
+  ALTER TABLE users ADD COLUMN IF NOT EXISTS company_id INTEGER
+  `);
+
+  await db.query(`
+  CREATE TABLE IF NOT EXISTS guests(
+    id SERIAL PRIMARY KEY,
+    name TEXT,
+    room TEXT,
+    active BOOLEAN DEFAULT true,
+    created_at TIMESTAMP DEFAULT NOW()
+  )
+  `);
+
+  await db.query(`
+  ALTER TABLE guests ADD COLUMN IF NOT EXISTS company_id INTEGER
+  `);
+
+  // 🔥 ✅ AQUÍ VA messages
+  await db.query(`
+  CREATE TABLE IF NOT EXISTS messages(
+    id SERIAL PRIMARY KEY,
+    guest_id INTEGER,
+    message TEXT,
+    sender TEXT,
+    created_at TIMESTAMP DEFAULT NOW()
+  )
+  `);
 }
-
 
 initDB();
 

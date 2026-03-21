@@ -115,7 +115,11 @@ const params = new URLSearchParams(window.location.search);
 const company_code = params.get("empresa") || "DEMO01";
 const API = "https://mollyhelpers.com";
 
-socket.emit("join_admin", company_code);
+socket.on("connect", ()=>{
+  console.log("✅ Conectado como admin");
+
+  socket.emit("join_admin", company_code); // 🔥 AQUÍ
+});
 
 let currentGuest = null;
 let alerts = {};
@@ -128,10 +132,6 @@ document.body.addEventListener("click", () => {
     audio.currentTime = 0;
   }).catch(()=>{});
 }, { once: true });
-
-socket.on("connect", ()=>{
-  console.log("✅ Conectado como admin");
-});
 
 socket.on("disconnect", ()=>{
   console.log("❌ Socket desconectado");
@@ -169,7 +169,8 @@ if(!res.ok){
 
   container.appendChild(div);
  });
- if(guests.length > 0){
+
+if(!currentGuest && guests.length > 0){
   selectGuest(guests[0]);
 }
 }
@@ -282,7 +283,9 @@ socket.on("new_message", (data)=>{
   }
 
   // 🔥 SI ES EL CHAT ACTUAL → refrescar completo
-  loadChat(data.guest_id);
+  if(currentGuest){
+  addMsg(data.message, data.sender === "staff" ? "me" : "guest");
+}
 
 });
 

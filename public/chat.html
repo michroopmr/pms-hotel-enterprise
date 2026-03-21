@@ -205,14 +205,15 @@ function resetInactivity(){
   addMsg(despedida, "bot");
 
   await fetch("/chat/message",{
-   method:"POST",
-   headers:{"Content-Type":"application/json"},
-   body: JSON.stringify({
-     guest_id: guest.id,
-     message: despedida,
-     sender: "bot"
-   })
-  });
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({
+    guest_id: guest.id,
+    message: despedida,
+    sender: "bot",
+    company_code: guest.company_code
+  })
+});
 
   sessionStorage.setItem("despedida_enviada", "true");
 
@@ -247,9 +248,10 @@ async function send(){
   body: JSON.stringify({
    guest_id: guest.id,
    message: text,
-   sender: "guest"
+   sender: "guest",
+   company_code: guest.company_code
   })
- });
+});
 
  input.value="";
  input.focus();
@@ -347,18 +349,16 @@ else if(esServicio){
 
   addMsg("🛎️ Solicitando servicio...", "bot");
 
-  const res = await fetch("/guest/task",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      title: "Solicitud de servicio",
-      description: msg,
-      department: dept,
-      guest_name: guest.name,
-      room: guest.room,
-      company_code: guest.company_code
-    })
-  });
+  await fetch("/chat/message",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({
+   guest_id: guest.id,
+   message: reply,
+   sender: "bot",
+   company_code: guest.company_code
+  })
+});
 
   addMsg("🧹 En breve acudiremos a tu habitación.", "bot");
 }
@@ -437,11 +437,12 @@ Solo dime qué necesitas 😊`;
   method:"POST",
   headers:{"Content-Type":"application/json"},
   body: JSON.stringify({
-   guest_id: guest.id,
-   message: reply,
-   sender: "bot"
+    guest_id: guest.id,
+    message: despedida,
+    sender: "bot",
+    company_code: guest.company_code
   })
- });
+});
 
 }
 
@@ -469,10 +470,11 @@ Soy Luka 🤖, tu asistente virtual del hotel.
   headers:{"Content-Type":"application/json"},
   body: JSON.stringify({
     guest_id: guest.id,
-    message: mensaje,
-    sender: "bot"
+    message: despedida,
+    sender: "bot",
+    company_code: guest.company_code
   })
- });
+});
 
 })();
 
