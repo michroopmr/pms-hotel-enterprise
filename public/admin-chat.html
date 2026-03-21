@@ -48,11 +48,16 @@ body{
  overflow-y:auto;
 }
 
-.msg{
- margin:5px 0;
- padding:10px;
- border-radius:10px;
- max-width:60%;
+.me{
+ background:#dcf8c6;
+ align-self:flex-end;
+ border-bottom-right-radius:5px;
+}
+
+.guest{
+ background:white;
+ align-self:flex-start;
+ border-bottom-left-radius:5px;
 }
 
 .me{ background:#dcf8c6; align-self:flex-end; }
@@ -78,6 +83,13 @@ button{
  border-radius:20px;
  background:#25d366;
  color:white;
+}
+.msg{
+ margin:5px 0;
+ padding:10px 14px;
+ border-radius:15px;
+ max-width:70%;
+ font-size:14px;
 }
 </style>
 </head>
@@ -186,7 +198,19 @@ const msgs = await res.json();
   addMsg(m.message, m.sender === "staff" ? "me" : "guest");
  });
 }
+async function loadChat(guestId){
 
+ const res = await fetch(`${API}/chat/${guestId}`);
+ const msgs = await res.json();
+
+ const box = document.getElementById("messages");
+ box.innerHTML = "";
+
+ msgs.forEach(m=>{
+  addMsg(m.message, m.sender === "staff" ? "me" : "guest");
+ });
+
+}
 // 🔥 MENSAJES
 function addMsg(text, type){
  const div = document.createElement("div");
@@ -197,6 +221,12 @@ function addMsg(text, type){
  box.appendChild(div);
 
  box.scrollTop = box.scrollHeight; // 🔥 NUEVO
+ const time = new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+
+div.innerHTML = `
+  ${text}
+  <div style="font-size:10px; opacity:0.6; text-align:right">${time}</div>
+`;
 }
 
 // 🔥 ENVIAR
@@ -240,30 +270,33 @@ audio.play().catch(()=>{});
 
 socket.on("new_message", (data)=>{
 
-  // 🔥 si no es el chat actual → alerta
+  console.log("Nuevo mensaje:", data);
+
+  // 🔥 alerta si no es el chat actual
   if(!currentGuest || data.guest_id !== currentGuest.id){
     const div = document.getElementById("guest-"+data.guest_id);
     if(div){
       div.classList.add("alert");
     }
+    return;
   }
 
-  if(currentGuest && data.guest_id === currentGuest.id){
-
-    if(data.sender !== "staff"){
-      addMsg(data.message, "guest");
-    }
-
-  }
+  // 🔥 SI ES EL CHAT ACTUAL → refrescar completo
+  loadChat(data.guest_id);
 
 });
-socket.on("task_update", (tarea)=>{
+
+socket.on("task_update", async (tarea)=>{
   console.log("Nueva tarea:", tarea);
 
-  loadGuests(); // 🔥 esto refresca el PMS
+  await loadGuests();
+
+  // 🔥 mantener chat abierto si existe
+  if(currentGuest){
+    selectGuest(currentGuest);
+  }
 });
-
-
+  
 </script>
 
 </body>
