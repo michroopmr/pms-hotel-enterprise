@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Molly SaaS Config</title>
+
+<style>
+body{
+ font-family: Arial;
+ margin:0;
+ display:flex;
+ height:100vh;
+ background:#f3f4f6;
+}
+
+/* SIDEBAR */
+.sidebar{
+ width:220px;
+ background:#111827;
+ color:white;
+ padding:20px;
+}
+
+.sidebar h2{
+ font-size:18px;
+ margin-bottom:20px;
+}
+
+.sidebar button{
+ width:100%;
+ margin:5px 0;
+ padding:10px;
+ border:none;
+ border-radius:8px;
+ background:#374151;
+ color:white;
+ cursor:pointer;
+}
+
+/* MAIN */
+.main{
+ flex:1;
+ padding:20px;
+ overflow:auto;
+}
+
+.card{
+ background:white;
+ padding:20px;
+ border-radius:12px;
+ box-shadow:0 4px 10px rgba(0,0,0,0.1);
+ margin-bottom:20px;
+}
+
+input, select{
+ width:100%;
+ padding:10px;
+ margin:5px 0;
+ border-radius:8px;
+ border:1px solid #ccc;
+}
+
+button.save{
+ background:#25d366;
+ color:white;
+ padding:10px;
+ border:none;
+ border-radius:8px;
+ cursor:pointer;
+ width:100%;
+}
+
+.table{
+ width:100%;
+ border-collapse: collapse;
+ margin-top:10px;
+}
+
+.table th, .table td{
+ border:1px solid #ddd;
+ padding:8px;
+ font-size:13px;
+}
+
+.delete{
+ background:#dc2626;
+ color:white;
+ border:none;
+ padding:5px 8px;
+ border-radius:6px;
+ cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<div class="sidebar">
+  <h2>MOLLY ⚙️</h2>
+  <button onclick="show('services')">Servicios</button>
+  <button onclick="show('flows')">Respuestas</button>
+</div>
+
+<div class="main">
+
+  <!-- SERVICIOS -->
+  <div id="services" class="card">
+    <h3>Servicios / Fallas</h3>
+
+    <input id="name" placeholder="Nombre (Ej: Toallas)">
+    <input id="keywords" placeholder="Keywords (toalla,toallas,limpieza)">
+    
+    <select id="type">
+      <option value="servicio">Servicio</option>
+      <option value="falla">Falla</option>
+    </select>
+
+    <select id="department"></select>
+
+    <input id="response" placeholder="Respuesta automática">
+
+    <button class="save" onclick="saveService()">Guardar</button>
+
+    <table class="table" id="servicesTable"></table>
+  </div>
+
+  <!-- RESPUESTAS -->
+  <div id="flows" class="card" style="display:none;">
+    <h3>Respuestas rápidas</h3>
+
+    <input id="trigger" placeholder="Palabra clave (Ej: horario)">
+    <input id="flowResponse" placeholder="Respuesta">
+
+    <button class="save" onclick="saveFlow()">Guardar</button>
+
+    <table class="table" id="flowsTable"></table>
+  </div>
+
+</div>
+
+<script>
+const API = "https://mollyhelpers.com";
+const token = localStorage.getItem("token");
+
+// 🔥 NAV
+function show(section){
+  document.getElementById("services").style.display = "none";
+  document.getElementById("flows").style.display = "none";
+
+  document.getElementById(section).style.display = "block";
+}
+
+// 🔥 CARGAR DEPARTAMENTOS
+async function loadDepartments(){
+  const res = await fetch(`${API}/departments`,{
+    headers:{ Authorization:"Bearer " + token }
+  });
+
+  const data = await res.json();
+
+  const select = document.getElementById("department");
+  select.innerHTML = "";
+
+  data.forEach(d=>{
+    const opt = document.createElement("option");
+    opt.value = d;
+    opt.textContent = d;
+    select.appendChild(opt);
+  });
+}
+
+// 🔥 SERVICIOS
+async function loadServices(){
+  const res = await fetch(`${API}/admin/services`,{
+    headers:{ Authorization:"Bearer " + token }
+  });
+
+  const data = await res.json();
+
+  const table = document.getElementById("servicesTable");
+
+  table.innerHTML = `
+    <tr>
+      <th>Nombre</th>
+      <th>Keywords</th>
+      <th>Tipo</th>
+      <th>Depto</th>
+      <th></th>
+    </tr>
+  `;
+
+  data.forEach(s=>{
+    table.innerHTML += `
+      <tr>
+        <td>${s.name}</td>
+        <td>${s.keywords.join(",")}</td>
+        <td>${s.type}</td>
+        <td>${s.department}</td>
+        <td><button class="delete" onclick="deleteService(${s.id})">X</button></td>
+      </tr>
+    `;
+  });
+}
+
+async function saveService(){
+
+  const name = document.getElementById("name").value;
+  const keywords = document.getElementById("keywords").value.split(",");
+  const type = document.getElementById("type").value;
+  const department = document.getElementById("department").value;
+  const response = document.getElementById("response").value;
+
+  await fetch(`${API}/admin/services`,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer " + token
+    },
+    body: JSON.stringify({
+      name,
+      keywords,
+      type,
+      department,
+      auto_response: response
+    })
+  });
+
+  loadServices();
+}
+
+async function deleteService(id){
+  await fetch(`${API}/admin/services/${id}`,{
+    method:"DELETE",
+    headers:{ Authorization:"Bearer " + token }
+  });
+
+  loadServices();
+}
+
+// 🔥 FLOWS
+async function loadFlows(){
+  const res = await fetch(`${API}/admin/flows`,{
+    headers:{ Authorization:"Bearer " + token }
+  });
+
+  const data = await res.json();
+
+  const table = document.getElementById("flowsTable");
+
+  table.innerHTML = `
+    <tr>
+      <th>Trigger</th>
+      <th>Respuesta</th>
+    </tr>
+  `;
+
+  data.forEach(f=>{
+    table.innerHTML += `
+      <tr>
+        <td>${f.trigger}</td>
+        <td>${f.response}</td>
+      </tr>
+    `;
+  });
+}
+
+async function saveFlow(){
+
+  const trigger = document.getElementById("trigger").value;
+  const response = document.getElementById("flowResponse").value;
+
+  await fetch(`${API}/admin/flows`,{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      Authorization:"Bearer " + token
+    },
+    body: JSON.stringify({ trigger, response })
+  });
+
+  loadFlows();
+}
+
+// INIT
+loadDepartments();
+loadServices();
+loadFlows();
+</script>
+
+</body>
+</html>

@@ -11,6 +11,7 @@ const cors = require("cors");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
 const path = require("path");
+const { processMessage } = require("./chatbot");
 
 // 🔥 SERVER + SOCKET
 
@@ -18,7 +19,7 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*"
+    origin: ["https://mollyhelpers.com"]
   }
 });
 
@@ -153,34 +154,75 @@ app.post("/chat/message", async (req, res) => {
 }
 
   await db.query(
-  "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
-  [guest_id, message, sender]
+ "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
+ [guest_id, message, sender]
 );
+
+io.to("admin_" + company_code).emit("new_message", {
+  guest_id,
+  message,
+  sender
+});
+
+// 🔥 SOLO SI ES MENSAJE DEL HUÉSPED
+if(sender === "guest"){
+
+  // obtener guest con company_id
+  const guestRes = await db.query(
+    "SELECT * FROM guests WHERE id=$1",
+    [guest_id]
+  );
+
+  const guestData = guestRes.rows[0];
+
+  const result = await processMessage(db, message, guestData);
+
+  // 🔥 RESPUESTA BOT
+  await db.query(
+    "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
+    [guest_id, result.reply]
+  );
 
   io.to("guest_" + guest_id).emit("new_message", {
     guest_id,
-    message,
-    sender
+    message: result.reply,
+    sender: "bot"
   });
+io.to("admin_" + company_code).emit("new_message", {
+  guest_id,
+  message: result.reply,
+  sender: "bot"
+});
+  // 🔥 CREAR TAREA SI ES FALLA
+  if(result.type === "falla"){
 
-  io.to("admin_" + company_code).emit("new_message", {
-    guest_id,
-    message,
-    sender
-  });
+    const task = await db.query(`
+      INSERT INTO tasks
+      (title, description, department, status, created_by, company_id)
+      VALUES($1,$2,$3,$4,$5,$6)
+      RETURNING *
+    `,
+    [
+      "Reporte habitación " + guestData.room,
+      message,
+      result.department,
+      "abierto",
+      guestData.name,
+      guestData.company_id
+    ]);
 
-  if(sender !== "staff"){
-    io.to("admin_" + company_code).emit("staff_alert", {
-      guest_id
-    });
+    io.to("admin_" + company_code).emit("task_update", task.rows[0]);
   }
+}
 
-  res.json({ ok: true });
-
- }catch(err){
-  console.error("ERROR chat/message:", err);
-  res.status(500).json({error:"Error guardando mensaje"});
- }
+res.json({
+  ok: true,
+  message
+});
+} catch(err){
+  console.error(err);
+  res.status(500).json({error:"Error en chat"});
+}
 });
 
 // Obtener chat
@@ -218,7 +260,50 @@ app.get("/guests/:company_code", async (req,res)=>{
   res.status(500).json({error:"Error obteniendo huéspedes"});
  }
 });
+app.get("/admin/services", authMiddleware, async (req,res)=>{
+  const result = await db.query(
+    "SELECT * FROM service_catalog WHERE company_id=$1",
+    [req.user.company_id]
+  );
+  res.json(result.rows);
+});
 
+app.post("/admin/services", authMiddleware, async (req,res)=>{
+  const { name, keywords, department, type, auto_response } = req.body;
+
+  await db.query(`
+    INSERT INTO service_catalog(name,keywords,department,type,auto_response,company_id)
+    VALUES($1,$2,$3,$4,$5,$6)
+  `,[name, keywords, department, type, auto_response, req.user.company_id]);
+
+  res.json({ok:true});
+});
+
+app.delete("/admin/services/:id", authMiddleware, async (req,res)=>{
+  await db.query(
+    "DELETE FROM service_catalog WHERE id=$1 AND company_id=$2",
+    [req.params.id, req.user.company_id]
+  );
+  res.json({ok:true});
+});
+app.get("/admin/flows", authMiddleware, async (req,res)=>{
+  const result = await db.query(
+    "SELECT * FROM bot_flows WHERE company_id=$1",
+    [req.user.company_id]
+  );
+  res.json(result.rows);
+});
+
+app.post("/admin/flows", authMiddleware, async (req,res)=>{
+  const { trigger, response } = req.body;
+
+  await db.query(`
+    INSERT INTO bot_flows(trigger,response,company_id)
+    VALUES($1,$2,$3)
+  `,[trigger,response,req.user.company_id]);
+
+  res.json({ok:true});
+});
 /* 🔥 evitar cache HTML */
 app.use((req,res,next)=>{
  if(req.url.endsWith(".html")){
@@ -364,6 +449,26 @@ async function initDB(){
     sender TEXT,
     created_at TIMESTAMP DEFAULT NOW()
   )
+  `);
+
+await db.query(`
+CREATE TABLE IF NOT EXISTS service_catalog (
+  id SERIAL PRIMARY KEY,
+  name TEXT,
+  keywords TEXT[],
+  department TEXT,
+  type TEXT,
+  auto_response TEXT,
+  company_id INTEGER
+)
+`);
+await db.query(`
+CREATE TABLE IF NOT EXISTS bot_flows (
+  id SERIAL PRIMARY KEY,
+  trigger TEXT,
+  response TEXT,
+  company_id INTEGER
+)
   `);
 }
 

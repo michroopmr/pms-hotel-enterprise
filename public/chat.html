@@ -134,9 +134,10 @@ function showToast(msg){
 let inactivityTimer;
 
 // 🔥 AHORA SÍ SOCKET
-const socket = io("https://mollyhelpers.com",{
+const socket = io({
   transports: ["websocket"]
 });
+
 socket.emit("join_guest", guest.id);
 
 if(!guest.company_code){
@@ -160,8 +161,9 @@ socket.on("new_message", (data)=>{
  }
 
  if(data.sender === "bot"){
-   return;
- }
+  addMsg(data.message, "bot");
+  return;
+}
 
 });
 
@@ -235,12 +237,24 @@ async function send(){
  if(!text) return;
 
  if(text.toLowerCase() === "menu"){
-  addMsg(text,"user"); // 🔥 agrega esto
-  await botReply("menu");
+  addMsg(text,"user");
+
+  await fetch("/chat/message",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      guest_id: guest.id,
+      message: text,
+      sender: "guest",
+      company_code: guest.company_code
+    })
+  });
+
   return;
 }
 
  addMsg(text,"user");
+ addMsg("...", "bot");
 
  await fetch("/chat/message",{
   method:"POST",
@@ -256,193 +270,7 @@ async function send(){
  input.value="";
  input.focus();
 
- await botReply(text);
  resetInactivity();
-
-}
-
-
-function detectarDepartamento(msg){
-
- msg = msg.toLowerCase();
-
- if(msg.includes("aire") || msg.includes("clima") || msg.includes("tv") || msg.includes("luz")){
-   return "Mantenimiento";
- }
-
- if(msg.includes("toalla") || msg.includes("limpieza") || msg.includes("sábanas")){
-   return "Housekeeping";
- }
-
- if(msg.includes("comida") || msg.includes("room service") || msg.includes("hambre")){
-   return "Alimentos Bebidas";
- }
-
- return "Recepción";
-}
-
-async function botReply(msg){
-
- let reply = "¿En qué puedo ayudarte?";
-
- const typing = document.createElement("div");
- typing.className = "msg bot";
- typing.innerHTML = "<strong>Luka 🤖:</strong><br>Luka está escribiendo...";
-
- const chat = document.getElementById("chat");
- chat.appendChild(typing);
- chat.scrollTop = chat.scrollHeight;
-
- await new Promise(r => setTimeout(r, 800));
-
- try{
-
-  const texto = msg.toLowerCase();
-
-  const esServicio = [
-  "toalla", "toallas",
-  "limpieza", "limpiar",
-  "aseo", "servicio",
-  "sabanas", "cama",
-  "sabana", "almohada",
-  "jabón", "shampoo",
-  "crema",
-].some(p => texto.includes(p));
-
-  const esFalla = [
- "no funciona",
- "problema",
- "falla",
- "no sirve",
- "no jala",
- "tapado",
- "tapada",
- "drenaje",
- "no baja",
- "no drena",
- "fuga",
- "gotea",
- "no prende",
- "hace ruido",
- "huele mal",
- "roto",
- "rota",
- "descompuesto",
- "no enfría",
- "no calienta",
- "no hay",
- "no tengo",
- "no sirve el",
- "no hay agua",
- "sin servicio"
-].some(p => texto.includes(p));
-
-  console.log("Mensaje:", msg);
-  console.log("Es falla:", esFalla);
-
-  if(texto.includes("horario")){
-    reply = "Restaurante: 7am - 10pm";
-  }
-else if(esServicio){
-
-  const dept = "Housekeeping";
-
-  addMsg("🛎️ Solicitando servicio...", "bot");
-
-  await fetch("/chat/message",{
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body: JSON.stringify({
-   guest_id: guest.id,
-   message: reply,
-   sender: "bot",
-   company_code: guest.company_code
-  })
-});
-
-  addMsg("🧹 En breve acudiremos a tu habitación.", "bot");
-}
-
- else if(esFalla){
-
-  const dept = detectarDepartamento(msg);
-
-  // 🔥 MENSAJE INMEDIATO
-  reply = "Generando ticket...";
-  typing.innerHTML = `<strong>Luka 🤖:</strong><br>${reply}`;
-
-  await new Promise(r => setTimeout(r, 500));
-
-  const res = await fetch("/guest/task",{
-     method:"POST",
-     headers:{
-      "Content-Type":"application/json"
-     },
-     body: JSON.stringify({
-  title: "Reporte habitación " + guest.room,
-  description: msg,
-  department: dept,
-  guest_name: guest.name,
-  room: guest.room,
-  company_code: guest.company_code || "DEMO01"
-})
-    });
-
-    if(!res.ok){
-      const errorText = await res.text();
-      console.error("Error backend:", errorText);
-      throw new Error("No se pudo crear el ticket");
-    }
-
-
-    const data = await res.json();
-    console.log("Ticket creado:", data);
-
-reply = `🛠️ En breve el equipo acudirá a tu habitación.`;
-  }
-
-else if(
- texto.includes("humano") ||
- texto.includes("asesor") ||
- texto.includes("persona")
-){
-
- reply = "Te comunico con nuestro equipo 👨‍💼";
-
- socket.emit("call_staff", {
-   guest_id: guest.id,
-   message: msg,
-   company_code: guest.company_code
- });
-}
-  else{
-    reply = `Puedo ayudarte con:
-
-🛠️ Reportar fallas
-🧹 Limpieza / toallas
-
-Solo dime qué necesitas 😊`;
-  }
-
-}catch(err){
-
-  console.error(err);
-
-  reply = "No pude generar el reporte 😔\nIntenta nuevamente o contacta recepción.";
-}
-
- typing.innerHTML = `<strong>Luka 🤖:</strong><br>${reply}`;
-
- await fetch("/chat/message",{
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body: JSON.stringify({
-    guest_id: guest.id,
-    message: despedida,
-    sender: "bot",
-    company_code: guest.company_code
-  })
-});
 
 }
 
@@ -470,7 +298,7 @@ Soy Luka 🤖, tu asistente virtual del hotel.
   headers:{"Content-Type":"application/json"},
   body: JSON.stringify({
     guest_id: guest.id,
-    message: despedida,
+    message: mensaje,
     sender: "bot",
     company_code: guest.company_code
   })
