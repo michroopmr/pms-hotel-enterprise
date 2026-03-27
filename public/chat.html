@@ -14,7 +14,7 @@ body{
 
 .chat{
  padding:10px;
- height:80vh;
+ height:calc(100vh - 70px);
  overflow-y:auto;
  display:flex;
  flex-direction:column;
@@ -44,9 +44,17 @@ body{
 }
 
 .input-area{
+ position:fixed;
+ bottom:0;
+ left:0;
+ width:100%;
  display:flex;
  padding:10px;
  background:#f0f0f0;
+}
+
+.input-area{
+ padding-bottom: env(safe-area-inset-bottom);
 }
 
 input{
@@ -131,6 +139,7 @@ function showToast(msg){
  setTimeout(()=>toast.remove(),3000);
 }
 
+let sessionTimer;
 let inactivityTimer;
 
 // 🔥 AHORA SÍ SOCKET
@@ -155,6 +164,7 @@ socket.on("new_message", (data)=>{
 
    resetInactivity(); // ✅ SOLO AQUÍ
    sessionStorage.removeItem("despedida_enviada");
+   resetSessionTimer();
    
 
    return;
@@ -190,7 +200,9 @@ function addMsg(text, type){
  const chat = document.getElementById("chat");
  chat.appendChild(div);
 
+ setTimeout(()=>{
  chat.scrollTop = chat.scrollHeight;
+},50);
 }
 
 function resetInactivity(){
@@ -271,9 +283,34 @@ async function send(){
  input.focus();
 
  resetInactivity();
+ resetSessionTimer();
 
 }
+function closeSession(){
 
+  const mensaje = "🔒 Por seguridad, tu sesión ha finalizado.\n\nPor favor escanea nuevamente el código QR para nuevas solicitudes.";
+
+  addMsg(mensaje, "bot");
+
+  // limpiar sesión
+  localStorage.removeItem("guest");
+
+  // bloquear input
+  document.getElementById("input").disabled = true;
+ 
+  setTimeout(()=>{
+  window.location.href = `/guest.html?empresa=${company_code}`;
+}, 4000);
+
+}
+function resetSessionTimer(){
+
+  clearTimeout(sessionTimer);
+
+  sessionTimer = setTimeout(()=>{
+    closeSession();
+  }, 900000); // 15 min
+}
 // 🔥 mensaje de bienvenida PRO
 
 const hora = new Date().getHours();
@@ -307,6 +344,7 @@ Soy Luka 🤖, tu asistente virtual del hotel.
 })();
 
 resetInactivity();
+resetSessionTimer();
 </script>
 
 </body>

@@ -12,6 +12,11 @@ const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
 const path = require("path");
 const { processMessage } = require("./chatbot");
+const bcrypt = require("bcrypt");
+const rateLimit = require("express-rate-limit");
+const pino = require("pino");
+
+const logger = pino();
 
 // 🔥 SERVER + SOCKET
 
@@ -54,6 +59,16 @@ app.use((req,res,next)=>{
 console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
 
 app.use(express.json());
+
+app.use("/chat", rateLimit({
+ windowMs: 60 * 1000,
+ max: 40
+}));
+
+app.use("/guest", rateLimit({
+ windowMs: 60 * 1000,
+ max: 20
+}));
 
 
 const db = new Pool({
@@ -149,6 +164,21 @@ app.post("/chat/message", async (req, res) => {
   const io = req.app.get("io");
 
   const { guest_id, message, sender, company_code } = req.body;
+
+  if(!guest_id || !company_code){
+ return res.status(400).json({error:"Datos incompletos"});
+}
+
+const company_id = await getCompanyId(company_code);
+
+const guestCheck = await db.query(
+ "SELECT * FROM guests WHERE id=$1 AND company_id=$2",
+ [guest_id, company_id]
+);
+
+if(guestCheck.rows.length === 0){
+ return res.status(403).json({error:"Acceso inválido"});
+}
   if(!company_code){
   return res.status(400).json({error:"company_code requerido"});
 }
@@ -175,6 +205,7 @@ if(sender === "guest"){
 
   const guestData = guestRes.rows[0];
 
+io.to("guest_" + guest_id).emit("typing");
   const result = await processMessage(db, message, guestData);
 
   // 🔥 RESPUESTA BOT
@@ -229,9 +260,26 @@ res.json({
 app.get("/chat/:guest_id", async (req,res)=>{
  try{
 
+  const { company_code } = req.query;
+
+  if(!company_code){
+    return res.status(400).json({error:"company_code requerido"});
+  }
+
+  const company_id = await getCompanyId(company_code);
+
+  const guestCheck = await db.query(
+    "SELECT * FROM guests WHERE id=$1 AND company_id=$2",
+    [req.params.guest_id, company_id]
+  );
+
+  if(guestCheck.rows.length === 0){
+    return res.status(403).json({error:"Acceso inválido"});
+  }
+
   const result = await db.query(
-   "SELECT * FROM messages WHERE guest_id=$1 ORDER BY created_at",
-   [req.params.guest_id]
+    "SELECT * FROM messages WHERE guest_id=$1 ORDER BY created_at",
+    [req.params.guest_id]
   );
 
   res.json(result.rows);
@@ -255,18 +303,25 @@ app.get("/guests/:company_code", async (req,res)=>{
 
   res.json(result.rows);
 
- }catch(err){
-  console.error("ERROR guests:", err);
-  res.status(500).json({error:"Error obteniendo huéspedes"});
- }
+  }catch(err){
+ console.error("ERROR chat:", err);
+ res.status(500).json({error:"Error obteniendo chat"});
+}
 });
+
+ 
 app.get("/admin/services", authMiddleware, async (req,res)=>{
+
+  if(!["admin","recepcion"].includes(req.user.role)){
+  return res.status(403).json({ error: "Sin permisos" });
+}
   const result = await db.query(
     "SELECT * FROM service_catalog WHERE company_id=$1",
     [req.user.company_id]
   );
   res.json(result.rows);
 });
+
 
 app.post("/admin/services", authMiddleware, async (req,res)=>{
   const { name, keywords, department, type, auto_response } = req.body;
@@ -287,6 +342,10 @@ app.delete("/admin/services/:id", authMiddleware, async (req,res)=>{
   res.json({ok:true});
 });
 app.get("/admin/flows", authMiddleware, async (req,res)=>{
+
+  if(!["admin","recepcion"].includes(req.user.role)){
+  return res.status(403).json({ error: "Sin permisos" });
+}
   const result = await db.query(
     "SELECT * FROM bot_flows WHERE company_id=$1",
     [req.user.company_id]
@@ -470,7 +529,18 @@ CREATE TABLE IF NOT EXISTS bot_flows (
   company_id INTEGER
 )
   `);
-}
+  await db.query(`
+CREATE TABLE IF NOT EXISTS settings(
+ key TEXT,
+ value TEXT,
+ company_id INTEGER
+)
+`);
+
+await db.query(`CREATE INDEX IF NOT EXISTS idx_tasks_company ON tasks(company_id)`);
+await db.query(`CREATE INDEX IF NOT EXISTS idx_messages_guest ON messages(guest_id)`);
+await db.query(`CREATE INDEX IF NOT EXISTS idx_guests_company ON guests(company_id)`);
+  }
 
 initDB();
 
@@ -655,26 +725,28 @@ app.post("/subscribe", authMiddleware, async (req,res)=>{
 });
 // ================= SETTINGS =================
 
-let settingsMemory = [];
-
-app.get("/settings",(req,res)=>{
- res.json(settingsMemory);
+app.get("/settings", authMiddleware, async (req,res)=>{
+ const result = await db.query(
+  "SELECT key,value FROM settings WHERE company_id=$1",
+  [req.user.company_id]
+ );
+ res.json(result.rows);
 });
 
-app.post("/settings",(req,res)=>{
+
+app.post("/settings", authMiddleware, async (req,res)=>{
 
  const { key, value } = req.body;
 
- const index = settingsMemory.findIndex(s=>s.key===key);
-
- if(index !== -1){
-   settingsMemory[index].value = value;
- }else{
-   settingsMemory.push({key,value});
- }
+ await db.query(`
+ INSERT INTO settings(key,value,company_id)
+ VALUES($1,$2,$3)
+ ON CONFLICT (key,company_id)
+ DO UPDATE SET value=EXCLUDED.value
+ `,
+ [key,value,req.user.company_id]);
 
  res.json({ok:true});
-
 });
 /* ================= CREATE TASK ================= */
 app.post("/tasks", authMiddleware, async (req,res)=>{
@@ -838,12 +910,12 @@ app.post("/users", authMiddleware, async (req,res)=>{
  try{
 
    const { username, password, role, department } = req.body;
+   const hashedPassword = await bcrypt.hash(password, 10);
 
    await db.query(
- `INSERT INTO users(username,password,role,department,company_id)
-  VALUES($1,$2,$3,$4,$5)
-  ON CONFLICT (username) DO NOTHING`,
- [username, password, role, department, req.user.company_id]
+ "INSERT INTO users (username,password,role,department,company_id)
+  VALUES($1,$2,$3,$4,$5)",
+ [username, hashedPassword, role, department, req.user.company_id]
 );
 
    res.json({ok:true});
@@ -1181,17 +1253,16 @@ app.post("/login", async (req,res)=>{
 
    const { company_code, username, password } = req.body;
 
-const result = await db.query(
-`
-SELECT u.*, c.code
-FROM users u
-JOIN companies c ON u.company_id = c.id
-WHERE u.username=$1
-AND u.password=$2
-AND c.code=$3
-`,
-[username, password, company_code]
-);
+   const result = await db.query(
+   `
+   SELECT u.*, c.code
+   FROM users u
+   JOIN companies c ON u.company_id = c.id
+   WHERE u.username=$1
+   AND c.code=$2
+   `,
+   [username, company_code]
+   );
 
    if(result.rows.length === 0){
      return res.sendStatus(401);
@@ -1199,27 +1270,34 @@ AND c.code=$3
 
    const usuario = result.rows[0];
 
-const token = jwt.sign(
-{
-  id: usuario.id,
-  username: usuario.username,
-  role: usuario.role,
-  department: usuario.department,
-  company_id: usuario.company_id
-},
-SECRET,
-{ expiresIn:"8h" }
-);
+   // 🔐 VALIDACIÓN SEGURA
+   const valid = await bcrypt.compare(password, usuario.password);
 
-res.json({
-  token,
-  user:{
-    id: usuario.id,
-    username: usuario.username,
-    role: usuario.role,
-    department: usuario.department
-  }
-});
+   if(!valid){
+     return res.sendStatus(401);
+   }
+
+   const token = jwt.sign(
+   {
+     id: usuario.id,
+     username: usuario.username,
+     role: usuario.role,
+     department: usuario.department,
+     company_id: usuario.company_id
+   },
+   SECRET,
+   { expiresIn:"8h" }
+   );
+
+   res.json({
+     token,
+     user:{
+       id: usuario.id,
+       username: usuario.username,
+       role: usuario.role,
+       department: usuario.department
+     }
+   });
 
  }catch(err){
 

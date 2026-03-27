@@ -641,6 +641,10 @@ footer{
       <span class="text">Reportes</span>
     </div> 
 
+    <div id="configBtn" style="display:none;">
+  <button onclick="goConfig()">💬 Chatbot</button>
+</div>
+
     <div class="menu-item" id="menuSistemas" onclick="mostrarVista('sistemas')">
       <span class="icon">🛠️</span>
       <span class="text">Sistemas</span>
@@ -1724,6 +1728,16 @@ function parseJwt(token){
  }catch{
    return null;
  }
+const token = localStorage.getItem("token");
+const user = parseJwt(token);
+}
+// mostrar solo a roles permitidos
+if(user && ["admin","recepcion"].includes(user.role)){
+  document.getElementById("configBtn").style.display = "block";
+}
+
+function goConfig(){
+  window.location.href = "/admin-config.html";
 }
 
 function scheduleAutoLogout(){

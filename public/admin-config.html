@@ -139,9 +139,6 @@ button.save{
 </div>
 
 <script>
-const API = "https://mollyhelpers.com";
-const token = localStorage.getItem("token");
-
 // 🔥 NAV
 function show(section){
   document.getElementById("services").style.display = "none";
@@ -149,6 +146,30 @@ function show(section){
 
   document.getElementById(section).style.display = "block";
 }
+// --- AUTH GUARD (arriba de TODO) ---
+const token = localStorage.getItem("token");
+
+if(!token){
+  window.location.href = "/login.html"; // tu login actual
+}
+
+// helper para leer JWT
+function parseJwt (token) {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch (e) {
+    return null;
+  }
+}
+
+const user = parseJwt(token);
+
+// permitir solo admin y recepcion
+if(!user || !["admin","recepcion"].includes(user.role)){
+  alert("No tienes permisos para acceder");
+  window.location.href = "/admin-chat.html"; // o tu home admin
+}
+const API = "https://mollyhelpers.com";
 
 // 🔥 CARGAR DEPARTAMENTOS
 async function loadDepartments(){
