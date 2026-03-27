@@ -11,7 +11,7 @@ const cors = require("cors");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
 const path = require("path");
-const { processMessage } = require("./chatbot");
+const { processMessage } = require("../chatbot");
 const bcrypt = require("bcrypt");
 const rateLimit = require("express-rate-limit");
 const pino = require("pino");
@@ -179,11 +179,7 @@ const guestCheck = await db.query(
 if(guestCheck.rows.length === 0){
  return res.status(403).json({error:"Acceso inválido"});
 }
-  if(!company_code){
-  return res.status(400).json({error:"company_code requerido"});
-}
-
-  await db.query(
+   await db.query(
  "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
  [guest_id, message, sender]
 );
@@ -878,17 +874,24 @@ io.to("admin_" + company_code)
 /* ================= CHANGE PASSWORD ================= */
 
 app.post("/change-password", authMiddleware, async (req,res)=>{
-  if(req.user.role !== "sistemas"){
+
+ if(req.user.role !== "sistemas"){
    return res.status(403).send("No autorizado");
-}
+ }
 
  try{
 
    const { username, newPassword } = req.body;
 
+   if(!username || !newPassword){
+     return res.status(400).json({error:"Datos incompletos"});
+   }
+
+   const hashed = await bcrypt.hash(newPassword, 10);
+
    await db.query(
      "UPDATE users SET password=$1 WHERE username=$2",
-     [newPassword, username]
+     [hashed, username]
    );
 
    res.json({ok:true});
@@ -910,13 +913,18 @@ app.post("/users", authMiddleware, async (req,res)=>{
  try{
 
    const { username, password, role, department } = req.body;
+
+   if(!username || !password){
+     return res.status(400).json({error:"Datos incompletos"});
+   }
+
    const hashedPassword = await bcrypt.hash(password, 10);
 
    await db.query(
- "INSERT INTO users (username,password,role,department,company_id)
-  VALUES($1,$2,$3,$4,$5)",
- [username, hashedPassword, role, department, req.user.company_id]
-);
+     `INSERT INTO users (username,password,role,department,company_id)
+      VALUES($1,$2,$3,$4,$5)`,
+     [username, hashedPassword, role, department, req.user.company_id]
+   );
 
    res.json({ok:true});
 
@@ -1175,7 +1183,7 @@ app.post("/admin/company-admin", authMiddleware, async (req,res)=>{
 
  try{
 
-   const { username, password, company_id } = req.body;
+   const [username, hashedPassword, company_id] = req.body;
 
    await db.query(
    `

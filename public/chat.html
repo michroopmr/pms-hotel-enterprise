@@ -24,8 +24,9 @@ body{
  margin:5px 0;
  padding:10px;
  border-radius:10px;
- max-width:70%;
- position:relative;
+ max-width:85%;
+font-size:15px;
+line-height:1.4;
 }
 
 .user{
@@ -86,6 +87,12 @@ button{
 </div>
 
 <script>
+  
+document.getElementById("input").addEventListener("keypress", function(e){
+ if(e.key === "Enter"){
+   send();
+ }
+});
 
 const params = new URLSearchParams(window.location.search);
 const company_code = params.get("empresa") || "DEMO01";
@@ -154,6 +161,10 @@ if(!guest.company_code){
 }
 
 socket.on("new_message", (data)=>{
+  
+  socket.on("typing", ()=>{
+ addMsg("Luka está escribiendo...", "bot");
+});
 
  if(data.sender === "guest") return;
 
