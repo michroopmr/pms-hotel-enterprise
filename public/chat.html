@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 
 
 <style>
@@ -10,14 +10,6 @@ body{
  font-family: Arial;
  background:#ece5dd;
  margin:0;
-}
-
-.chat{
- padding:10px;
- height:calc(100vh - 70px);
- overflow-y:auto;
- display:flex;
- flex-direction:column;
 }
 
 .msg{
@@ -74,26 +66,82 @@ button{
  background:#25d366;
  color:white;
 }
+.chat-container{
+  display:flex;
+  flex-direction:column;
+  height:100vh;
+  background:#efeae2;
+}
+
+.chat-messages{
+  flex:1;
+  overflow-y:auto;
+  padding:10px;
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding-bottom:80px;
+}
+
+.chat-input{
+  display:flex;
+  padding:10px;
+  background:white;
+  border-top:1px solid #ddd;
+  gap:8px;
+  position:sticky;
+  bottom:0;
+}
+
+.chat-input input{
+  flex:1;
+  border-radius:20px;
+  border:1px solid #ccc;
+  padding:10px 14px;
+}
+
+.chat-input button{
+  border-radius:20px;
+  padding:10px 16px;
+}
+.msg{
+  max-width:75%;
+  padding:10px 14px;
+  border-radius:16px;
+  font-size:14px;
+}
+
+.msg.user{
+  align-self:flex-end;
+  background:#d9fdd3;
+}
+
+.msg.bot{
+  align-self:flex-start;
+  background:white;
+}
+html, body{
+  height:100%;
+  overflow:hidden;
+}
 </style>
 </head>
 
 <body>
 <script src="/socket.io/socket.io.js"></script>
-<div class="chat" id="chat"></div>
+<div class="chat-container">
 
-<div class="input-area">
-  <input id="input" placeholder="Escribe un mensaje...">
-  <button onclick="send()">➤</button>
+  <div class="chat-messages" id="chatMessages"></div>
+
+  <div class="chat-input">
+    <input id="input" type="text" placeholder="Escribe un mensaje..." />
+    <button onclick="send()">Enviar</button>
+  </div>
+
 </div>
 
 <script>
   
-document.getElementById("input").addEventListener("keypress", function(e){
- if(e.key === "Enter"){
-   send();
- }
-});
-
 const params = new URLSearchParams(window.location.search);
 const company_code = params.get("empresa") || "DEMO01";
 
@@ -153,6 +201,9 @@ let inactivityTimer;
 const socket = io({
   transports: ["websocket"]
 });
+socket.on("typing", ()=>{
+  addMsg("Luka está escribiendo...", "bot");
+});
 
 socket.emit("join_guest", guest.id);
 
@@ -161,33 +212,33 @@ if(!guest.company_code){
 }
 
 socket.on("new_message", (data)=>{
-  
-  socket.on("typing", ()=>{
- addMsg("Luka está escribiendo...", "bot");
+
+  if(data.sender === "guest") return;
+
+  if(data.sender === "staff"){
+    addMsg("👨‍💼 " + data.message + "\n\n👍 Estoy contigo para ayudarte", "bot");
+
+    showToast("Nuevo mensaje del staff");
+
+    resetInactivity();
+    sessionStorage.removeItem("despedida_enviada");
+    resetSessionTimer();
+
+    return;
+  }
+
+  if(data.sender === "bot"){
+
+    // eliminar "..."
+    document.querySelectorAll(".msg.bot").forEach(m=>{
+      if(m.innerText.includes("...")) m.remove();
+    });
+
+    addMsg(data.message, "bot");
+    return;
+  }
+
 });
-
- if(data.sender === "guest") return;
-
- if(data.sender === "staff"){
-   addMsg("👨‍💼 " + data.message + "\n\n👍 Estoy contigo para ayudarte", "bot");
-
-   showToast("Nuevo mensaje del staff");
-
-   resetInactivity(); // ✅ SOLO AQUÍ
-   sessionStorage.removeItem("despedida_enviada");
-   resetSessionTimer();
-   
-
-   return;
- }
-
- if(data.sender === "bot"){
-  addMsg(data.message, "bot");
-  return;
-}
-
-});
-
 
 function addMsg(text, type){
 
@@ -208,12 +259,10 @@ function addMsg(text, type){
   <div>${text}</div>
 `;
 
- const chat = document.getElementById("chat");
+ const chat = document.getElementById("chatMessages");
  chat.appendChild(div);
 
- setTimeout(()=>{
- chat.scrollTop = chat.scrollHeight;
-},50);
+scrollBottom();
 }
 
 function resetInactivity(){
@@ -245,7 +294,12 @@ function resetInactivity(){
  }, 180000);
 }
 
+let sending = false;
+
 async function send(){
+
+ if(sending) return;
+ sending = true;
 
  const input = document.getElementById("input");
  const text = input.value.trim();
@@ -257,7 +311,10 @@ async function send(){
   return;
 }
 
- if(!text) return;
+ if(!text){
+  sending = false;
+  return;
+}
 
  if(text.toLowerCase() === "menu"){
   addMsg(text,"user");
@@ -272,12 +329,14 @@ async function send(){
       company_code: guest.company_code
     })
   });
+  
 
+  sending = false; 
   return;
 }
 
  addMsg(text,"user");
- addMsg("...", "bot");
+
 
  await fetch("/chat/message",{
   method:"POST",
@@ -295,6 +354,7 @@ async function send(){
 
  resetInactivity();
  resetSessionTimer();
+ sending = false;
 
 }
 function closeSession(){
@@ -321,6 +381,15 @@ function resetSessionTimer(){
   sessionTimer = setTimeout(()=>{
     closeSession();
   }, 900000); // 15 min
+}
+function scrollBottom(){
+  const chat = document.getElementById("chatMessages");
+  if(!chat) return;
+
+  chat.scrollTo({
+    top: chat.scrollHeight,
+    behavior: "smooth"
+  });
 }
 // 🔥 mensaje de bienvenida PRO
 
@@ -353,6 +422,25 @@ Soy Luka 🤖, tu asistente virtual del hotel.
 });
 
 })();
+window.addEventListener("load", ()=>{
+
+  const input = document.getElementById("input");
+
+  if(input){
+
+    input.addEventListener("keypress", function(e){
+      if(e.key === "Enter"){
+        send();
+      }
+    });
+
+    input.addEventListener("focus", ()=>{
+      setTimeout(scrollBottom, 300);
+    });
+
+  }
+
+});
 
 resetInactivity();
 resetSessionTimer();

@@ -2609,16 +2609,15 @@ if("serviceWorker" in navigator){
 
 }
 // ================= SUBIR LOGO =================
-
-document.getElementById("logoInput").addEventListener("change", function(e){
+ document.getElementById("logoInput").addEventListener("change", function(e){
 
  const file = e.target.files[0];
 
  const reader = new FileReader();
 
- reader.onload = function(){
+ reader.onload = async function(){  // 🔥 IMPORTANTE async
 
-   fetch("https://mollyhelpers.com/settings",{
+   const res = await secureFetch("https://mollyhelpers.com/settings",{
      method:"POST",
      headers:{
        "Content-Type":"application/json"
@@ -2629,30 +2628,48 @@ document.getElementById("logoInput").addEventListener("change", function(e){
      })
    });
 
+   if(!res || !res.ok){
+     alert("Error guardando logo");
+     return;
+   }
+
+   console.log("Logo guardado correctamente");
+
  };
 
  reader.readAsDataURL(file);
 
 });
-// ================= CARGAR LOGO DESDE CLOUD =================
 
+// ================= CARGAR LOGO DESDE CLOUD =================
 const logo = document.getElementById("logo");
 
-fetch("https://mollyhelpers.com/settings")
-.then(r=>r.json())
-.then(settings=>{
+secureFetch("https://mollyhelpers.com/settings")
+.then(async r=>{
 
- const logoCloud = settings.find(s=>s.key==="logo");
+  if(!r) return;
 
- if(logoCloud){
+  if(!r.ok){
+    console.error("Error cargando settings");
+    return;
+  }
 
-   logo.src = logoCloud.value;
-logoCloudData = logoCloud.value;
+  const settings = await r.json();
 
+  if(!Array.isArray(settings)){
+    console.error("Settings inválido:", settings);
+    return;
+  }
 
- }
+  const logoCloud = settings.find(s=>s.key==="logo");
+
+  if(logoCloud){
+    logo.src = logoCloud.value;
+    logoCloudData = logoCloud.value;
+  }
 
 });
+
 function logout(){
 
  localStorage.removeItem("token");
