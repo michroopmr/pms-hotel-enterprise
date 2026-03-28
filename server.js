@@ -540,6 +540,37 @@ await db.query(`CREATE INDEX IF NOT EXISTS idx_guests_company ON guests(company_
 
 initDB();
 
+// 🔥 MIGRACIÓN DE PASSWORDS (TEMPORAL)
+(async ()=>{
+
+ try{
+
+   const users = await db.query("SELECT * FROM users");
+
+   for(const u of users.rows){
+
+     if(!u.password.startsWith("$2b$")){
+
+       const hash = await bcrypt.hash(u.password, 10);
+
+       await db.query(
+         "UPDATE users SET password=$1 WHERE id=$2",
+         [hash, u.id]
+       );
+
+       console.log("✔ Usuario actualizado:", u.username);
+     }
+
+   }
+
+   console.log("🔥 Migración de passwords completada");
+
+ }catch(err){
+   console.error("❌ Error migrando passwords:", err);
+ }
+
+})();
+
 /* ================= WEB PUSH ================= */
 
 if (
