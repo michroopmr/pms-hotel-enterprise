@@ -885,6 +885,8 @@ if(saved) user=JSON.parse(saved);
 if(!localStorage.getItem("token")){
  location.href="login.html";
 }
+const token = localStorage.getItem("token");
+
 function aplicarPermisos(){
 
  if(!user) return;
@@ -906,8 +908,7 @@ if(user.role === "sistemas"){
 }
 async function secureFetch(url, options = {}) {
 
- const token = localStorage.getItem("token");
-
+const token = localStorage.getItem("token");
  const response = await fetch(url, {
    ...options,
    headers: {
@@ -1728,9 +1729,11 @@ function parseJwt(token){
  }catch{
    return null;
  }
-const token = localStorage.getItem("token");
-const user = parseJwt(token);
 }
+
+// ejecutar fuera
+const decodedUser = parseJwt(token);
+
 // mostrar solo a roles permitidos
 if(user && ["admin","recepcion"].includes(user.role)){
   document.getElementById("configBtn").style.display = "block";
@@ -1742,7 +1745,7 @@ function goConfig(){
 
 function scheduleAutoLogout(){
 
- const token = localStorage.getItem("token");
+ 
  if(!token) return;
 
  const decoded = parseJwt(token);
@@ -1945,7 +1948,7 @@ async function crearUsuario(){
 
 function cambiarPassword(){
 
- fetch("https://mollyhelpers.com/change-password",{
+ secureFetch("https://mollyhelpers.com/change-password",{
 
   method:"POST",
 
@@ -2438,7 +2441,7 @@ function mostrarVista(nombre){
  vistaActual = nombre;
  if(nombre === "dashboard"){
  const badge = document.getElementById("badgeNotif");
- badge.style.display = "none";
+if(badge) badge.style.display = "none";
 }
 // 🔥 PMS UX — autocompletar fecha y hora al crear tarea
 if(nombre === "crear"){
@@ -2806,7 +2809,7 @@ function activarInputEvidencia(id){
     const file = input.files[0];
     if(!file) return;
 
-    const token = localStorage.getItem("token");
+    
 
     const formData = new FormData();
     formData.append("image", file);
@@ -2815,9 +2818,8 @@ function activarInputEvidencia(id){
       `https://mollyhelpers.com/tasks/${id}/evidence`,
       {
         method:"POST",
-        headers:{
-          "Authorization":`Bearer ${token}`
-        },
+        headers:{"Authorization":"Bearer " + localStorage.getItem("token")
+      },
         body:formData
       }
     );
@@ -2838,14 +2840,13 @@ async function cargarEvidencias(id){
   const contenedor = document.getElementById(`evidencias-${id}`);
   if(!contenedor) return;
 
-  const token = localStorage.getItem("token");
-
+ 
   try{
 
     const res = await fetch(
       `https://mollyhelpers.com/tasks/${id}/evidences`,
       {
-        headers:{Authorization:`Bearer ${token}`}
+        headers:{Authorization: "Bearer " + localStorage.getItem("token")}
       }
     );
 
