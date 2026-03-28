@@ -99,6 +99,7 @@ button.save{
   <h2>MOLLY ⚙️</h2>
   <button onclick="show('services')">Servicios</button>
   <button onclick="show('flows')">Respuestas</button>
+  <button onclick="show('conversations')">Conversaciones</button>
 </div>
 
 <div class="main">
@@ -136,6 +137,11 @@ button.save{
     <table class="table" id="flowsTable"></table>
   </div>
 
+  <div id="conversations" class="card" style="display:none;">
+    <h3>Conversaciones</h3>
+    <div id="chatList"></div>
+  </div>
+
 </div>
 
 <script>
@@ -143,6 +149,7 @@ button.save{
 function show(section){
   document.getElementById("services").style.display = "none";
   document.getElementById("flows").style.display = "none";
+  document.getElementById("conversations").style.display = "none";
 
   document.getElementById(section).style.display = "block";
 }
@@ -226,7 +233,11 @@ async function loadServices(){
 async function saveService(){
 
   const name = document.getElementById("name").value;
-  const keywords = document.getElementById("keywords").value.split(",");
+  const keywords = document
+  .getElementById("keywords")
+  .value
+  .split(",")
+  .map(k => k.trim().toLowerCase());
   const type = document.getElementById("type").value;
   const department = document.getElementById("department").value;
   const response = document.getElementById("response").value;

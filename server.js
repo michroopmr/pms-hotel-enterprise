@@ -192,6 +192,7 @@ io.to("admin_" + company_code).emit("new_message", {
 
 // 🔥 SOLO SI ES MENSAJE DEL HUÉSPED
 if(sender === "guest"){
+  console.log("Mensaje:", message);
 
   // obtener guest con company_id
   const guestRes = await db.query(
@@ -203,6 +204,7 @@ if(sender === "guest"){
 
 io.to("guest_" + guest_id).emit("typing");
   const result = await processMessage(db, message, guestData);
+  console.log("Resultado:", result);
 
   // 🔥 RESPUESTA BOT
   await db.query(
@@ -221,7 +223,7 @@ io.to("admin_" + company_code).emit("new_message", {
   sender: "bot"
 });
   // 🔥 CREAR TAREA SI ES FALLA
-  if(result.type === "falla"){
+  if(result.type === "none"){
 
     const task = await db.query(`
       INSERT INTO tasks
