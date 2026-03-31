@@ -7,51 +7,56 @@ function normalize(text){
 
 async function processMessage(db, message, guest){
 
-  const texto = normalize(message || "");
+  const texto = message.toLowerCase();
 
-  // 🔥 FLOWS
-  const flows = await db.query(
-    "SELECT * FROM bot_flows WHERE company_id=$1",
-    [guest.company_id]
-  );
-
-  for(const f of flows.rows){
-
-    const triggerNorm = normalize(f.trigger);
-
-    if(texto.includes(triggerNorm)){
-      return {
-        type: "flow",
-        reply: f.response
-      };
-    }
+  // 👉 SALUDO
+  if(texto.includes("hola") || texto.includes("buenas")){
+    return {
+      reply: "Hola 👋 ¿En qué puedo ayudarte?",
+      type: "saludo"
+    };
   }
 
-  // 🔥 SERVICIOS
-  const services = await db.query(
-    "SELECT * FROM service_catalog WHERE company_id=$1",
-    [guest.company_id]
-  );
-
-  for(const s of services.rows){
-    for(const k of s.keywords){
-
-      const keywordNorm = normalize(k);
-
-      if(texto.includes(keywordNorm)){
-        return {
-          type: s.type,
-          department: s.department,
-          reply: s.auto_response || "En breve atendemos tu solicitud"
-        };
-      }
-
-    }
+  // 👉 FALLAS (CREA TAREA)
+  if(
+    texto.includes("no funciona") ||
+    texto.includes("falla") ||
+    texto.includes("no sirve") ||
+    texto.includes("problema")
+  ){
+    return {
+      reply: "Gracias, lo reporto de inmediato 🔧",
+      type: "falla",
+      department: "Mantenimiento"
+    };
   }
 
+  // 👉 SERVICIOS (CREA TAREA)
+  if(
+    texto.includes("toalla") ||
+    texto.includes("limpieza") ||
+    texto.includes("room service") ||
+    texto.includes("comida")
+  ){
+    return {
+      reply: "Claro, lo solicito enseguida 🛎️",
+      type: "servicio",
+      department: "Housekeeping"
+    };
+  }
+
+  // 👉 CONSULTA
+  if(texto.includes("gracias")){
+    return {
+      reply: "Con gusto 😊",
+      type: "otro"
+    };
+  }
+
+  // 👉 DEFAULT
   return {
-    type: "none",
-    reply: "¿En qué puedo ayudarte?"
+    reply: "¿Puedes darme más detalles? 🤔",
+    type: "otro"
   };
 }
 

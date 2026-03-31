@@ -223,7 +223,7 @@ io.to("admin_" + company_code).emit("new_message", {
   sender: "bot"
 });
   // 🔥 CREAR TAREA SI ES FALLA
-  if(result.type === "none"){
+  if(result.type === "falla" || result.type === "servicio"){
 
     const task = await db.query(`
       INSERT INTO tasks
