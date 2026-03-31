@@ -2770,25 +2770,33 @@ socket.on("task_update",(payload)=>{
    }catch(e){}
  }
 
- const index = tareas.findIndex(t=>t.id === payload.id);
+ // 🔥 NORMALIZAR ID (CLAVE)
+ const payloadId = String(payload.id);
 
- if(index !== -1){
+ // 🔥 BUSCAR SI YA EXISTE
+ const existe = tareas.some(t => String(t.id) === payloadId);
 
-   tareas[index] = {
-     ...tareas[index],  // mantiene evidencias actuales
-     ...payload
-   };
+ if(existe){
 
-}else{
+   tareas = tareas.map(t =>
+     String(t.id) === payloadId
+       ? { ...t, ...payload }
+       : t
+   );
+
+ }else{
 
    tareas.unshift(payload);
+
    reproducirAlerta();
    activarNotificacionVisual();
    mostrarNotificacionSistema(payload);
+
  }
 
+ // 🔥 RENDER INTELIGENTE
  if(payload.status === "terminado"){
-   render();                // reconstruir tarjeta cerrada
+   render();
  }else{
    renderTareaIndividual(payload);
  }

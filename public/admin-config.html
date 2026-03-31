@@ -2,322 +2,104 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>LUKA SaaS Config</title>
-
+<title>Molly Chat Pro</title>
+<script src="https://mollyhelpers.com/socket.io/socket.io.js"></script>
 <style>
-body{
- font-family: Arial;
- margin:0;
- display:flex;
- height:100vh;
- background:#f3f4f6;
-}
-
-/* SIDEBAR */
-.sidebar{
- width:220px;
- background:#111827;
- color:white;
- padding:20px;
-}
-
-.sidebar h2{
- font-size:18px;
- margin-bottom:20px;
-}
-
-.sidebar button{
- width:100%;
- margin:5px 0;
- padding:10px;
- border:none;
- border-radius:8px;
- background:#374151;
- color:white;
- cursor:pointer;
-}
-
-/* MAIN */
-.main{
- flex:1;
- padding:20px;
- overflow:auto;
-}
-
-.card{
- background:white;
- padding:20px;
- border-radius:12px;
- box-shadow:0 4px 10px rgba(0,0,0,0.1);
- margin-bottom:20px;
-}
-
-input, select{
- width:100%;
- padding:10px;
- margin:5px 0;
- border-radius:8px;
- border:1px solid #ccc;
-}
-
-button.save{
- background:#25d366;
- color:white;
- padding:10px;
- border:none;
- border-radius:8px;
- cursor:pointer;
- width:100%;
-}
-
-.table{
- width:100%;
- border-collapse: collapse;
- margin-top:10px;
-}
-
-.table th, .table td{
- border:1px solid #ddd;
- padding:8px;
- font-size:13px;
-}
-
-.delete{
- background:#dc2626;
- color:white;
- border:none;
- padding:5px 8px;
- border-radius:6px;
- cursor:pointer;
-}
+body{margin:0;font-family:Arial;display:flex;height:100vh;background:#f3f4f6}
+.sidebar{width:260px;background:#111827;color:white;display:flex;flex-direction:column}
+.sidebar h2{padding:20px;margin:0}
+#chatList{flex:1;overflow:auto}
+.chat-item{padding:12px;border-bottom:1px solid #374151;cursor:pointer}
+.chat-item:hover{background:#1f2937}
+.main{flex:1;display:flex;flex-direction:column}
+.header{padding:15px;background:white;border-bottom:1px solid #ddd}
+.messages{flex:1;padding:15px;overflow:auto}
+.msg{margin-bottom:10px;padding:10px;border-radius:10px;max-width:60%}
+.guest{background:#e0f2fe}
+.bot{background:#dcfce7;margin-left:auto}
+.input{display:flex;padding:10px;background:white;border-top:1px solid #ddd}
+.input input{flex:1;padding:10px;border-radius:8px;border:1px solid #ccc}
+.input button{margin-left:10px;padding:10px;border:none;background:#2563eb;color:white;border-radius:8px}
 </style>
 </head>
-
 <body>
-
 <div class="sidebar">
-  <h2>MOLLY ⚙️</h2>
-  <button onclick="show('services')">Servicios</button>
-  <button onclick="show('flows')">Respuestas</button>
-  <button onclick="show('conversations')">Conversaciones</button>
+<h2>Chats</h2>
+<div id="chatList"></div>
 </div>
-
 <div class="main">
-
-  <!-- SERVICIOS -->
-  <div id="services" class="card">
-    <h3>Servicios / Fallas</h3>
-
-    <input id="name" placeholder="Nombre (Ej: Toallas)">
-    <input id="keywords" placeholder="Keywords (toalla,toallas,limpieza)">
-    
-    <select id="type">
-      <option value="servicio">Servicio</option>
-      <option value="falla">Falla</option>
-    </select>
-
-    <select id="department"></select>
-
-    <input id="response" placeholder="Respuesta automática">
-
-    <button class="save" onclick="saveService()">Guardar</button>
-
-    <table class="table" id="servicesTable"></table>
-  </div>
-
-  <!-- RESPUESTAS -->
-  <div id="flows" class="card" style="display:none;">
-    <h3>Respuestas rápidas</h3>
-
-    <input id="trigger" placeholder="Palabra clave (Ej: horario)">
-    <input id="flowResponse" placeholder="Respuesta">
-
-    <button class="save" onclick="saveFlow()">Guardar</button>
-
-    <table class="table" id="flowsTable"></table>
-  </div>
-
-  <div id="conversations" class="card" style="display:none;">
-    <h3>Conversaciones</h3>
-    <div id="chatList"></div>
-  </div>
-
+<div class="header" id="chatHeader">Selecciona un chat</div>
+<div class="messages" id="messages"></div>
+<div class="input">
+<input id="msgInput" placeholder="Escribe mensaje...">
+<button onclick="sendMsg()">Enviar</button>
 </div>
-
+</div>
 <script>
-// 🔥 NAV
-function show(section){
-  document.getElementById("services").style.display = "none";
-  document.getElementById("flows").style.display = "none";
-  document.getElementById("conversations").style.display = "none";
+const API="https://mollyhelpers.com";
+const token=localStorage.getItem("token");
+const company_code=localStorage.getItem("company_code");
+let currentGuest=null;
 
-  document.getElementById(section).style.display = "block";
-}
-// --- AUTH GUARD (arriba de TODO) ---
-const token = localStorage.getItem("token");
+const socket=io(API,{auth:{token}});
+socket.on("connect",()=>{
+ socket.emit("join_admin",company_code);
+});
 
-if(!token){
-  window.location.href = "/login.html"; // tu login actual
-}
-
-// helper para leer JWT
-function parseJwt (token) {
-  try {
-    return JSON.parse(atob(token.split('.')[1]));
-  } catch (e) {
-    return null;
-  }
+async function loadGuests(){
+ const r=await fetch(`${API}/guests/${company_code}`);
+ const data=await r.json();
+ const cont=document.getElementById("chatList");
+ cont.innerHTML="";
+ data.forEach(g=>{
+  cont.innerHTML+=`<div class='chat-item' onclick='openChat(${g.id},"${g.name}","${g.room}")'>🛏 ${g.room} - ${g.name}</div>`;
+ });
 }
 
-const user = parseJwt(token);
-
-// permitir solo admin y recepcion
-if(!user || !["admin","recepcion"].includes(user.role)){
-  alert("No tienes permisos para acceder");
-  window.location.href = "/admin-chat.html"; // o tu home admin
-}
-const API = "https://mollyhelpers.com";
-
-// 🔥 CARGAR DEPARTAMENTOS
-async function loadDepartments(){
-  const res = await fetch(`${API}/departments`,{
-    headers:{ Authorization:"Bearer " + token }
-  });
-
-  const data = await res.json();
-
-  const select = document.getElementById("department");
-  select.innerHTML = "";
-
-  data.forEach(d=>{
-    const opt = document.createElement("option");
-    opt.value = d;
-    opt.textContent = d;
-    select.appendChild(opt);
-  });
+async function openChat(id,name,room){
+ currentGuest=id;
+ document.getElementById("chatHeader").innerText=`Habitación ${room} - ${name}`;
+ const r=await fetch(`${API}/chat/${id}?company_code=${company_code}`);
+ const data=await r.json();
+ renderMessages(data);
 }
 
-// 🔥 SERVICIOS
-async function loadServices(){
-  const res = await fetch(`${API}/admin/services`,{
-    headers:{ Authorization:"Bearer " + token }
-  });
-
-  const data = await res.json();
-
-  const table = document.getElementById("servicesTable");
-
-  table.innerHTML = `
-    <tr>
-      <th>Nombre</th>
-      <th>Keywords</th>
-      <th>Tipo</th>
-      <th>Depto</th>
-      <th></th>
-    </tr>
-  `;
-
-  data.forEach(s=>{
-    table.innerHTML += `
-      <tr>
-        <td>${s.name}</td>
-        <td>${s.keywords.join(",")}</td>
-        <td>${s.type}</td>
-        <td>${s.department}</td>
-        <td><button class="delete" onclick="deleteService(${s.id})">X</button></td>
-      </tr>
-    `;
-  });
+function renderMessages(list){
+ const cont=document.getElementById("messages");
+ cont.innerHTML=list.map(m=>`
+  <div class='msg ${m.sender}'>${m.message}</div>
+ `).join("");
+ cont.scrollTop=cont.scrollHeight;
 }
 
-async function saveService(){
+socket.on("new_message",(data)=>{
+ if(data.guest_id===currentGuest){
+  const cont=document.getElementById("messages");
+  cont.innerHTML+=`<div class='msg ${data.sender}'>${data.message}</div>`;
+  cont.scrollTop=cont.scrollHeight;
+ }
+});
 
-  const name = document.getElementById("name").value;
-  const keywords = document
-  .getElementById("keywords")
-  .value
-  .split(",")
-  .map(k => k.trim().toLowerCase());
-  const type = document.getElementById("type").value;
-  const department = document.getElementById("department").value;
-  const response = document.getElementById("response").value;
+async function sendMsg(){
+ const input=document.getElementById("msgInput");
+ const text=input.value;
+ if(!text||!currentGuest) return;
 
-  await fetch(`${API}/admin/services`,{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer " + token
-    },
-    body: JSON.stringify({
-      name,
-      keywords,
-      type,
-      department,
-      auto_response: response
-    })
-  });
+ await fetch(`${API}/chat/message`,{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body:JSON.stringify({
+   guest_id:currentGuest,
+   message:text,
+   sender:"admin",
+   company_code
+  })
+ });
 
-  loadServices();
+ input.value="";
 }
 
-async function deleteService(id){
-  await fetch(`${API}/admin/services/${id}`,{
-    method:"DELETE",
-    headers:{ Authorization:"Bearer " + token }
-  });
-
-  loadServices();
-}
-
-// 🔥 FLOWS
-async function loadFlows(){
-  const res = await fetch(`${API}/admin/flows`,{
-    headers:{ Authorization:"Bearer " + token }
-  });
-
-  const data = await res.json();
-
-  const table = document.getElementById("flowsTable");
-
-  table.innerHTML = `
-    <tr>
-      <th>Trigger</th>
-      <th>Respuesta</th>
-    </tr>
-  `;
-
-  data.forEach(f=>{
-    table.innerHTML += `
-      <tr>
-        <td>${f.trigger}</td>
-        <td>${f.response}</td>
-      </tr>
-    `;
-  });
-}
-
-async function saveFlow(){
-
-  const trigger = document.getElementById("trigger").value;
-  const response = document.getElementById("flowResponse").value;
-
-  await fetch(`${API}/admin/flows`,{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      Authorization:"Bearer " + token
-    },
-    body: JSON.stringify({ trigger, response })
-  });
-
-  loadFlows();
-}
-
-// INIT
-loadDepartments();
-loadServices();
-loadFlows();
+loadGuests();
 </script>
-
 </body>
 </html>
