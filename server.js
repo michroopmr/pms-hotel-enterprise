@@ -1331,14 +1331,15 @@ app.post("/login", async (req,res)=>{
    );
 
    res.json({
-     token,
-     user:{
-       id: usuario.id,
-       username: usuario.username,
-       role: usuario.role,
-       department: usuario.department
-     }
-   });
+  token,
+  user:{
+    id: usuario.id,
+    username: usuario.username,
+    role: usuario.role,
+    department: usuario.department
+  },
+  company_code: usuario.code   // 🔥 ESTA ES LA CLAVE
+});
 
  }catch(err){
 

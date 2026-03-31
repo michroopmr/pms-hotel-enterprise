@@ -928,6 +928,31 @@ const token = localStorage.getItem("token");
 info.innerText=`Usuario: ${user.username}`;
 year.innerText=new Date().getFullYear();
 userTop.innerText = user.username;
+// 🔥 OBTENER company_code
+const company_code = localStorage.getItem("company_code");
+
+if(company_code){
+  const socket = io("https://mollyhelpers.com", {
+    auth: { token }
+  });
+
+  socket.emit("join_admin", company_code);
+
+  console.log("🟢 Unido a canal:", "admin_" + company_code);
+
+  socket.on("task_update", (task)=>{
+    console.log("Nueva tarea en tiempo real:", task);
+
+    tareas.unshift(task); // agregar arriba
+    render();
+    cargarKPIs();
+
+    document.getElementById("alertSound").play();
+  });
+
+}else{
+  console.log("❌ company_code no encontrado en dashboard");
+}
 
 const esAdmin = user.role && user.role.toLowerCase() === "sistemas";
 
@@ -2557,6 +2582,22 @@ const socket = io("https://mollyhelpers.com",{
  }
 
 });
+
+socket.on("connect", () => {
+
+  console.log("🔥 SOCKET CONECTADO:", socket.id);
+
+  const company_code = localStorage.getItem("company_code");
+
+  if(company_code){
+    socket.emit("join_admin", company_code);
+    console.log("🟢 Unido a canal:", "admin_" + company_code);
+  }else{
+    console.log("❌ No hay company_code");
+  }
+
+});
+
 socket.on("comentarioAgregado", data => {
 
    console.log("comentario recibido:", data);
@@ -2669,17 +2710,6 @@ secureFetch("https://mollyhelpers.com/settings")
   }
 
 });
-// 🔥 USAR company_code desde localStorage (FORMA SEGURA)
-
-const company_code = localStorage.getItem("company_code");
-
-if(company_code){
-  socket.emit("join_admin", company_code);
-  console.log("🟢 Unido a canal:", "admin_" + company_code);
-}else{
-  console.log("❌ No hay company_code en localStorage");
-}
-
 function logout(){
 
  localStorage.removeItem("token");

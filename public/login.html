@@ -290,9 +290,12 @@ async function login(){
    }
 
    const data = await r.json();
+
+   console.log("LOGIN RESPONSE:", data);
+   
    localStorage.setItem("token", data.token);
 localStorage.setItem("user", JSON.stringify(data.user));
-localStorage.setItem("company_code", data.company_code);
+localStorage.setItem("company_code", data.company_code || company);
 
    setTimeout(()=>{
      location.href="dashboard.html";
