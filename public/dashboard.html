@@ -2669,6 +2669,16 @@ secureFetch("https://mollyhelpers.com/settings")
   }
 
 });
+// 🔥 USAR company_code desde localStorage (FORMA SEGURA)
+
+const company_code = localStorage.getItem("company_code");
+
+if(company_code){
+  socket.emit("join_admin", company_code);
+  console.log("🟢 Unido a canal:", "admin_" + company_code);
+}else{
+  console.log("❌ No hay company_code en localStorage");
+}
 
 function logout(){
 

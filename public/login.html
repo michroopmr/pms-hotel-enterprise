@@ -292,6 +292,7 @@ async function login(){
    const data = await r.json();
    localStorage.setItem("token", data.token);
 localStorage.setItem("user", JSON.stringify(data.user));
+localStorage.setItem("company_code", data.company_code);
 
    setTimeout(()=>{
      location.href="dashboard.html";
