@@ -2798,7 +2798,7 @@ function activarNotificacionVisual(){
 if(audioEnabled && "vibrate" in navigator){
   navigator.vibrate([200,100,200]);
 }
-
+}
 document.addEventListener("click",()=>{
   audioEnabled = true;
  const audio = document.getElementById("alertSound");
