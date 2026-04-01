@@ -194,6 +194,15 @@ io.to("admin_" + company_code).emit("new_message", {
 if(sender === "guest"){
   console.log("Mensaje:", message);
 
+
+  // obtener guest con company_id
+  const guestRes = await db.query(
+    "SELECT * FROM guests WHERE id=$1",
+    [guest_id]
+  );
+
+  const guestData = guestRes.rows[0];
+
   // ================= IA NUEVA =================
 const ai = await detectarIntencion(message, company_id);
 
@@ -236,13 +245,7 @@ if(ai.texto){
  return res.json({ ok:true, ia:true });
 }
 
-  // obtener guest con company_id
-  const guestRes = await db.query(
-    "SELECT * FROM guests WHERE id=$1",
-    [guest_id]
-  );
-
-  const guestData = guestRes.rows[0];
+  
 
 io.to("guest_" + guest_id).emit("typing");
   const result = await processMessage(db, message, guestData);

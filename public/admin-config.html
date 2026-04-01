@@ -117,17 +117,12 @@ body{
 </head>
 
 <body style="display:flex;">
-<div style="padding:10px;border-bottom:1px solid #333;">
-<button onclick="showPanel('chat')">💬 Chats</button>
-<button onclick="showPanel('services')">🛎 Servicios</button>
-<button onclick="showPanel('flows')">⚡ Respuestas</button>
-</div>
 
 <div class="sidebar">
 
 <h2>Panel</h2>
 
-<!-- 🔥 MENU -->
+<!-- 🔥 MENU (ÚNICO) -->
 <div style="padding:10px;border-bottom:1px solid #333;">
 <button onclick="showPanel('chat')" style="width:100%;margin-bottom:5px;">💬 Chats</button>
 <button onclick="showPanel('services')" style="width:100%;margin-bottom:5px;">🛎 Servicios</button>
@@ -143,7 +138,24 @@ body{
 
 </div>
 
-<!-- 🔥 PANEL TICKETS (FUERA DEL MAIN) -->
+<div class="main">
+
+<div class="header" id="chatHeader">Selecciona un chat</div>
+
+<div class="messages" id="messages"></div>
+
+<div class="input">
+<div class="tools" id="tools"></div>
+
+<div class="input-row">
+<input id="msgInput" placeholder="Escribe mensaje...">
+<button onclick="sendMsg()">Enviar</button>
+</div>
+</div>
+
+</div>
+
+<!-- 🔥 PANEL TICKETS -->
 <div id="ticketsPanel" style="
  width:300px;
  background:white;
@@ -328,6 +340,21 @@ async function deleteFlow(id){
 
  loadFlowsAdmin();
 }
+
+async function deleteService(id){
+
+ if(!confirm("¿Eliminar servicio?")) return;
+
+ await fetch(`${API}/admin/services/${id}`,{
+  method:"DELETE",
+  headers:{
+   "Authorization":"Bearer "+token
+  }
+ });
+
+ loadServicesAdmin();
+}
+
 /* =========================
    OPEN CHAT
 ========================= */
