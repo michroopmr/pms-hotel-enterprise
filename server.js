@@ -209,20 +209,41 @@ const ai = await detectarIntencion(message, company_id);
 // 🔥 crear ticket si aplica
 if(ai.ticket){
 
- await crearTicket({
-  guest_id,
-  room: guestData.room,
-  tipo:"servicio",
-  prioridad: ai.prioridad || "normal"
- });
+  // 🔥 CREAR TICKET
+  await crearTicket({
+    guest_id,
+    room: guestData.room,
+    tipo:"servicio",
+    prioridad: ai.prioridad || "normal"
+  });
 
- io.to("admin_" + company_code).emit("nuevo_ticket",{
-  guest_id,
-  room: guestData.room
- });
+  // 🔥 CREAR TASK
+  const task = await db.query(`
+    INSERT INTO tasks
+    (title, description, department, status, created_by, company_id)
+    VALUES($1,$2,$3,$4,$5,$6)
+    RETURNING *
+  `,
+  [
+    "Solicitud habitación " + guestData.room,
+    message,
+    ai.departamento || "Recepción",
+    "abierto",
+    guestData.name + " - Hab " + guestData.room,
+    guestData.company_id
+  ]);
+
+  // 🔥 EMITIR TASK
+  io.to("admin_" + company_code).emit("task_update", task.rows[0]);
+
+  // 🔥 EMITIR TICKET (CORRECTO)
+  io.to("admin_" + company_code).emit("nuevo_ticket",{
+    guest_id,
+    room: guestData.room
+  });
+
 }
-
-// 🔥 responder IA y cortar flujo
+ // 🔥 responder IA y cortar flujo
 if(ai.texto){
 
  await db.query(
@@ -802,10 +823,11 @@ async function detectarIntencion(msg, company_id){
  for(const s of services.rows){
    if(s.keywords.some(k=>msg.includes(k))){
      return {
-       texto: s.auto_response,
-       ticket: true,
-       departamento: s.department
-     };
+  texto: s.auto_response,
+  ticket: true,
+  departamento: s.department,
+  prioridad: "normal"
+};
    }
  }
 
@@ -821,7 +843,7 @@ async function detectarIntencion(msg, company_id){
    }
  }
 
- return { texto:"Estoy revisando tu solicitud 👍" };
+ return { texto:null };
 }
 
 async function crearTicket({guest_id, room, tipo, prioridad="normal"}){
