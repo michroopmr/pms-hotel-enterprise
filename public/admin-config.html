@@ -219,16 +219,54 @@ async function loadServicesAdmin(){
  const data = await r.json();
 
  const cont = document.getElementById("panel-services");
- cont.innerHTML="";
+
+ cont.innerHTML = `
+  <h3>Servicios</h3>
+
+  <input id="s_name" placeholder="Nombre"><br>
+  <input id="s_keywords" placeholder="Keywords (coma)"><br>
+  <input id="s_department" placeholder="Departamento"><br>
+  <input id="s_response" placeholder="Respuesta automática"><br>
+
+  <button onclick="createService()">➕ Crear</button>
+  <hr>
+ `;
 
  data.forEach(s=>{
   cont.innerHTML+=`
-   <div>
-    ${s.name} (${s.department})
+   <div style="border-bottom:1px solid #ccc;padding:5px;">
+    <b>${s.name}</b><br>
+    <small>${s.department}</small><br>
+    <button onclick="deleteService(${s.id})">🗑 Eliminar</button>
    </div>
   `;
  });
 }
+async function createService(){
+
+ const name = document.getElementById("s_name").value;
+ const keywords = document.getElementById("s_keywords").value.split(",");
+ const department = document.getElementById("s_department").value;
+ const auto_response = document.getElementById("s_response").value;
+
+ await fetch(`${API}/admin/services`,{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   "Authorization":"Bearer "+token
+  },
+  body:JSON.stringify({
+   name,
+   keywords,
+   department,
+   type:"auto",
+   auto_response
+  })
+ });
+
+ loadServicesAdmin();
+}
+
 async function loadFlowsAdmin(){
 
  const r = await fetch(`${API}/admin/flows`,{
@@ -238,15 +276,57 @@ async function loadFlowsAdmin(){
  const data = await r.json();
 
  const cont = document.getElementById("panel-flows");
- cont.innerHTML="";
+
+ cont.innerHTML = `
+  <h3>Respuestas rápidas</h3>
+
+  <input id="f_trigger" placeholder="Trigger"><br>
+  <input id="f_response" placeholder="Respuesta"><br>
+
+  <button onclick="createFlow()">➕ Crear</button>
+  <hr>
+ `;
 
  data.forEach(f=>{
   cont.innerHTML+=`
-   <div>
-    ${f.trigger} → ${f.response}
+   <div style="border-bottom:1px solid #ccc;padding:5px;">
+    <b>${f.trigger}</b><br>
+    ${f.response}<br>
+    <button onclick="deleteFlow(${f.id})">🗑 Eliminar</button>
    </div>
   `;
  });
+}
+
+async function createFlow(){
+
+ const trigger = document.getElementById("f_trigger").value;
+ const response = document.getElementById("f_response").value;
+
+ await fetch(`${API}/admin/flows`,{
+  method:"POST",
+  headers:{
+   "Content-Type":"application/json",
+   "Authorization":"Bearer "+token
+  },
+  body:JSON.stringify({
+   trigger,
+   response
+  })
+ });
+
+ loadFlowsAdmin();
+}
+async function deleteFlow(id){
+
+ await fetch(`${API}/admin/flows/${id}`,{
+  method:"DELETE",
+  headers:{
+   "Authorization":"Bearer "+token
+  }
+ });
+
+ loadFlowsAdmin();
 }
 /* =========================
    OPEN CHAT
@@ -365,8 +445,20 @@ async function loadTools(){
   fetch(`${API}/services/${company_code}`)
  ]);
 
- const quick = await qrRes.json();
- const services = await servRes.json();
+let quick = [];
+let services = [];
+
+try{
+ quick = await qrRes.json();
+}catch(e){
+ console.warn("quick replies no disponibles");
+}
+
+try{
+ services = await servRes.json();
+}catch(e){
+ console.warn("services no disponibles");
+}
 
  cont.innerHTML="";
 
@@ -390,9 +482,11 @@ function useQuick(text){
 /* =========================
    INIT
 ========================= */
-loadGuests();
-loadTools();
-loadTickets();
+window.onload = () => {
+ loadGuests();
+ loadTools();
+ loadTickets();
+};
 
 </script>
 </body>

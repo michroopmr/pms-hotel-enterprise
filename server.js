@@ -195,7 +195,7 @@ if(sender === "guest"){
   console.log("Mensaje:", message);
 
   // ================= IA NUEVA =================
-const ai = await detectarIntencion(message);
+const ai = await detectarIntencion(message, company_id);
 
 // 🔥 crear ticket si aplica
 if(ai.ticket){
@@ -370,7 +370,38 @@ app.get("/admin/services", authMiddleware, async (req,res)=>{
   );
   res.json(result.rows);
 });
+app.get("/services/:company_code", async (req,res)=>{
+ try{
+  const company_id = await getCompanyId(req.params.company_code);
 
+  const result = await db.query(
+    "SELECT name, auto_response as description FROM service_catalog WHERE company_id=$1",
+    [company_id]
+  );
+
+  res.json(result.rows);
+
+ }catch(err){
+  console.error(err);
+  res.status(500).json({error:"services error"});
+ }
+});
+app.get("/quick-replies/:company_code", async (req,res)=>{
+ try{
+  const company_id = await getCompanyId(req.params.company_code);
+
+  const result = await db.query(
+    "SELECT trigger as title, response as text FROM bot_flows WHERE company_id=$1",
+    [company_id]
+  );
+
+  res.json(result.rows);
+
+ }catch(err){
+  console.error(err);
+  res.status(500).json({error:"quick replies error"});
+ }
+});
 
 app.post("/admin/services", authMiddleware, async (req,res)=>{
   const { name, keywords, department, type, auto_response } = req.body;
@@ -412,6 +443,16 @@ app.post("/admin/flows", authMiddleware, async (req,res)=>{
 
   res.json({ok:true});
 });
+
+app.delete("/admin/flows/:id", authMiddleware, async (req,res)=>{
+ await db.query(
+  "DELETE FROM bot_flows WHERE id=$1 AND company_id=$2",
+  [req.params.id, req.user.company_id]
+ );
+ res.json({ok:true});
+});
+
+
 /* 🔥 evitar cache HTML */
 app.use((req,res,next)=>{
  if(req.url.endsWith(".html")){
