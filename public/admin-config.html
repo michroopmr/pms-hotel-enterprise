@@ -4,90 +4,271 @@
 <meta charset="UTF-8">
 <title>Molly Chat Pro</title>
 <script src="https://mollyhelpers.com/socket.io/socket.io.js"></script>
+
 <style>
-body{margin:0;font-family:Arial;display:flex;height:100vh;background:#f3f4f6}
-.sidebar{width:260px;background:#111827;color:white;display:flex;flex-direction:column}
-.sidebar h2{padding:20px;margin:0}
-#chatList{flex:1;overflow:auto}
-.chat-item{padding:12px;border-bottom:1px solid #374151;cursor:pointer}
-.chat-item:hover{background:#1f2937}
-.main{flex:1;display:flex;flex-direction:column}
-.header{padding:15px;background:white;border-bottom:1px solid #ddd}
-.messages{flex:1;padding:15px;overflow:auto}
-.msg{margin-bottom:10px;padding:10px;border-radius:10px;max-width:60%}
-.guest{background:#e0f2fe}
-.bot{background:#dcfce7;margin-left:auto}
-.input{display:flex;padding:10px;background:white;border-top:1px solid #ddd}
-.input input{flex:1;padding:10px;border-radius:8px;border:1px solid #ccc}
-.input button{margin-left:10px;padding:10px;border:none;background:#2563eb;color:white;border-radius:8px}
+body{
+ margin:0;
+ font-family:Arial;
+ display:flex;
+ height:100vh;
+ background:#e5ddd5;
+}
+
+/* SIDEBAR */
+.sidebar{
+ width:320px;
+ background:#111b21;
+ color:white;
+ display:flex;
+ flex-direction:column;
+}
+.sidebar h2{
+ padding:15px;
+ margin:0;
+ border-bottom:1px solid #222;
+}
+.chat-item{
+ padding:12px;
+ border-bottom:1px solid #222;
+ cursor:pointer;
+}
+.chat-item:hover{background:#202c33;}
+.chat-item.active{background:#2a3942;}
+.chat-item small{color:#9ca3af}
+
+/* MAIN */
+.main{
+ flex:1;
+ display:flex;
+ flex-direction:column;
+}
+
+.header{
+ padding:15px;
+ background:#202c33;
+ color:white;
+}
+
+.messages{
+ flex:1;
+ padding:20px;
+ overflow:auto;
+ display:flex;
+ flex-direction:column;
+}
+
+.msg{
+ margin:5px 0;
+ padding:10px;
+ border-radius:8px;
+ max-width:60%;
+}
+
+.guest{background:white;}
+.bot{
+ background:#d9fdd3;
+ margin-left:auto;
+}
+
+/* INPUT */
+.input{
+ background:#202c33;
+ padding:10px;
+ display:flex;
+ flex-direction:column;
+}
+
+.input-row{
+ display:flex;
+}
+
+.input input{
+ flex:1;
+ padding:10px;
+ border-radius:8px;
+ border:none;
+}
+
+.input button{
+ margin-left:10px;
+ padding:10px;
+ border:none;
+ background:#00a884;
+ color:white;
+ border-radius:8px;
+}
+
+/* QUICK + SERVICES */
+.tools{
+ display:flex;
+ flex-wrap:wrap;
+ gap:5px;
+ margin-bottom:8px;
+}
+.tools button{
+ background:#374151;
+ color:white;
+ border:none;
+ padding:5px 8px;
+ border-radius:6px;
+ cursor:pointer;
+}
 </style>
 </head>
-<body>
+
+<body style="display:flex;">
+
 <div class="sidebar">
 <h2>Chats</h2>
 <div id="chatList"></div>
 </div>
+
 <div class="main">
 <div class="header" id="chatHeader">Selecciona un chat</div>
+
 <div class="messages" id="messages"></div>
+
 <div class="input">
+<div class="tools" id="tools"></div>
+
+<div class="input-row">
 <input id="msgInput" placeholder="Escribe mensaje...">
 <button onclick="sendMsg()">Enviar</button>
 </div>
 </div>
+</div>
+
+<!-- 🔥 PANEL TICKETS (FUERA DEL MAIN) -->
+<div id="ticketsPanel" style="
+ width:300px;
+ background:white;
+ border-left:1px solid #ccc;
+ overflow:auto;
+">
+<h3 style="padding:10px;">Tickets</h3>
+<div id="ticketsList"></div>
+</div>
+
 <script>
 const API="https://mollyhelpers.com";
 const token=localStorage.getItem("token");
 const company_code=localStorage.getItem("company_code");
+
 let currentGuest=null;
+let guests=[];
 
 const socket=io(API,{auth:{token}});
+
 socket.on("connect",()=>{
  socket.emit("join_admin",company_code);
 });
 
+/* =========================
+   LOAD GUESTS
+========================= */
 async function loadGuests(){
  const r=await fetch(`${API}/guests/${company_code}`);
- const data=await r.json();
+ guests=await r.json();
+ renderGuests();
+}
+
+function renderGuests(){
  const cont=document.getElementById("chatList");
  cont.innerHTML="";
- data.forEach(g=>{
-  cont.innerHTML+=`<div class='chat-item' onclick='openChat(${g.id},"${g.name}","${g.room}")'>🛏 ${g.room} - ${g.name}</div>`;
+
+ guests.forEach(g=>{
+  cont.innerHTML+=`
+   <div class="chat-item" onclick="openChat(${g.id}, '${g.name}', '${g.room}', this)">
+    <b>🛏 ${g.room}</b><br>
+    <small>${g.name}</small>
+   </div>
+  `;
  });
 }
 
-async function openChat(id,name,room){
+/* =========================
+   OPEN CHAT
+========================= */
+async function openChat(id,name,room,el){
  currentGuest=id;
- document.getElementById("chatHeader").innerText=`Habitación ${room} - ${name}`;
+
+ document.getElementById("chatHeader").innerText=
+  `Habitación ${room} - ${name}`;
+
+ document.querySelectorAll(".chat-item")
+  .forEach(e=>e.classList.remove("active"));
+
+ el.classList.add("active");
+
  const r=await fetch(`${API}/chat/${id}?company_code=${company_code}`);
  const data=await r.json();
+
  renderMessages(data);
 }
 
+/* =========================
+   RENDER MESSAGES
+========================= */
 function renderMessages(list){
  const cont=document.getElementById("messages");
+
  cont.innerHTML=list.map(m=>`
-  <div class='msg ${m.sender}'>${m.message}</div>
+  <div class="msg ${m.sender}">${m.message}</div>
  `).join("");
+
  cont.scrollTop=cont.scrollHeight;
 }
+async function loadTickets(){
 
+ const r = await fetch(`${API}/tickets/${company_code}`);
+ const data = await r.json();
+
+ const cont = document.getElementById("ticketsList");
+ cont.innerHTML="";
+
+ data.forEach(t=>{
+  cont.innerHTML+=`
+   <div style="padding:10px;border-bottom:1px solid #eee">
+    🛏 ${t.room}<br>
+    <b>${t.type}</b><br>
+    <small>${t.status}</small>
+   </div>
+  `;
+ });
+}
+socket.on("nuevo_ticket",()=>{
+ loadTickets();
+});
+/* =========================
+   REALTIME
+========================= */
 socket.on("new_message",(data)=>{
  if(data.guest_id===currentGuest){
   const cont=document.getElementById("messages");
-  cont.innerHTML+=`<div class='msg ${data.sender}'>${data.message}</div>`;
+
+  cont.innerHTML+=`
+   <div class="msg ${data.sender}">${data.message}</div>
+  `;
+
   cont.scrollTop=cont.scrollHeight;
  }
 });
 
+/* =========================
+   SEND MESSAGE
+========================= */
 async function sendMsg(){
  const input=document.getElementById("msgInput");
  const text=input.value;
- if(!text||!currentGuest) return;
+
+ if(!text || !currentGuest) return;
 
  await fetch(`${API}/chat/message`,{
   method:"POST",
-  headers:{"Content-Type":"application/json"},
+  headers:{
+   "Content-Type":"application/json",
+   "Authorization":"Bearer "+token
+  },
   body:JSON.stringify({
    guest_id:currentGuest,
    message:text,
@@ -96,10 +277,61 @@ async function sendMsg(){
   })
  });
 
+ // pintar inmediato
+ const cont=document.getElementById("messages");
+ cont.innerHTML+=`<div class="msg bot">${text}</div>`;
+ cont.scrollTop=cont.scrollHeight;
+
+ // socket
+ socket.emit("admin_send_message",{
+  guest_id:currentGuest,
+  message:text,
+  company_code
+ });
+
  input.value="";
 }
 
+/* =========================
+   QUICK + SERVICES
+========================= */
+async function loadTools(){
+ const cont=document.getElementById("tools");
+
+ const [qrRes, servRes] = await Promise.all([
+  fetch(`${API}/quick-replies/${company_code}`),
+  fetch(`${API}/services/${company_code}`)
+ ]);
+
+ const quick = await qrRes.json();
+ const services = await servRes.json();
+
+ cont.innerHTML="";
+
+ quick.forEach(q=>{
+  cont.innerHTML+=`
+   <button onclick="useQuick('${q.text}')">${q.title}</button>
+  `;
+ });
+
+ services.forEach(s=>{
+  cont.innerHTML+=`
+   <button onclick="useQuick('${s.description}')">🛎 ${s.name}</button>
+  `;
+ });
+}
+
+function useQuick(text){
+ document.getElementById("msgInput").value=text;
+}
+
+/* =========================
+   INIT
+========================= */
 loadGuests();
+loadTools();
+loadTickets();
+
 </script>
 </body>
 </html>

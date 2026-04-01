@@ -194,6 +194,48 @@ io.to("admin_" + company_code).emit("new_message", {
 if(sender === "guest"){
   console.log("Mensaje:", message);
 
+  // ================= IA NUEVA =================
+const ai = await detectarIntencion(message);
+
+// 🔥 crear ticket si aplica
+if(ai.ticket){
+
+ await crearTicket({
+  guest_id,
+  room: guestData.room,
+  tipo:"servicio",
+  prioridad: ai.prioridad || "normal"
+ });
+
+ io.to("admin_" + company_code).emit("nuevo_ticket",{
+  guest_id,
+  room: guestData.room
+ });
+}
+
+// 🔥 responder IA y cortar flujo
+if(ai.texto){
+
+ await db.query(
+  "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
+  [guest_id, ai.texto]
+ );
+
+ io.to("guest_" + guest_id).emit("new_message",{
+  guest_id,
+  message: ai.texto,
+  sender: "bot"
+ });
+
+ io.to("admin_" + company_code).emit("new_message",{
+  guest_id,
+  message: ai.texto,
+  sender: "bot"
+ });
+
+ return res.json({ ok:true, ia:true });
+}
+
   // obtener guest con company_id
   const guestRes = await db.query(
     "SELECT * FROM guests WHERE id=$1",
@@ -287,7 +329,16 @@ app.get("/chat/:guest_id", async (req,res)=>{
   res.status(500).json({error:"Error obteniendo chat"});
  }
 });
+app.get("/tickets/:company_code", async (req,res)=>{
 
+ const r = await db.query(`
+  SELECT * FROM tickets
+  ORDER BY created_at DESC
+ `);
+
+ res.json(r.rows);
+
+});
 // Lista de huéspedes
 app.get("/guests/:company_code", async (req,res)=>{
  try{
@@ -534,6 +585,17 @@ CREATE TABLE IF NOT EXISTS settings(
  company_id INTEGER
 )
 `);
+await db.query(`
+CREATE TABLE IF NOT EXISTS tickets(
+ id SERIAL PRIMARY KEY,
+ guest_id INT,
+ room TEXT,
+ type TEXT,
+ status TEXT DEFAULT 'pendiente',
+ priority TEXT DEFAULT 'normal',
+ created_at TIMESTAMP DEFAULT NOW()
+)
+`);
 
 await db.query(`CREATE INDEX IF NOT EXISTS idx_tasks_company ON tasks(company_id)`);
 await db.query(`CREATE INDEX IF NOT EXISTS idx_messages_guest ON messages(guest_id)`);
@@ -657,6 +719,32 @@ if(decoded.role === "sistemas"){
  });
 
 });
+
+async function detectarIntencion(msg){
+
+ msg = msg.toLowerCase();
+
+ if(msg.includes("toalla") || msg.includes("amenities")){
+   return { texto:"Enseguida te enviamos toallas 🛎️", ticket:false };
+ }
+
+ if(msg.includes("comida")){
+   return { texto:"Tu pedido fue enviado a cocina 🍽️", ticket:true };
+ }
+
+ if(msg.includes("queja") || msg.includes("mal")){
+   return { ticket:true, prioridad:"alta" };
+ }
+
+ return { texto:"Estoy revisando tu solicitud 👍", ticket:false };
+}
+async function crearTicket({guest_id, room, tipo, prioridad="normal"}){
+ await db.query(`
+  INSERT INTO tickets (guest_id, room, type, priority)
+  VALUES ($1,$2,$3,$4)
+ `,[guest_id, room, tipo, prioridad]);
+}
+
 /* ================= PUSH HELPER ================= */
 
 async function sendPushByDepartment(department,title,message,taskId){
