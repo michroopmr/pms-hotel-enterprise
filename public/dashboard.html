@@ -880,6 +880,7 @@ if(isAppMode){
 
 /* ================= SESIÓN ================= */
 let user=null;
+let audioEnabled = false;
 const saved=localStorage.getItem("user");
 if(saved) user=JSON.parse(saved);
 if(!localStorage.getItem("token")){
@@ -930,29 +931,6 @@ year.innerText=new Date().getFullYear();
 userTop.innerText = user.username;
 // 🔥 OBTENER company_code
 const company_code = localStorage.getItem("company_code");
-
-if(company_code){
-  const socket = io("https://mollyhelpers.com", {
-    auth: { token }
-  });
-
-  socket.emit("join_admin", company_code);
-
-  console.log("🟢 Unido a canal:", "admin_" + company_code);
-
-  socket.on("task_update", (task)=>{
-    console.log("Nueva tarea en tiempo real:", task);
-
-    tareas.unshift(task); // agregar arriba
-    render();
-    cargarKPIs();
-
-    document.getElementById("alertSound").play();
-  });
-
-}else{
-  console.log("❌ company_code no encontrado en dashboard");
-}
 
 const esAdmin = user.role && user.role.toLowerCase() === "sistemas";
 
@@ -2590,10 +2568,15 @@ socket.on("connect", () => {
   const company_code = localStorage.getItem("company_code");
 
   if(company_code){
+
     socket.emit("join_admin", company_code);
+
     console.log("🟢 Unido a canal:", "admin_" + company_code);
+
   }else{
-    console.log("❌ No hay company_code");
+
+    console.warn("❌ No hay company_code");
+
   }
 
 });
@@ -2612,9 +2595,6 @@ socket.on("comentarioAgregado", data => {
    tarea.comments.push(data.comentario);
    renderTareaIndividual(tarea);  
 
-});
-socket.on("connect", () => {
- console.log("🔥 SOCKET CONECTADO:", socket.id);
 });
 
 // ================= DEEP LINK LISTENER =================
@@ -2730,7 +2710,10 @@ window.addEventListener("load", ()=>{
  scheduleAutoLogout();
  aplicarPermisos();
 });
+
 function reproducirAlerta(){
+
+ if(!audioEnabled) return; // 🔥 CLAVE
 
  const audio = document.getElementById("alertSound");
 
@@ -2812,12 +2795,12 @@ function activarNotificacionVisual(){
  badge.style.display = "inline-block";
 
  // vibración si es móvil
- if("vibrate" in navigator){
-   navigator.vibrate([200,100,200]);
- }
-
+if(audioEnabled && "vibrate" in navigator){
+  navigator.vibrate([200,100,200]);
 }
+
 document.addEventListener("click",()=>{
+  audioEnabled = true;
  const audio = document.getElementById("alertSound");
  if(audio){
    audio.play().then(()=>{
