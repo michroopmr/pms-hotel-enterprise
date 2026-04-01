@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Molly Chat Pro</title>
+<title>Luka Chat Pro</title>
 <script src="https://mollyhelpers.com/socket.io/socket.io.js"></script>
 
 <style>
@@ -240,6 +240,11 @@ async function loadServicesAdmin(){
   <input id="s_department" placeholder="Departamento"><br>
   <input id="s_response" placeholder="Respuesta automática"><br>
 
+<select id="s_type">
+  <option value="info">Solo información</option>
+  <option value="task">Generar tarea</option>
+</select><br>
+
   <button onclick="createService()">➕ Crear</button>
   <hr>
  `;
@@ -247,8 +252,8 @@ async function loadServicesAdmin(){
  data.forEach(s=>{
   cont.innerHTML+=`
    <div style="border-bottom:1px solid #ccc;padding:5px;">
-    <b>${s.name}</b><br>
-    <small>${s.department}</small><br>
+    <b>${s.name}</b> (${s.type})<br>
+<small>${s.department}</small>
     <button onclick="deleteService(${s.id})">🗑 Eliminar</button>
    </div>
   `;
@@ -259,7 +264,8 @@ async function createService(){
  const name = document.getElementById("s_name").value;
  const keywords = document.getElementById("s_keywords").value.split(",");
  const department = document.getElementById("s_department").value;
- const auto_response = document.getElementById("s_response").value;
+const auto_response = document.getElementById("s_response").value;
+const type = document.getElementById("s_type").value; // 🔥 NUEVO
 
  await fetch(`${API}/admin/services`,{
   method:"POST",
@@ -271,7 +277,7 @@ async function createService(){
    name,
    keywords,
    department,
-   type:"auto",
+   type,
    auto_response
   })
  });

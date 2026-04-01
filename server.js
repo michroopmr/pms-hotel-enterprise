@@ -822,13 +822,23 @@ async function detectarIntencion(msg, company_id){
 
  for(const s of services.rows){
    if(s.keywords.some(k=>msg.includes(k))){
-     return {
-  texto: s.auto_response,
-  ticket: true,
-  departamento: s.department,
-  prioridad: "normal"
-};
-   }
+
+  // 🔥 SI ES SOLO INFO → NO TASK
+  if(s.type === "info"){
+    return {
+      texto: s.auto_response,
+      ticket: false
+    };
+  }
+
+  // 🔥 SI ES SERVICIO → TASK
+  return {
+    texto: s.auto_response,
+    ticket: true,
+    departamento: s.department,
+    prioridad: "normal"
+  };
+}
  }
 
  // 🔥 quick replies
