@@ -675,6 +675,31 @@ socket.on("call_staff", (data) => {
   });
 
 });
+socket.on("admin_send_message", async (data)=>{
+
+ const { guest_id, message, company_code } = data;
+
+ // guardar mensaje
+ await db.query(
+  "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'admin')",
+  [guest_id, message]
+ );
+
+ // enviar al huésped
+ io.to("guest_" + guest_id).emit("new_message",{
+  guest_id,
+  message,
+  sender:"bot"
+ });
+
+ // actualizar admin (otros paneles)
+ io.to("admin_" + company_code).emit("new_message",{
+  guest_id,
+  message,
+  sender:"bot"
+ });
+
+});
 
 const token = socket.handshake.auth?.token;
 const department = socket.handshake.query?.department;
@@ -720,24 +745,41 @@ if(decoded.role === "sistemas"){
 
 });
 
-async function detectarIntencion(msg){
+async function detectarIntencion(msg, company_id){
 
  msg = msg.toLowerCase();
 
- if(msg.includes("toalla") || msg.includes("amenities")){
-   return { texto:"Enseguida te enviamos toallas 🛎️", ticket:false };
+ // 🔥 buscar en servicios
+ const services = await db.query(
+  "SELECT * FROM service_catalog WHERE company_id=$1",
+  [company_id]
+ );
+
+ for(const s of services.rows){
+   if(s.keywords.some(k=>msg.includes(k))){
+     return {
+       texto: s.auto_response,
+       ticket: true,
+       departamento: s.department
+     };
+   }
  }
 
- if(msg.includes("comida")){
-   return { texto:"Tu pedido fue enviado a cocina 🍽️", ticket:true };
+ // 🔥 quick replies
+ const flows = await db.query(
+  "SELECT * FROM bot_flows WHERE company_id=$1",
+  [company_id]
+ );
+
+ for(const f of flows.rows){
+   if(msg.includes(f.trigger.toLowerCase())){
+     return { texto: f.response };
+   }
  }
 
- if(msg.includes("queja") || msg.includes("mal")){
-   return { ticket:true, prioridad:"alta" };
- }
-
- return { texto:"Estoy revisando tu solicitud 👍", ticket:false };
+ return { texto:"Estoy revisando tu solicitud 👍" };
 }
+
 async function crearTicket({guest_id, room, tipo, prioridad="normal"}){
  await db.query(`
   INSERT INTO tickets (guest_id, room, type, priority)
