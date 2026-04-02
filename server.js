@@ -11,7 +11,6 @@ const cors = require("cors");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
 const path = require("path");
-const { processMessage } = require("./chatbot");
 const bcrypt = require("bcrypt");
 const rateLimit = require("express-rate-limit");
 const pino = require("pino");
@@ -205,6 +204,12 @@ if(sender === "guest"){
 
  // ================= IA =================
 const ai = await detectarIntencion(message, company_id);
+console.log("🧠 AI DEBUG:", ai);
+
+// 🔥 SI NO ENTENDIÓ → SALIR
+if(!ai.texto){
+  return res.json({ ok:true });
+}
 
 // 🔥 RESPONDER PRIMERO
 if(ai.texto){
@@ -226,100 +231,50 @@ if(ai.texto){
   sender: "bot"
  });
 
- // 🔥 SI ES SOLO INFO → TERMINAR AQUÍ
- if(ai.ticket === false){
-   return res.json({ ok:true, ia:true });
- }
-
- // 🔥 SOLO AQUÍ CREAS TASK
- if(ai.ticket){
-
-   await crearTicket({
-     guest_id,
-     room: guestData.room,
-     tipo:"servicio",
-     prioridad: ai.prioridad || "normal"
-   });
-
-   const task = await db.query(`
-     INSERT INTO tasks
-     (title, description, department, status, created_by, company_id)
-     VALUES($1,$2,$3,$4,$5,$6)
-     RETURNING *
-   `,
-   [
-     "Solicitud habitación " + guestData.room,
-     message,
-     ai.departamento || "Recepción",
-     "abierto",
-     guestData.name + " - Hab " + guestData.room,
-     guestData.company_id
-   ]);
-
-   io.to("admin_" + company_code).emit("task_update", task.rows[0]);
-
-   io.to("admin_" + company_code).emit("nuevo_ticket",{
-     guest_id,
-     room: guestData.room
-   });
-
-   return res.json({ ok:true, ia:true });
- }
-
+ // 🔥 SOLO crear task si es TRUE
+if(ai.ticket !== true){
+  return res.json({ ok:true, ia:true });
 }
 
-io.to("guest_" + guest_id).emit("typing");
-
-// 🔥 evitar doble procesamiento si IA ya respondió
-if(ai.texto){
-  return res.json({ ok:true });
-}
-
-  const result = await processMessage(db, message, guestData);
-  console.log("Resultado:", result);
-
-  // 🔥 RESPUESTA BOT
-  await db.query(
-    "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
-    [guest_id, result.reply]
-  );
-
-  io.to("guest_" + guest_id).emit("new_message", {
-    guest_id,
-    message: result.reply,
-    sender: "bot"
-  });
-io.to("admin_" + company_code).emit("new_message", {
+// 🔥 SOLO AQUÍ CREAS TASK
+await crearTicket({
   guest_id,
-  message: result.reply,
-  sender: "bot"
+  room: guestData.room,
+  tipo:"servicio",
+  prioridad: ai.prioridad || "normal"
 });
-  // 🔥 CREAR TAREA SI ES FALLA
-  if(result.type === "falla" || result.type === "servicio"){
 
-    const task = await db.query(`
-      INSERT INTO tasks
-      (title, description, department, status, created_by, company_id)
-      VALUES($1,$2,$3,$4,$5,$6)
-      RETURNING *
-    `,
-    [
-      "Reporte habitación " + guestData.room,
-      message,
-      result.department,
-      "abierto",
-      guestData.name,
-      guestData.company_id
-    ]);
+const task = await db.query(`
+  INSERT INTO tasks
+  (title, description, department, status, created_by, company_id)
+  VALUES($1,$2,$3,$4,$5,$6)
+  RETURNING *
+`,
+[
+  "Solicitud habitación " + guestData.room,
+  message,
+  ai.departamento || "Recepción",
+  "abierto",
+  guestData.name + " - Hab " + guestData.room,
+  guestData.company_id
+]);
 
-    io.to("admin_" + company_code).emit("task_update", task.rows[0]);
-  }
+io.to("admin_" + company_code).emit("task_update", task.rows[0]);
+
+io.to("admin_" + company_code).emit("nuevo_ticket",{
+  guest_id,
+  room: guestData.room
+});
+
+return res.json({ ok:true, ia:true });
+}
 }
 
 res.json({
   ok: true,
   message
 });
+
 } catch(err){
   console.error(err);
   res.status(500).json({error:"Error en chat"});
@@ -816,50 +771,112 @@ if(decoded.role === "sistemas"){
 
 });
 
+function normalizar(msg){
+ return msg
+  .toLowerCase()
+  .normalize("NFD").replace(/[\u0300-\u036f]/g,"") // quita acentos
+}
+
 async function detectarIntencion(msg, company_id){
 
- msg = msg.toLowerCase();
+ msg = normalizar(msg);
 
- // 🔥 buscar en servicios
  const services = await db.query(
   "SELECT * FROM service_catalog WHERE company_id=$1",
   [company_id]
  );
 
  for(const s of services.rows){
-   if(s.keywords.some(k => msg.includes(k.trim().toLowerCase()))){
 
-  // 🔥 SI ES SOLO INFO → NO TASK
-  if(s.type === "info"){
-    return {
-      texto: s.auto_response,
-      ticket: false
-    };
-  }
+   const keywords = s.keywords.map(k => normalizar(k));
 
-  // 🔥 SI ES SERVICIO → TASK
-  return {
-    texto: s.auto_response,
-    ticket: true,
-    departamento: s.department,
-    prioridad: "normal"
-  };
-}
- }
+   // 🔥 MATCH FLEXIBLE
+   const match = keywords.some(k => msg.includes(k));
 
- // 🔥 quick replies
- const flows = await db.query(
-  "SELECT * FROM bot_flows WHERE company_id=$1",
-  [company_id]
- );
+   if(match){
 
- for(const f of flows.rows){
-   if(msg.includes(f.trigger.toLowerCase())){
-   return { texto: f.response, ticket:false };
+     const response = {
+       texto: s.auto_response,
+       ticket: false
+     };
+
+     if(s.type === "info"){
+       return response;
+     }
+
+     if(s.type === "request" || s.type === "issue"){
+       return {
+         ...response,
+         ticket: true,
+         departamento: s.department,
+         prioridad: detectarPrioridad(msg, s.type)
+       };
+     }
    }
  }
 
+ // 🔥 SI NO HAY MATCH → IA SEMÁNTICA
+ return detectarIntencionSemantica(msg);
+}
+
+function detectarIntencionSemantica(msg){
+
+ // 🔴 FALLAS
+ if(
+   msg.includes("no funciona") ||
+   msg.includes("no sirve") ||
+   msg.includes("esta roto") ||
+   msg.includes("falla") ||
+   msg.includes("tapado")
+ ){
+   return {
+     texto: "Hemos notificado al área correspondiente",
+     ticket: true,
+     departamento: "Mantenimiento",
+     prioridad: "alta"
+   };
+ }
+
+ // 🔵 SOLICITUDES
+ if(
+   msg.includes("mandar") ||
+   msg.includes("enviar") ||
+   msg.includes("necesito") ||
+   msg.includes("me puedes dar")
+ ){
+   return {
+     texto: "Tu solicitud ha sido registrada",
+     ticket: true,
+     departamento: "Recepción",
+     prioridad: "normal"
+   };
+ }
+
+ // 🟢 INFORMACIÓN
+ if(
+   msg.includes("horario") ||
+   msg.includes("donde") ||
+   msg.includes("que incluye") ||
+   msg.includes("informacion")
+ ){
+   return {
+     texto: "Con gusto te comparto la información",
+     ticket: false
+   };
+ }
+
  return { texto:null, ticket:false };
+}
+
+function detectarPrioridad(msg, tipo){
+
+ if(tipo === "issue") return "alta";
+
+ if(msg.includes("urgente") || msg.includes("ya")){
+   return "alta";
+ }
+
+ return "normal";
 }
 
 async function crearTicket({guest_id, room, tipo, prioridad="normal"}){
