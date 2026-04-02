@@ -787,39 +787,51 @@ async function detectarIntencion(msg, company_id){
 
  msg = normalizar(msg);
 
- const services = await db.query(
+ // 🔥 1. PRIMERO DETECTAR FALLAS (PRIORIDAD ALTA)
+const semantica = detectarIntencionSemantica(msg);
+
+if(semantica.ticket === true){
+  return semantica;
+}
+
+// 🔥 2. LUEGO CATÁLOGO
+const services = await db.query(
   "SELECT * FROM service_catalog WHERE company_id=$1",
   [company_id]
- );
+);
 
- for(const s of services.rows){
+for(const s of services.rows){
 
-   const keywords = s.keywords.map(k => normalizar(k));
+  const keywords = s.keywords.map(k => normalizar(k));
+  const match = keywords.some(k => msg.includes(k));
 
-   // 🔥 MATCH FLEXIBLE
-   const match = keywords.some(k => msg.includes(k));
+  if(match){
 
-   if(match){
+    const response = {
+      texto: s.auto_response,
+      ticket: false
+    };
 
-     const response = {
-       texto: s.auto_response,
-       ticket: false
-     };
+    if(s.type === "info"){
+      return response;
+    }
 
-     if(s.type === "info"){
-       return response;
-     }
+    if(s.type === "request" || s.type === "issue"){
+      return {
+        ...response,
+        ticket: true,
+        departamento: s.department,
+        prioridad: detectarPrioridad(msg, s.type)
+      };
+    }
+  }
+}
 
-     if(s.type === "request" || s.type === "issue"){
-       return {
-         ...response,
-         ticket: true,
-         departamento: s.department,
-         prioridad: detectarPrioridad(msg, s.type)
-       };
-     }
-   }
- }
+// 🔥 3. DEFAULT
+return {
+  texto: "¿Podrías darme más detalles para ayudarte?",
+  ticket: false
+};
 
  // 🔥 SI NO HAY MATCH → IA SEMÁNTICA
  return detectarIntencionSemantica(msg);
@@ -829,12 +841,17 @@ function detectarIntencionSemantica(msg){
 
  // 🔴 FALLAS
  if(
-   msg.includes("no funciona") ||
-   msg.includes("no sirve") ||
-   msg.includes("esta roto") ||
-   msg.includes("falla") ||
-   msg.includes("tapado")
- ){
+  msg.includes("tv") ||
+  msg.includes("tina") ||
+  msg.includes("baño") ||
+  msg.includes("regadera") ||
+  msg.includes("drenaje") ||
+  msg.includes("tapada") ||
+  msg.includes("no funciona") ||
+  msg.includes("no sirve") ||
+  msg.includes("esta roto") ||
+  msg.includes("falla")
+){
    return {
      texto: "Hemos notificado al área correspondiente",
      ticket: true,
@@ -842,7 +859,24 @@ function detectarIntencionSemantica(msg){
      prioridad: "alta"
    };
  }
-
+// 🧹 HOUSEKEEPING DIRECTO
+if(
+ msg.includes("toalla") ||
+ msg.includes("toallas") ||
+ msg.includes("limpieza") ||
+ msg.includes("limpiar") ||
+ msg.includes("almohada") ||
+ msg.includes("almohadas") ||
+ msg.includes("sabana") ||
+ msg.includes("sabanas")
+){
+ return {
+   texto: "Enviamos al equipo de housekeeping",
+   ticket: true,
+   departamento: "Housekeeping",
+   prioridad: "normal"
+ };
+}
  // 🔵 SOLICITUDES
  if(
    msg.includes("mandar") ||

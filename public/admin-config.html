@@ -2,529 +2,264 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Luka Chat Pro</title>
-<script src="https://mollyhelpers.com/socket.io/socket.io.js"></script>
+<title>Luka Chat Bot Servicios</title>
 
 <style>
 body{
- margin:0;
- font-family:Arial;
- display:flex;
- height:100vh;
- background:#e5ddd5;
+  font-family: Arial;
+  background:#0f1c24;
+  color:#fff;
+  padding:20px;
 }
 
-/* SIDEBAR */
-.sidebar{
- width:320px;
- background:#111b21;
- color:white;
- display:flex;
- flex-direction:column;
-}
-.sidebar h2{
- padding:15px;
- margin:0;
- border-bottom:1px solid #222;
-}
-.chat-item{
- padding:12px;
- border-bottom:1px solid #222;
- cursor:pointer;
-}
-.chat-item:hover{background:#202c33;}
-.chat-item.active{background:#2a3942;}
-.chat-item small{color:#9ca3af}
+h2{ margin-bottom:10px; }
 
-/* MAIN */
-.main{
- flex:1;
- display:flex;
- flex-direction:column;
+.container{
+  max-width:900px;
+  margin:auto;
 }
 
-.header{
- padding:15px;
- background:#202c33;
- color:white;
+input, select, textarea{
+  width:100%;
+  padding:10px;
+  margin-bottom:10px;
+  border:none;
+  border-radius:6px;
 }
 
-.messages{
- flex:1;
- padding:20px;
- overflow:auto;
- display:flex;
- flex-direction:column;
+button{
+  padding:10px 15px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
 }
 
-.msg{
- margin:5px 0;
- padding:10px;
- border-radius:8px;
- max-width:60%;
+.btn{
+  background:#4CAF50;
+  color:#fff;
 }
 
-.guest{background:white;}
-.bot{
- background:#d9fdd3;
- margin-left:auto;
+.btn-danger{
+  background:#e74c3c;
 }
 
-/* INPUT */
-.input{
- background:#202c33;
- padding:10px;
- display:flex;
- flex-direction:column;
+.tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:5px;
+  margin-bottom:10px;
 }
 
-.input-row{
- display:flex;
+.tag{
+  background:#3498db;
+  padding:5px 10px;
+  border-radius:20px;
+  cursor:pointer;
 }
 
-.input input{
- flex:1;
- padding:10px;
- border-radius:8px;
- border:none;
+.table{
+  width:100%;
+  margin-top:20px;
+  border-collapse:collapse;
 }
 
-.input button{
- margin-left:10px;
- padding:10px;
- border:none;
- background:#00a884;
- color:white;
- border-radius:8px;
-}
-
-/* QUICK + SERVICES */
-.tools{
- display:flex;
- flex-wrap:wrap;
- gap:5px;
- margin-bottom:8px;
-}
-.tools button{
- background:#374151;
- color:white;
- border:none;
- padding:5px 8px;
- border-radius:6px;
- cursor:pointer;
+.table th, .table td{
+  padding:10px;
+  border-bottom:1px solid #333;
+  text-align:left;
 }
 </style>
 </head>
 
-<body style="display:flex;">
+<body>
 
-<div class="sidebar">
+<div class="container">
 
-<h2>Luka Chat Pro Panel</h2>
+<h2>⚙️ Servicios</h2>
 
-<!-- 🔥 MENU (ÚNICO) -->
-<div style="padding:10px;border-bottom:1px solid #333;">
-<button onclick="showPanel('chat')" style="width:100%;margin-bottom:5px;">💬 Chats</button>
-<button onclick="showPanel('services')" style="width:100%;margin-bottom:5px;">🛎 Servicios</button>
-<button onclick="showPanel('flows')" style="width:100%;">⚡ Respuestas</button>
-</div>
+<!-- FORMULARIO -->
+<input id="name" placeholder="Nombre del servicio">
 
-<!-- 🔥 CONTENEDORES -->
-<div id="chatList"></div>
+<select id="category">
+  <option>Mantenimiento</option>
+  <option>Housekeeping</option>
+  <option>Recepción</option>
+  <option>Restaurante</option>
+</select>
 
-<div id="panel-services" style="display:none;padding:10px;"></div>
+<select id="department">
+  <option>Recepción</option>
+  <option>Mantenimiento</option>
+  <option>Housekeeping</option>
+  <option>Alimentos Bebidas</option>
+</select>
 
-<div id="panel-flows" style="display:none;padding:10px;"></div>
+<select id="type">
+  <option value="info">Información</option>
+  <option value="request">Solicitud</option>
+  <option value="issue">Problema técnico</option>
+</select>
 
-</div>
+<select id="priority">
+  <option value="baja">Baja</option>
+  <option value="normal" selected>Normal</option>
+  <option value="alta">Alta</option>
+</select>
 
-<div class="main">
+<!-- KEYWORDS TAGS -->
+<div class="tags" id="tags"></div>
+<input id="keywordInput" placeholder="Agregar keyword y presiona Enter">
 
-<div class="header" id="chatHeader">Selecciona un chat</div>
+<textarea id="response" placeholder="Respuesta automática"></textarea>
 
-<div class="messages" id="messages"></div>
+<label>
+  <input type="checkbox" id="autoTicket"> Crear ticket automáticamente
+</label>
 
-<div class="input">
-<div class="tools" id="tools"></div>
+<br><br>
 
-<div class="input-row">
-<input id="msgInput" placeholder="Escribe mensaje...">
-<button onclick="sendMsg()">Enviar</button>
-</div>
-</div>
+<button class="btn" onclick="guardarServicio()">+ Guardar servicio</button>
 
-</div>
+<!-- TABLA -->
+<table class="table" id="tabla">
+<thead>
+<tr>
+<th>Nombre</th>
+<th>Depto</th>
+<th>Tipo</th>
+<th>Acciones</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
 
-<!-- 🔥 PANEL TICKETS -->
-<div id="ticketsPanel" style="
- width:300px;
- background:white;
- border-left:1px solid #ccc;
- overflow:auto;
-">
-<h3 style="padding:10px;">Tickets</h3>
-<div id="ticketsList"></div>
 </div>
 
 <script>
-const API="https://mollyhelpers.com";
-const token=localStorage.getItem("token");
-const company_code=localStorage.getItem("company_code");
 
-let currentGuest=null;
-let guests=[];
+let keywords = [];
+let editId = null;
+const API = "https://mollyhelpers.com";
 
-const socket=io(API,{auth:{token}});
+// ================= TAGS =================
+const input = document.getElementById("keywordInput");
 
-socket.on("connect",()=>{
- socket.emit("join_admin",company_code);
-});
+input.addEventListener("keydown", e=>{
+  if(e.key === "Enter"){
+    e.preventDefault();
+    const value = input.value.trim();
+    if(!value) return;
 
-/* =========================
-   LOAD GUESTS
-========================= */
-async function loadGuests(){
- const r=await fetch(`${API}/guests/${company_code}`);
- guests=await r.json();
- renderGuests();
-}
-
-function renderGuests(){
- const cont=document.getElementById("chatList");
- cont.innerHTML="";
-
- guests.forEach(g=>{
-  cont.innerHTML+=`
-   <div class="chat-item" onclick="openChat(${g.id}, '${g.name}', '${g.room}', this)">
-    <b>🛏 ${g.room}</b><br>
-    <small>${g.name}</small>
-   </div>
-  `;
- });
-}
-function showPanel(type){
-
- document.getElementById("chatList").style.display="none";
- document.getElementById("panel-services").style.display="none";
- document.getElementById("panel-flows").style.display="none";
-
- if(type==="chat"){
-   document.getElementById("chatList").style.display="block";
- }
-
- if(type==="services"){
-   document.getElementById("panel-services").style.display="block";
-   loadServicesAdmin();
- }
-
- if(type==="flows"){
-   document.getElementById("panel-flows").style.display="block";
-   loadFlowsAdmin();
- }
-}
-async function loadServicesAdmin(){
-
- const r = await fetch(`${API}/admin/services`,{
-  headers:{ "Authorization":"Bearer "+token }
- });
-
- const data = await r.json();
-
- const cont = document.getElementById("panel-services");
-
- cont.innerHTML = `
-  <h3>Servicios</h3>
-
-  <input id="s_name" placeholder="Nombre"><br>
-  <input id="s_keywords" placeholder="Keywords (coma)"><br>
-  <input id="s_department" placeholder="Departamento"><br>
-  <input id="s_response" placeholder="Respuesta automática"><br>
-
-<select id="s_type">
-  <option value="info">Solo información</option>
-  <option value="task">Generar tarea</option>
-</select><br>
-
-  <button onclick="createService()">➕ Crear</button>
-  <hr>
- `;
-
- data.forEach(s=>{
-  cont.innerHTML+=`
-   <div style="border-bottom:1px solid #ccc;padding:5px;">
-    <b>${s.name}</b> (${s.type})<br>
-<small>${s.department}</small>
-    <button onclick="deleteService(${s.id})">🗑 Eliminar</button>
-   </div>
-  `;
- });
-}
-async function createService(){
-
- const name = document.getElementById("s_name").value;
- const keywords = document
-  .getElementById("s_keywords")
-  .value
-  .split(",")
-  .map(k => k.trim().toLowerCase());
- const department = document.getElementById("s_department").value;
-const auto_response = document.getElementById("s_response").value;
-const type = document.getElementById("s_type").value; // 🔥 NUEVO
-
- await fetch(`${API}/admin/services`,{
-  method:"POST",
-  headers:{
-   "Content-Type":"application/json",
-   "Authorization":"Bearer "+token
-  },
-  body:JSON.stringify({
-   name,
-   keywords,
-   department,
-   type,
-   auto_response
-  })
- });
-
- loadServicesAdmin();
-}
-
-async function loadFlowsAdmin(){
-
- const r = await fetch(`${API}/admin/flows`,{
-  headers:{ "Authorization":"Bearer "+token }
- });
-
- const data = await r.json();
-
- const cont = document.getElementById("panel-flows");
-
- cont.innerHTML = `
-  <h3>Respuestas rápidas</h3>
-
-  <input id="f_trigger" placeholder="Trigger"><br>
-  <input id="f_response" placeholder="Respuesta"><br>
-
-  <button onclick="createFlow()">➕ Crear</button>
-  <hr>
- `;
-
- data.forEach(f=>{
-  cont.innerHTML+=`
-   <div style="border-bottom:1px solid #ccc;padding:5px;">
-    <b>${f.trigger}</b><br>
-    ${f.response}<br>
-    <button onclick="deleteFlow(${f.id})">🗑 Eliminar</button>
-   </div>
-  `;
- });
-}
-
-async function createFlow(){
-
- const trigger = document.getElementById("f_trigger").value;
- const response = document.getElementById("f_response").value;
-
- await fetch(`${API}/admin/flows`,{
-  method:"POST",
-  headers:{
-   "Content-Type":"application/json",
-   "Authorization":"Bearer "+token
-  },
-  body:JSON.stringify({
-   trigger,
-   response
-  })
- });
-
- loadFlowsAdmin();
-}
-async function deleteFlow(id){
-
- await fetch(`${API}/admin/flows/${id}`,{
-  method:"DELETE",
-  headers:{
-   "Authorization":"Bearer "+token
+    keywords.push(value);
+    input.value = "";
+    renderTags();
   }
- });
-
- loadFlowsAdmin();
-}
-
-async function deleteService(id){
-
- if(!confirm("¿Eliminar servicio?")) return;
-
- await fetch(`${API}/admin/services/${id}`,{
-  method:"DELETE",
-  headers:{
-   "Authorization":"Bearer "+token
-  }
- });
-
- loadServicesAdmin();
-}
-
-/* =========================
-   OPEN CHAT
-========================= */
-async function openChat(id,name,room,el){
- currentGuest=id;
-
- document.getElementById("chatHeader").innerText=
-  `Habitación ${room} - ${name}`;
-
- document.querySelectorAll(".chat-item")
-  .forEach(e=>e.classList.remove("active"));
-
- el.classList.add("active");
-
- const r=await fetch(`${API}/chat/${id}?company_code=${company_code}`);
- const data=await r.json();
-
- renderMessages(data);
-}
-
-/* =========================
-   RENDER MESSAGES
-========================= */
-function renderMessages(list){
- const cont=document.getElementById("messages");
-
- cont.innerHTML=list.map(m=>`
-  <div class="msg ${m.sender}">${m.message}</div>
- `).join("");
-
- cont.scrollTop=cont.scrollHeight;
-}
-async function loadTickets(){
-
- const r = await fetch(`${API}/tickets/${company_code}`);
- const data = await r.json();
-
- const cont = document.getElementById("ticketsList");
- cont.innerHTML="";
-
- data.forEach(t=>{
-  cont.innerHTML+=`
-   <div style="padding:10px;border-bottom:1px solid #eee">
-    🛏 ${t.room}<br>
-    <b>${t.type}</b><br>
-    <small>${t.status}</small>
-   </div>
-  `;
- });
-}
-socket.on("nuevo_ticket",()=>{
- loadTickets();
-});
-/* =========================
-   REALTIME
-========================= */
-socket.on("new_message",(data)=>{
- if(data.guest_id===currentGuest){
-  const cont=document.getElementById("messages");
-
-  cont.innerHTML+=`
-   <div class="msg ${data.sender}">${data.message}</div>
-  `;
-
-  cont.scrollTop=cont.scrollHeight;
- }
 });
 
-/* =========================
-   SEND MESSAGE
-========================= */
-async function sendMsg(){
- const input=document.getElementById("msgInput");
- const text=input.value;
+function renderTags(){
+  const container = document.getElementById("tags");
+  container.innerHTML = "";
 
- if(!text || !currentGuest) return;
-
- await fetch(`${API}/chat/message`,{
-  method:"POST",
-  headers:{
-   "Content-Type":"application/json",
-   "Authorization":"Bearer "+token
-  },
-  body:JSON.stringify({
-   guest_id:currentGuest,
-   message:text,
-   sender:"admin",
-   company_code
-  })
- });
-
- // pintar inmediato
- const cont=document.getElementById("messages");
- cont.innerHTML+=`<div class="msg bot">${text}</div>`;
- cont.scrollTop=cont.scrollHeight;
-
- // socket
- socket.emit("admin_send_message",{
-  guest_id:currentGuest,
-  message:text,
-  company_code
- });
-
- input.value="";
+  keywords.forEach((k,i)=>{
+    const div = document.createElement("div");
+    div.className = "tag";
+    div.innerText = k;
+    div.onclick = ()=>{
+      keywords.splice(i,1);
+      renderTags();
+    };
+    container.appendChild(div);
+  });
 }
 
-/* =========================
-   QUICK + SERVICES
-========================= */
-async function loadTools(){
- const cont=document.getElementById("tools");
+// ================= GUARDAR =================
+async function guardarServicio(){
 
- const [qrRes, servRes] = await Promise.all([
-  fetch(`${API}/quick-replies/${company_code}`),
-  fetch(`${API}/services/${company_code}`)
- ]);
+  const data = {
+    name: document.getElementById("name").value,
+    keywords,
+    department: document.getElementById("department").value,
+    type: document.getElementById("type").value,
+    auto_response: document.getElementById("response").value
+  };
 
-let quick = [];
-let services = [];
+  await fetch(API + "/admin/services",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer " + localStorage.getItem("token")
+    },
+    body: JSON.stringify(data)
+  });
 
-try{
- quick = await qrRes.json();
-}catch(e){
- console.warn("quick replies no disponibles");
+  limpiar();
+  cargarServicios();
 }
 
-try{
- services = await servRes.json();
-}catch(e){
- console.warn("services no disponibles");
+// ================= LIMPIAR =================
+function limpiar(){
+  document.getElementById("name").value = "";
+  document.getElementById("response").value = "";
+  keywords = [];
+  renderTags();
 }
 
- cont.innerHTML="";
+// ================= LISTAR =================
+async function cargarServicios(){
 
- quick.forEach(q=>{
-  cont.innerHTML+=`
-   <button onclick="useQuick('${q.text}')">${q.title}</button>
-  `;
- });
+  const res = await fetch(API + "/admin/services",{
+    headers:{
+      "Authorization":"Bearer " + localStorage.getItem("token")
+    }
+  });
 
- services.forEach(s=>{
-  cont.innerHTML+=`
-   <button onclick="useQuick('${s.description}')">🛎 ${s.name}</button>
-  `;
- });
+  const data = await res.json();
+
+  const tbody = document.querySelector("#tabla tbody");
+  tbody.innerHTML = "";
+
+  data.forEach(s=>{
+
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${s.name}</td>
+      <td>${s.department}</td>
+      <td>${s.type}</td>
+      <td>
+        <button onclick="editar(${s.id})">✏️</button>
+        <button class="btn-danger" onclick="eliminar(${s.id})">🗑</button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
 }
 
-function useQuick(text){
- document.getElementById("msgInput").value=text;
+// ================= ELIMINAR =================
+async function eliminar(id){
+
+  if(!confirm("¿Eliminar servicio?")) return;
+
+  await fetch(API + "/admin/services/" + id,{
+    method:"DELETE",
+    headers:{
+      "Authorization":"Bearer " + localStorage.getItem("token")
+    }
+  });
+
+  cargarServicios();
 }
 
-/* =========================
-   INIT
-========================= */
-window.onload = () => {
- loadGuests();
- loadTools();
- loadTickets();
-};
+// ================= EDITAR =================
+function editar(id){
+  alert("Modo edición (puedo ayudarte a implementarlo después 🔥)");
+}
+
+// INIT
+cargarServicios();
 
 </script>
+
 </body>
 </html>
