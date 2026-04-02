@@ -206,12 +206,48 @@ if(sender === "guest"){
 const ai = await detectarIntencion(message, company_id);
 console.log("🧠 AI DEBUG:", ai);
 
-// 🔥 SI NO ENTENDIÓ → SALIR
-if(!ai.texto){
+if(!ai){
+  console.log("⚠️ AI NULL");
   return res.json({ ok:true });
 }
 
-// 🔥 RESPONDER PRIMERO
+// ✅ NUEVA VARIABLE
+let taskCreada = null;
+
+// 🔥 CREAR TASK PRIMERO
+if(ai.ticket === true){
+
+ console.log("🎯 CREANDO TASK IA");
+
+ const task = await db.query(`
+  INSERT INTO tasks
+  (title, description, department, status, created_by, company_id)
+  VALUES($1,$2,$3,$4,$5,$6)
+  RETURNING *
+ `,
+ [
+  "Solicitud habitación " + guestData.room,
+  message,
+  ai.departamento || "Recepción",
+  "abierto",
+  guestData.name + " - Hab " + guestData.room,
+  guestData.company_id
+ ]);
+
+ // 👇 AQUÍ GUARDAS QUE SE CREÓ
+ taskCreada = task.rows[0];
+
+ console.log("✅ TASK CREADA:", taskCreada);
+
+ io.to("admin_" + company_code).emit("task_update", taskCreada);
+
+ io.to("admin_" + company_code).emit("nuevo_ticket",{
+  guest_id,
+  room: guestData.room
+ });
+}
+
+// 🔥 RESPUESTA
 if(ai.texto){
 
  await db.query(
@@ -230,45 +266,15 @@ if(ai.texto){
   message: ai.texto,
   sender: "bot"
  });
-
- // 🔥 SOLO crear task si es TRUE
-if(ai.ticket !== true){
-  return res.json({ ok:true, ia:true });
 }
 
-// 🔥 SOLO AQUÍ CREAS TASK
-await crearTicket({
-  guest_id,
-  room: guestData.room,
-  tipo:"servicio",
-  prioridad: ai.prioridad || "normal"
+// 🔥 ÚNICO RETURN FINAL
+return res.json({
+  ok:true,
+  ia:true,
+  task: !!taskCreada
 });
-
-const task = await db.query(`
-  INSERT INTO tasks
-  (title, description, department, status, created_by, company_id)
-  VALUES($1,$2,$3,$4,$5,$6)
-  RETURNING *
-`,
-[
-  "Solicitud habitación " + guestData.room,
-  message,
-  ai.departamento || "Recepción",
-  "abierto",
-  guestData.name + " - Hab " + guestData.room,
-  guestData.company_id
-]);
-
-io.to("admin_" + company_code).emit("task_update", task.rows[0]);
-
-io.to("admin_" + company_code).emit("nuevo_ticket",{
-  guest_id,
-  room: guestData.room
-});
-
-return res.json({ ok:true, ia:true });
-}
-}
+} // 🔴 CIERRA if(sender === "guest")
 
 res.json({
   ok: true,
@@ -279,7 +285,7 @@ res.json({
   console.error(err);
   res.status(500).json({error:"Error en chat"});
 }
-});
+}); // 🔴 CIERRA app.post("/chat/message")
 
 // Obtener chat
 app.get("/chat/:guest_id", async (req,res)=>{
@@ -308,8 +314,8 @@ app.get("/chat/:guest_id", async (req,res)=>{
   );
 
   res.json(result.rows);
-
- }catch(err){
+}
+  catch(err){
   console.error("ERROR chat:", err);
   res.status(500).json({error:"Error obteniendo chat"});
  }
