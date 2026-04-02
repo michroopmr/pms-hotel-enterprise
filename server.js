@@ -203,47 +203,10 @@ if(sender === "guest"){
 
   const guestData = guestRes.rows[0];
 
-  // ================= IA NUEVA =================
+ // ================= IA =================
 const ai = await detectarIntencion(message, company_id);
 
-// 🔥 crear ticket si aplica
-if(ai.ticket){
-
-  // 🔥 CREAR TICKET
-  await crearTicket({
-    guest_id,
-    room: guestData.room,
-    tipo:"servicio",
-    prioridad: ai.prioridad || "normal"
-  });
-
-  // 🔥 CREAR TASK
-  const task = await db.query(`
-    INSERT INTO tasks
-    (title, description, department, status, created_by, company_id)
-    VALUES($1,$2,$3,$4,$5,$6)
-    RETURNING *
-  `,
-  [
-    "Solicitud habitación " + guestData.room,
-    message,
-    ai.departamento || "Recepción",
-    "abierto",
-    guestData.name + " - Hab " + guestData.room,
-    guestData.company_id
-  ]);
-
-  // 🔥 EMITIR TASK
-  io.to("admin_" + company_code).emit("task_update", task.rows[0]);
-
-  // 🔥 EMITIR TICKET (CORRECTO)
-  io.to("admin_" + company_code).emit("nuevo_ticket",{
-    guest_id,
-    room: guestData.room
-  });
-
-}
- // 🔥 responder IA y cortar flujo
+// 🔥 RESPONDER PRIMERO
 if(ai.texto){
 
  await db.query(
@@ -263,12 +226,55 @@ if(ai.texto){
   sender: "bot"
  });
 
- return res.json({ ok:true, ia:true });
+ // 🔥 SI ES SOLO INFO → TERMINAR AQUÍ
+ if(ai.ticket === false){
+   return res.json({ ok:true, ia:true });
+ }
+
+ // 🔥 SOLO AQUÍ CREAS TASK
+ if(ai.ticket){
+
+   await crearTicket({
+     guest_id,
+     room: guestData.room,
+     tipo:"servicio",
+     prioridad: ai.prioridad || "normal"
+   });
+
+   const task = await db.query(`
+     INSERT INTO tasks
+     (title, description, department, status, created_by, company_id)
+     VALUES($1,$2,$3,$4,$5,$6)
+     RETURNING *
+   `,
+   [
+     "Solicitud habitación " + guestData.room,
+     message,
+     ai.departamento || "Recepción",
+     "abierto",
+     guestData.name + " - Hab " + guestData.room,
+     guestData.company_id
+   ]);
+
+   io.to("admin_" + company_code).emit("task_update", task.rows[0]);
+
+   io.to("admin_" + company_code).emit("nuevo_ticket",{
+     guest_id,
+     room: guestData.room
+   });
+
+   return res.json({ ok:true, ia:true });
+ }
+
 }
 
-  
-
 io.to("guest_" + guest_id).emit("typing");
+
+// 🔥 evitar doble procesamiento si IA ya respondió
+if(ai.texto){
+  return res.json({ ok:true });
+}
+
   const result = await processMessage(db, message, guestData);
   console.log("Resultado:", result);
 
