@@ -126,7 +126,17 @@ io.to("admin_" + company_code).emit("task_update", result.rows[0]);
   res.status(500).json({error:"Error creando tarea"});
  }
 });
+app.post("/assign", async (req,res)=>{
 
+ const { guest_id, staff } = req.body;
+
+ await db.query(
+  "UPDATE guests SET assigned_to=$1 WHERE id=$2",
+  [staff, guest_id]
+ );
+
+ res.json({ ok:true });
+});
 // ==========================
 // CHATBOT - HUÉSPEDES
 // ==========================
@@ -182,7 +192,10 @@ if(guestCheck.rows.length === 0){
  "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
  [guest_id, message, sender]
 );
-
+await db.query(
+  "UPDATE guests SET last_message_at=NOW() WHERE id=$1",
+  [guest_id]
+);
 io.to("admin_" + company_code).emit("new_message", {
   guest_id,
   message,
@@ -628,6 +641,9 @@ CREATE TABLE IF NOT EXISTS tickets(
  created_at TIMESTAMP DEFAULT NOW()
 )
 `);
+await db.query(`
+  ALTER TABLE guests ADD COLUMN IF NOT EXISTS assigned_to TEXT
+`);
 
 await db.query(`CREATE INDEX IF NOT EXISTS idx_tasks_company ON tasks(company_id)`);
 await db.query(`CREATE INDEX IF NOT EXISTS idx_messages_guest ON messages(guest_id)`);
@@ -716,7 +732,10 @@ socket.on("admin_send_message", async (data)=>{
   "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'admin')",
   [guest_id, message]
  );
-
+await db.query(
+  "UPDATE guests SET last_response_at=NOW() WHERE id=$1",
+  [guest_id]
+);
  // enviar al huésped
  io.to("guest_" + guest_id).emit("new_message",{
   guest_id,

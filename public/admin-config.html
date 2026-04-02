@@ -85,6 +85,13 @@ td,th{
   display:flex;
   flex-direction:column;
 }
+.card{
+  background:#1c2b36;
+  padding:20px;
+  border-radius:10px;
+  min-width:150px;
+  text-align:center;
+}
 </style>
 </head>
 <body>
@@ -97,6 +104,7 @@ td,th{
     <button onclick="mostrar('chats')">💬 Chats</button>
     <button onclick="mostrar('servicios')">⚙️ Servicios</button>
     <button onclick="mostrar('respuestas')">⚡ Respuestas</button>
+    <button onclick="mostrar('dashboard')">📊 Dashboard</button>
   </div>
 </div>
 
@@ -201,10 +209,51 @@ td,th{
   </div>
 
 </div>
+<div id="dashboard" class="hidden">
+
+<h2>📊 Dashboard</h2>
+
+<div style="display:flex; gap:20px; flex-wrap:wrap;">
+
+  <div class="card">
+    <h3 id="totalGuests">0</h3>
+    <p>Huéspedes activos</p>
+  </div>
+
+  <div class="card">
+    <h3 id="totalMessages">0</h3>
+    <p>Mensajes</p>
+  </div>
+
+  <div class="card">
+    <h3 id="totalTickets">0</h3>
+    <p>Tickets</p>
+
+  </div>
+  <div class="card">
+  <h3 id="totalPending">0</h3>
+  <p>Chats sin responder</p>
+</div>
+
+</div>
+
+</div>
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
 <script>
+function mostrar(seccion){
+  ["chats","servicios","respuestas","dashboard"].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.classList.add("hidden");
+  });
 
+  const active = document.getElementById(seccion);
+  if(active) active.classList.remove("hidden");
+
+  if(seccion === "dashboard"){
+    cargarDashboard();
+  }
+}
 const API = "https://mollyhelpers.com";
 
 let socket;
@@ -229,7 +278,8 @@ function initSocket(){
 
   socket.on("new_message",(msg)=>{
 
-    // 🔴 si NO está abierto → contador
+  if(msg.sender === "guest"){
+
     if(msg.guest_id !== currentGuest){
       unread[msg.guest_id] = (unread[msg.guest_id] || 0) + 1;
       renderGuests();
@@ -237,10 +287,13 @@ function initSocket(){
       return;
     }
 
-    // 💬 si está abierto → mostrar
-    agregarMensaje(msg);
+  }
 
-  });
+  if(msg.guest_id === currentGuest){
+    agregarMensaje(msg);
+  }
+
+});
 
 }
 
@@ -263,6 +316,11 @@ function renderGuests(){
   div.innerHTML="";
 
   (window.guestsData || []).forEach(g=>{
+   let alerta = "";
+
+if(g.last_message_at && !g.last_response_at){
+  alerta = " 🔴";
+}
 
     const el = document.createElement("div");
 
@@ -273,25 +331,32 @@ function renderGuests(){
     el.style.borderBottom="1px solid #333";
     el.style.background = isActive ? "#1e3a46" : "transparent";
 
-    const badge = unread[g.id] 
-      ? `<span style="color:red;">(${unread[g.id]})</span>` 
-      : "";
+    const assigned = g.assigned_to 
+  ? `<div style="font-size:11px;color:#00d1b2;">👤 ${g.assigned_to}</div>`
+  : `<div style="font-size:11px;color:#999;">Sin asignar</div>`;
 
-    el.innerHTML = `👤 ${g.name} (Hab ${g.room}) ${badge}`;
+const badge = unread[g.id] 
+  ? `<span style="color:red;">(${unread[g.id]})</span>` 
+  : "";
 
-    el.onclick = ()=>{
-      unread[g.id] = 0;
-      seleccionarGuest(g.id);
-    };
-
-    div.appendChild(el);
+el.innerHTML = `
+  👤 ${g.name} (Hab ${g.room}) ${badge} ${alerta}
+  ${assigned}
+`;
   });
 }
+div.appendChild(el);
 
 // ================= CHAT =================
 async function seleccionarGuest(id){
 
   currentGuest = id;
+
+  document.getElementById("chatBox").innerHTML = `
+  <div style="margin-bottom:10px;">
+    <button onclick="asignar()">Asignarme este chat</button>
+  </div>
+`;
 
   renderGuests();
 
@@ -301,7 +366,12 @@ async function seleccionarGuest(id){
   const data = await res.json();
 
   const chat = document.getElementById("chatBox");
-  chat.innerHTML="";
+
+chat.innerHTML = `
+  <div style="margin-bottom:10px;">
+    <button onclick="asignar()">Asignarme este chat</button>
+  </div>
+`;
 
   data.forEach(m=> agregarMensaje(m));
 }
@@ -349,7 +419,49 @@ function enviarMensaje(){
 
   input.value="";
 }
+async function asignar(){
 
+  const staff = localStorage.getItem("user_name") || "Staff";
+
+  await fetch(API + "/assign",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify({
+      guest_id: currentGuest,
+      staff
+    })
+  });
+
+  cargarGuests();
+}
+async function cargarDashboard(){
+
+  const company_code = localStorage.getItem("company_code");
+
+  const guests = await fetch(API + "/guests/" + company_code).then(r=>r.json());
+  const tickets = await fetch(API + "/tickets/" + company_code).then(r=>r.json());
+
+  document.getElementById("totalGuests").innerText = guests.length;
+  document.getElementById("totalTickets").innerText = tickets.length;
+
+  let total = 0;
+  let sinResponder = 0;
+
+  for(const g of guests){
+
+    const msgs = await fetch(API + "/chat/" + g.id + "?company_code=" + company_code).then(r=>r.json());
+    total += msgs.length;
+
+    if(g.last_message_at && !g.last_response_at){
+      sinResponder++;
+    }
+  }
+
+  document.getElementById("totalMessages").innerText = total;
+  document.getElementById("totalPending").innerText = sinResponder;
+}
 // ================= INIT =================
 initSocket();
 cargarGuests();
