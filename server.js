@@ -827,7 +827,7 @@ async function detectarIntencion(msg, company_id){
  );
 
  for(const s of services.rows){
-   if(s.keywords.some(k=>msg.includes(k))){
+   if(s.keywords.some(k => msg.includes(k.trim().toLowerCase()))){
 
   // 🔥 SI ES SOLO INFO → NO TASK
   if(s.type === "info"){
@@ -855,11 +855,11 @@ async function detectarIntencion(msg, company_id){
 
  for(const f of flows.rows){
    if(msg.includes(f.trigger.toLowerCase())){
-     return { texto: f.response };
+   return { texto: f.response, ticket:false };
    }
  }
 
- return { texto:null };
+ return { texto:null, ticket:false };
 }
 
 async function crearTicket({guest_id, room, tipo, prioridad="normal"}){

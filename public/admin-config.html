@@ -262,7 +262,11 @@ async function loadServicesAdmin(){
 async function createService(){
 
  const name = document.getElementById("s_name").value;
- const keywords = document.getElementById("s_keywords").value.split(",");
+ const keywords = document
+  .getElementById("s_keywords")
+  .value
+  .split(",")
+  .map(k => k.trim().toLowerCase());
  const department = document.getElementById("s_department").value;
 const auto_response = document.getElementById("s_response").value;
 const type = document.getElementById("s_type").value; // 🔥 NUEVO
