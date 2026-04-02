@@ -340,25 +340,21 @@ const badge = unread[g.id]
   : "";
 
 el.innerHTML = `
+el.onclick = ()=> seleccionarGuest(g.id);
   👤 ${g.name} (Hab ${g.room}) ${badge} ${alerta}
   ${assigned}
 `;
+div.appendChild(el);
   });
 }
-div.appendChild(el);
+
 
 // ================= CHAT =================
 async function seleccionarGuest(id){
 
   currentGuest = id;
 
-  document.getElementById("chatBox").innerHTML = `
-  <div style="margin-bottom:10px;">
-    <button onclick="asignar()">Asignarme este chat</button>
-  </div>
-`;
-
-  renderGuests();
+   renderGuests();
 
   const company_code = localStorage.getItem("company_code");
 
@@ -462,7 +458,8 @@ async function cargarDashboard(){
   document.getElementById("totalMessages").innerText = total;
   document.getElementById("totalPending").innerText = sinResponder;
 }
-// ================= INIT =================
+
+// INIT CHAT
 initSocket();
 cargarGuests();
 </script>
