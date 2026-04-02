@@ -340,11 +340,14 @@ const badge = unread[g.id]
   : "";
 
 el.innerHTML = `
-el.onclick = ()=> seleccionarGuest(g.id);
   👤 ${g.name} (Hab ${g.room}) ${badge} ${alerta}
   ${assigned}
 `;
+
+el.onclick = ()=> seleccionarGuest(g.id);
+
 div.appendChild(el);
+
   });
 }
 
