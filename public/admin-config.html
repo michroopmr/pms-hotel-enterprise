@@ -2,22 +2,43 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Luka Chat Bot Servicios</title>
+<title>Molly Admin Panel</title>
 
 <style>
 body{
-  font-family: Arial;
+  margin:0;
+  font-family:Arial;
   background:#0f1c24;
   color:#fff;
+  display:flex;
+}
+
+.sidebar{
+  width:220px;
+  background:#0b141a;
   padding:20px;
 }
 
-h2{ margin-bottom:10px; }
+.sidebar h2{
+  font-size:18px;
+  margin-bottom:20px;
+}
+
+.menu button{
+  width:100%;
+  margin-bottom:10px;
+  padding:10px;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+}
 
 .container{
-  max-width:900px;
-  margin:auto;
+  flex:1;
+  padding:20px;
 }
+
+.hidden{ display:none; }
 
 input, select, textarea{
   width:100%;
@@ -28,26 +49,19 @@ input, select, textarea{
 }
 
 button{
-  padding:10px 15px;
+  padding:8px 12px;
   border:none;
   border-radius:6px;
   cursor:pointer;
 }
 
-.btn{
-  background:#4CAF50;
-  color:#fff;
-}
-
-.btn-danger{
-  background:#e74c3c;
-}
+.btn{ background:#4CAF50; color:#fff; }
+.btn-danger{ background:#e74c3c; color:#fff; }
 
 .tags{
   display:flex;
   flex-wrap:wrap;
   gap:5px;
-  margin-bottom:10px;
 }
 
 .tag{
@@ -57,209 +71,292 @@ button{
   cursor:pointer;
 }
 
-.table{
+table{
   width:100%;
   margin-top:20px;
   border-collapse:collapse;
 }
 
-.table th, .table td{
+td,th{
   padding:10px;
   border-bottom:1px solid #333;
-  text-align:left;
+}
+#chatBox{
+  display:flex;
+  flex-direction:column;
 }
 </style>
 </head>
-
+#chatBox{
+  display:flex;
+  flex-direction:column;
+}
 <body>
 
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <h2>Luka Chat Pro</h2>
+
+  <div class="menu">
+    <button onclick="mostrar('chats')">💬 Chats</button>
+    <button onclick="mostrar('servicios')">⚙️ Servicios</button>
+    <button onclick="mostrar('respuestas')">⚡ Respuestas</button>
+  </div>
+</div>
+
+<!-- CONTENIDO -->
 <div class="container">
 
-<h2>⚙️ Servicios</h2>
+  <!-- CHATS -->
+  <div id="chats">
 
-<!-- FORMULARIO -->
-<input id="name" placeholder="Nombre del servicio">
+<h2>💬 Chats en vivo</h2>
 
-<select id="category">
-  <option>Mantenimiento</option>
-  <option>Housekeeping</option>
-  <option>Recepción</option>
-  <option>Restaurante</option>
-</select>
+<div style="display:flex; gap:20px;">
 
-<select id="department">
-  <option>Recepción</option>
-  <option>Mantenimiento</option>
-  <option>Housekeeping</option>
-  <option>Alimentos Bebidas</option>
-</select>
+  <div style="width:250px; border-right:1px solid #333;">
+    <h3>Huéspedes</h3>
+    <div id="listaGuests"></div>
+  </div>
 
-<select id="type">
-  <option value="info">Información</option>
-  <option value="request">Solicitud</option>
-  <option value="issue">Problema técnico</option>
-</select>
+  <div style="flex:1; display:flex; flex-direction:column;">
 
-<select id="priority">
-  <option value="baja">Baja</option>
-  <option value="normal" selected>Normal</option>
-  <option value="alta">Alta</option>
-</select>
+    <div id="chatBox" style="
+      height:400px;
+      overflow-y:auto;
+      border:1px solid #333;
+      padding:10px;
+      margin-bottom:10px;
+    "></div>
 
-<!-- KEYWORDS TAGS -->
-<div class="tags" id="tags"></div>
-<input id="keywordInput" placeholder="Agregar keyword y presiona Enter">
+    <div style="display:flex; gap:10px;">
+      <input id="adminMessage" placeholder="Escribe mensaje..." style="flex:1;">
+      <button onclick="enviarMensaje()">Enviar</button>
+    </div>
 
-<textarea id="response" placeholder="Respuesta automática"></textarea>
-
-<label>
-  <input type="checkbox" id="autoTicket"> Crear ticket automáticamente
-</label>
-
-<br><br>
-
-<button class="btn" onclick="guardarServicio()">+ Guardar servicio</button>
-
-<!-- TABLA -->
-<table class="table" id="tabla">
-<thead>
-<tr>
-<th>Nombre</th>
-<th>Depto</th>
-<th>Tipo</th>
-<th>Acciones</th>
-</tr>
-</thead>
-<tbody></tbody>
-</table>
+  </div>
 
 </div>
 
+</div>
+  <!-- SERVICIOS -->
+  <div id="servicios" class="hidden">
+
+    <h2>Servicios</h2>
+
+    <input id="name" placeholder="Nombre">
+
+    <select id="department">
+      <option>Recepción</option>
+      <option>Mantenimiento</option>
+      <option>Housekeeping</option>
+      <option>Alimentos Bebidas</option>
+    </select>
+
+    <select id="type">
+      <option value="info">Información</option>
+      <option value="request">Solicitud</option>
+      <option value="issue">Problema</option>
+    </select>
+
+    <!-- TAGS -->
+    <div class="tags" id="tags"></div>
+    <input id="keywordInput" placeholder="Agregar keyword + Enter">
+
+    <textarea id="response" placeholder="Respuesta automática"></textarea>
+
+    <button class="btn" onclick="guardarServicio()">+ Guardar</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Nombre</th>
+          <th>Depto</th>
+          <th>Tipo</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tablaServicios"></tbody>
+    </table>
+
+  </div>
+
+  <!-- RESPUESTAS -->
+  <div id="respuestas" class="hidden">
+
+    <h2>Respuestas rápidas</h2>
+
+    <input id="trigger" placeholder="Palabra clave">
+    <textarea id="respuestaTexto" placeholder="Respuesta"></textarea>
+
+    <button class="btn" onclick="guardarRespuesta()">+ Guardar</button>
+
+    <table>
+      <thead>
+        <tr>
+          <th>Trigger</th>
+          <th>Respuesta</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="tablaRespuestas"></tbody>
+    </table>
+
+  </div>
+
+</div>
+<script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
 <script>
 
-let keywords = [];
-let editId = null;
 const API = "https://mollyhelpers.com";
 
-// ================= TAGS =================
-const input = document.getElementById("keywordInput");
+let socket;
+let currentGuest = null;
+let unread = {};
 
-input.addEventListener("keydown", e=>{
-  if(e.key === "Enter"){
-    e.preventDefault();
-    const value = input.value.trim();
-    if(!value) return;
+// 🔊 sonido simple
+const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
-    keywords.push(value);
-    input.value = "";
-    renderTags();
-  }
-});
+// ================= SOCKET =================
+function initSocket(){
 
-function renderTags(){
-  const container = document.getElementById("tags");
-  container.innerHTML = "";
-
-  keywords.forEach((k,i)=>{
-    const div = document.createElement("div");
-    div.className = "tag";
-    div.innerText = k;
-    div.onclick = ()=>{
-      keywords.splice(i,1);
-      renderTags();
-    };
-    container.appendChild(div);
-  });
-}
-
-// ================= GUARDAR =================
-async function guardarServicio(){
-
-  const data = {
-    name: document.getElementById("name").value,
-    keywords,
-    department: document.getElementById("department").value,
-    type: document.getElementById("type").value,
-    auto_response: document.getElementById("response").value
-  };
-
-  await fetch(API + "/admin/services",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer " + localStorage.getItem("token")
-    },
-    body: JSON.stringify(data)
-  });
-
-  limpiar();
-  cargarServicios();
-}
-
-// ================= LIMPIAR =================
-function limpiar(){
-  document.getElementById("name").value = "";
-  document.getElementById("response").value = "";
-  keywords = [];
-  renderTags();
-}
-
-// ================= LISTAR =================
-async function cargarServicios(){
-
-  const res = await fetch(API + "/admin/services",{
-    headers:{
-      "Authorization":"Bearer " + localStorage.getItem("token")
+  socket = io(API,{
+    auth:{
+      token: localStorage.getItem("token")
     }
   });
 
+  const company_code = localStorage.getItem("company_code");
+
+  socket.emit("join_admin", company_code);
+
+  socket.on("new_message",(msg)=>{
+
+    // 🔴 si NO está abierto → contador
+    if(msg.guest_id !== currentGuest){
+      unread[msg.guest_id] = (unread[msg.guest_id] || 0) + 1;
+      renderGuests();
+      audio.play();
+      return;
+    }
+
+    // 💬 si está abierto → mostrar
+    agregarMensaje(msg);
+
+  });
+
+}
+
+// ================= GUESTS =================
+async function cargarGuests(){
+
+  const company_code = localStorage.getItem("company_code");
+
+  const res = await fetch(API + "/guests/" + company_code);
   const data = await res.json();
 
-  const tbody = document.querySelector("#tabla tbody");
-  tbody.innerHTML = "";
+  window.guestsData = data;
 
-  data.forEach(s=>{
+  renderGuests();
+}
 
-    const tr = document.createElement("tr");
+function renderGuests(){
 
-    tr.innerHTML = `
-      <td>${s.name}</td>
-      <td>${s.department}</td>
-      <td>${s.type}</td>
-      <td>
-        <button onclick="editar(${s.id})">✏️</button>
-        <button class="btn-danger" onclick="eliminar(${s.id})">🗑</button>
-      </td>
-    `;
+  const div = document.getElementById("listaGuests");
+  div.innerHTML="";
 
-    tbody.appendChild(tr);
+  (window.guestsData || []).forEach(g=>{
+
+    const el = document.createElement("div");
+
+    const isActive = g.id === currentGuest;
+
+    el.style.padding="10px";
+    el.style.cursor="pointer";
+    el.style.borderBottom="1px solid #333";
+    el.style.background = isActive ? "#1e3a46" : "transparent";
+
+    const badge = unread[g.id] 
+      ? `<span style="color:red;">(${unread[g.id]})</span>` 
+      : "";
+
+    el.innerHTML = `👤 ${g.name} (Hab ${g.room}) ${badge}`;
+
+    el.onclick = ()=>{
+      unread[g.id] = 0;
+      seleccionarGuest(g.id);
+    };
+
+    div.appendChild(el);
   });
 }
 
-// ================= ELIMINAR =================
-async function eliminar(id){
+// ================= CHAT =================
+async function seleccionarGuest(id){
 
-  if(!confirm("¿Eliminar servicio?")) return;
+  currentGuest = id;
 
-  await fetch(API + "/admin/services/" + id,{
-    method:"DELETE",
-    headers:{
-      "Authorization":"Bearer " + localStorage.getItem("token")
-    }
+  renderGuests();
+
+  const company_code = localStorage.getItem("company_code");
+
+  const res = await fetch(API + "/chat/" + id + "?company_code=" + company_code);
+  const data = await res.json();
+
+  const chat = document.getElementById("chatBox");
+  chat.innerHTML="";
+
+  data.forEach(m=> agregarMensaje(m));
+}
+
+// ================= MENSAJE =================
+function agregarMensaje(m){
+
+  const div = document.createElement("div");
+
+  div.style.marginBottom="8px";
+  div.style.padding="6px 10px";
+  div.style.borderRadius="8px";
+  div.style.maxWidth="70%";
+
+  if(m.sender === "guest"){
+    div.style.background="#2c3e50";
+    div.innerHTML = `👤 ${m.message}`;
+  }else{
+    div.style.background="#16a085";
+    div.style.alignSelf="flex-end";
+    div.innerHTML = `🤖 ${m.message}`;
+  }
+
+  document.getElementById("chatBox").appendChild(div);
+
+  const chat = document.getElementById("chatBox");
+  chat.scrollTop = chat.scrollHeight;
+}
+
+// ================= ENVIAR =================
+function enviarMensaje(){
+
+  const input = document.getElementById("adminMessage");
+  const msg = input.value;
+
+  if(!msg || !currentGuest) return;
+
+  const company_code = localStorage.getItem("company_code");
+
+  socket.emit("admin_send_message",{
+    guest_id: currentGuest,
+    message: msg,
+    company_code
   });
 
-  cargarServicios();
+  input.value="";
 }
 
-// ================= EDITAR =================
-function editar(id){
-  alert("Modo edición (puedo ayudarte a implementarlo después 🔥)");
-}
-
-// INIT
-cargarServicios();
-
+// ================= INIT =================
+initSocket();
+cargarGuests();
 </script>
-
 </body>
 </html>
