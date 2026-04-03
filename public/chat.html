@@ -271,23 +271,28 @@ function resetInactivity(){
 
  inactivityTimer = setTimeout(async () => {
 
-  // 🔥 evitar duplicado
   if(sessionStorage.getItem("despedida_enviada")) return;
 
   const despedida = "Gracias por contactarnos 🙌\nEsperamos que tu solicitud haya sido atendida.";
 
   addMsg(despedida, "bot");
 
-  await fetch("/chat/message",{
+  const res = await fetch("/chat/message",{
   method:"POST",
   headers:{"Content-Type":"application/json"},
   body: JSON.stringify({
     guest_id: guest.id,
-    message: despedida,
-    sender: "bot",
+    message: text,
+    sender: "guest",
     company_code: guest.company_code
   })
 });
+
+const data = await res.json();
+
+if(!res.ok){
+  console.error("❌ ERROR BACKEND:", data);
+}
 
   sessionStorage.setItem("despedida_enviada", "true");
 
@@ -308,6 +313,7 @@ async function send(){
 
  if(!guest || !guest.id){
   console.error("Guest inválido");
+  sending = false;
   return;
 }
 
@@ -319,17 +325,22 @@ async function send(){
  if(text.toLowerCase() === "menu"){
   addMsg(text,"user");
 
-  await fetch("/chat/message",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      guest_id: guest.id,
-      message: text,
-      sender: "guest",
-      company_code: guest.company_code
-    })
-  });
-  
+ const res = await fetch("/chat/message",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({
+    guest_id: guest.id,
+    message: text,
+    sender: "guest",
+    company_code: guest.company_code
+  })
+});
+
+const data = await res.json();
+
+if(!res.ok){
+  console.error("❌ ERROR BACKEND:", data);
+}
 
   sending = false; 
   return;
@@ -410,7 +421,7 @@ Soy Luka 🤖, tu asistente virtual del hotel.
 
  addMsg(mensaje, "bot");
 
- await fetch("/chat/message",{
+ const res = await fetch("/chat/message",{
   method:"POST",
   headers:{"Content-Type":"application/json"},
   body: JSON.stringify({
@@ -419,9 +430,16 @@ Soy Luka 🤖, tu asistente virtual del hotel.
     sender: "bot",
     company_code: guest.company_code
   })
-});
+ });
+
+ const data = await res.json();
+
+ if(!res.ok){
+  console.error("❌ ERROR BACKEND:", data);
+ }
 
 })();
+
 window.addEventListener("load", ()=>{
 
   const input = document.getElementById("input");

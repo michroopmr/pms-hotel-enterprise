@@ -117,6 +117,10 @@ app.post("/guest/task", async (req,res)=>{
 
   const io = req.app.get("io");
 
+if(!io){
+  console.error("❌ IO NO DEFINIDO");
+}
+
 io.to("admin_" + company_code).emit("task_update", result.rows[0]);
 
   res.json(result.rows[0]);
@@ -243,11 +247,12 @@ try{
     let ai;
 
     try{
-      ai = await detectarIntencion(message, company_id);
-    }catch(e){
-      console.error("AI ERROR:", e);
-      ai = { texto:"Hubo un problema procesando tu mensaje", ticket:false };
-    }
+  ai = await detectarIntencion(message, company_id);
+  console.log("🧠 AI RESULT:", ai);
+}catch(e){
+  console.error("❌ AI ERROR DETALLE:", e);
+  ai = { texto:"Error IA", ticket:false };
+}
 
     if(!ai){
       console.log("⚠️ AI NULL");
