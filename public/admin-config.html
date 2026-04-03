@@ -465,11 +465,11 @@ async function guardarServicio(){
 
  try{
 
-  const nombre = document.getElementById("nombreServicio").value;
-  const departamento = document.getElementById("departamentoServicio").value;
-  const respuesta = document.getElementById("respuestaServicio").value;
+  const nombre = document.getElementById("name").value;
+  const departamento = document.getElementById("department").value;
+  const respuesta = document.getElementById("response").value;
 
-  const res = await fetch("/services",{
+  const res = await fetch(API + "/services",{
     method:"POST",
     headers:{
       "Content-Type":"application/json",
@@ -491,7 +491,6 @@ async function guardarServicio(){
   }
 
   alert("✅ Servicio guardado");
-  location.reload();
 
  }catch(err){
   console.error("❌ ERROR guardarServicio:", err);
