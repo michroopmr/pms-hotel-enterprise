@@ -181,11 +181,25 @@ app.post("/chat/message", async (req, res) => {
 
   const { guest_id, message, sender, company_code } = req.body;
 
+  console.log("📩 REQUEST:", {
+  guest_id,
+  message,
+  sender,
+  company_code
+});
+
   if(!guest_id || !company_code || !message || !sender){
     return res.status(400).json({error:"Datos incompletos"});
   }
 
-  const company_id = await getCompanyId(company_code);
+  let company_id;
+
+try{
+  company_id = await getCompanyId(company_code);
+}catch(err){
+  console.error("❌ ERROR EMPRESA:", err.message);
+  return res.status(400).json({error:"Empresa inválida"});
+}
 
   const guestCheck = await db.query(
     "SELECT * FROM guests WHERE id=$1 AND company_id=$2",
@@ -314,8 +328,9 @@ app.get("/chat/:guest_id", async (req,res)=>{
   if(!company_code){
     return res.status(400).json({error:"company_code requerido"});
   }
-
+  
   const company_id = await getCompanyId(company_code);
+ 
 
   const guestCheck = await db.query(
     "SELECT * FROM guests WHERE id=$1 AND company_id=$2",
