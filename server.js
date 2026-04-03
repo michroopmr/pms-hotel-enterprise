@@ -126,16 +126,23 @@ io.to("admin_" + company_code).emit("task_update", result.rows[0]);
   res.status(500).json({error:"Error creando tarea"});
  }
 });
-app.post("/assign", authMiddleware, async (req,res)=>{})
+app.post("/assign", authMiddleware, async (req,res)=>{
+ try{
 
- const { guest_id, staff } = req.body;
+  const { guest_id, staff } = req.body;
 
- await db.query(
-  "UPDATE guests SET assigned_to=$1 WHERE id=$2",
-  [staff, guest_id]
- );
+  await db.query(
+    "UPDATE guests SET assigned_to=$1 WHERE id=$2",
+    [staff, guest_id]
+  );
 
- res.json({ ok:true });
+  res.json({ ok:true });
+
+ }catch(err){
+  console.error("ERROR assign:", err);
+  res.status(500).json({error:"Error asignando staff"});
+ }
+});
 
 // ==========================
 // CHATBOT - HUÉSPEDES
@@ -174,137 +181,129 @@ app.post("/chat/message", async (req, res) => {
 
   const { guest_id, message, sender, company_code } = req.body;
 
-  if(!guest_id || !company_code){
- return res.status(400).json({error:"Datos incompletos"});
-}
+  if(!guest_id || !company_code || !message || !sender){
+    return res.status(400).json({error:"Datos incompletos"});
+  }
 
-const company_id = await getCompanyId(company_code);
+  const company_id = await getCompanyId(company_code);
 
-const guestCheck = await db.query(
- "SELECT * FROM guests WHERE id=$1 AND company_id=$2",
- [guest_id, company_id]
-);
+  const guestCheck = await db.query(
+    "SELECT * FROM guests WHERE id=$1 AND company_id=$2",
+    [guest_id, company_id]
+  );
 
-if(guestCheck.rows.length === 0){
- return res.status(403).json({error:"Acceso inválido"});
-}
-   await db.query(
- "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
- [guest_id, message, sender]
-);
-await db.query(
-  "UPDATE guests SET last_message_at=NOW() WHERE id=$1",
-  [guest_id]
-);
-io.to("admin_" + company_code).emit("new_message", {
-  guest_id,
-  message,
-  sender
-});
+  if(guestCheck.rows.length === 0){
+    return res.status(403).json({error:"Acceso inválido"});
+  }
 
-// 🔥 SOLO SI ES MENSAJE DEL HUÉSPED
-if(sender === "guest"){
-  console.log("Mensaje:", message);
+  const guestData = guestCheck.rows[0];
 
+  // guardar mensaje
+  try{
+    await db.query(
+      "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
+      [guest_id, message, sender]
+    );
+  }catch(err){
+    console.error("❌ ERROR INSERT MESSAGE:", err);
+    return res.status(500).json({error:"Error guardando mensaje"});
+  }
 
-  // obtener guest con company_id
-  const guestRes = await db.query(
-    "SELECT * FROM guests WHERE id=$1",
+  await db.query(
+    "UPDATE guests SET last_message_at=NOW() WHERE id=$1",
     [guest_id]
   );
 
-  const guestData = guestRes.rows[0];
+  io.to("admin_" + company_code).emit("new_message", {
+    guest_id,
+    message,
+    sender
+  });
 
- // ================= IA =================
-let ai;
+  // 🔥 SOLO SI ES MENSAJE DEL HUÉSPED
+  if(sender === "guest"){
 
-try{
-  ai = await detectarIntencion(message, company_id);
-}catch(e){
-  console.error("AI ERROR:", e);
-  ai = { texto:"Hubo un problema procesando tu mensaje", ticket:false };
-}
+    console.log("Mensaje:", message);
 
-if(!ai){
-  console.log("⚠️ AI NULL");
-  return res.json({ ok:true });
-}
+    // ================= IA =================
+    let ai;
 
-// ✅ NUEVA VARIABLE
-let taskCreada = null;
+    try{
+      ai = await detectarIntencion(message, company_id);
+    }catch(e){
+      console.error("AI ERROR:", e);
+      ai = { texto:"Hubo un problema procesando tu mensaje", ticket:false };
+    }
 
-// 🔥 CREAR TASK PRIMERO
-if(ai.ticket === true){
+    if(!ai){
+      console.log("⚠️ AI NULL");
+      return res.json({ ok:true, ia:false });
+    }
 
- console.log("🎯 CREANDO TASK IA");
+    let taskCreada = null;
 
- const task = await db.query(`
-  INSERT INTO tasks
-  (title, description, department, status, created_by, company_id)
-  VALUES($1,$2,$3,$4,$5,$6)
-  RETURNING *
- `,
- [
-  "Solicitud habitación " + guestData.room,
-  message,
-  ai.departamento || "Recepción",
-  "abierto",
-  guestData.name + " - Hab " + guestData.room,
-  guestData.company_id
- ]);
+    if(ai.ticket === true){
+      try{
+        const task = await db.query(`
+          INSERT INTO tasks
+          (title, description, department, status, created_by, company_id)
+          VALUES($1,$2,$3,$4,$5,$6)
+          RETURNING *
+        `,
+        [
+          "Solicitud habitación " + guestData.room,
+          message,
+          ai.departamento || "Recepción",
+          "abierto",
+          guestData.name + " - Hab " + guestData.room,
+          guestData.company_id
+        ]);
 
- // 👇 AQUÍ GUARDAS QUE SE CREÓ
- taskCreada = task.rows[0];
+        taskCreada = task.rows[0];
 
- console.log("✅ TASK CREADA:", taskCreada);
+        io.to("admin_" + company_code).emit("task_update", taskCreada);
 
- io.to("admin_" + company_code).emit("task_update", taskCreada);
+      }catch(err){
+        console.error("❌ ERROR CREANDO TASK:", err);
+      }
+    }
 
- io.to("admin_" + company_code).emit("nuevo_ticket",{
-  guest_id,
-  room: guestData.room
- });
-}
+    if(ai.texto){
+      await db.query(
+        "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
+        [guest_id, ai.texto]
+      );
 
-// 🔥 RESPUESTA
-if(ai.texto){
+      io.to("guest_" + guest_id).emit("new_message",{
+        guest_id,
+        message: ai.texto,
+        sender: "bot"
+      });
 
- await db.query(
-  "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
-  [guest_id, ai.texto]
- );
+      io.to("admin_" + company_code).emit("new_message",{
+        guest_id,
+        message: ai.texto,
+        sender: "bot"
+      });
+    }
 
- io.to("guest_" + guest_id).emit("new_message",{
-  guest_id,
-  message: ai.texto,
-  sender: "bot"
- });
+    return res.json({
+      ok:true,
+      ia:true,
+      task: !!taskCreada
+    });
+  }
 
- io.to("admin_" + company_code).emit("new_message",{
-  guest_id,
-  message: ai.texto,
-  sender: "bot"
- });
-}
+  res.json({ ok:true });
 
-// 🔥 ÚNICO RETURN FINAL
-return res.json({
-  ok:true,
-  ia:true,
-  task: !!taskCreada
+ } catch(err){
+  console.error("❌ ERROR /chat/message:", err);
+  res.status(500).json({
+    error:"Error en chat",
+    detalle: err.message
+  });
+ }
 });
-} // 🔴 CIERRA if(sender === "guest")
-
-res.json({
-  ok: true,
-  message
-});
-
-} catch(err){
-  console.error(err);
-  res.status(500).json({error:"Error en chat"});
-}
-}); // 🔴 CIERRA app.post("/chat/message")
 
 // Obtener chat
 app.get("/chat/:guest_id", async (req,res)=>{
