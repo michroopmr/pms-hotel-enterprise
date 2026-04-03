@@ -461,7 +461,43 @@ async function cargarDashboard(){
   document.getElementById("totalMessages").innerText = total;
   document.getElementById("totalPending").innerText = sinResponder;
 }
+async function guardarServicio(){
 
+ try{
+
+  const nombre = document.getElementById("nombreServicio").value;
+  const departamento = document.getElementById("departamentoServicio").value;
+  const respuesta = document.getElementById("respuestaServicio").value;
+
+  const res = await fetch("/services",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer " + localStorage.getItem("token")
+    },
+    body: JSON.stringify({
+      name: nombre,
+      department: departamento,
+      response: respuesta
+    })
+  });
+
+  const data = await res.json();
+
+  if(!res.ok){
+    console.error("❌ ERROR:", data);
+    alert("Error guardando servicio");
+    return;
+  }
+
+  alert("✅ Servicio guardado");
+  location.reload();
+
+ }catch(err){
+  console.error("❌ ERROR guardarServicio:", err);
+ }
+
+}
 // INIT CHAT
 initSocket();
 cargarGuests();
