@@ -858,8 +858,15 @@ const services = await db.query(
 
 for(const s of services.rows){
 
-  const keywords = s.keywords.map(k => normalizar(k));
-  const match = keywords.some(k => msg.includes(k));
+  const keywords = (s.keywords || []).map(k => normalizar(k));
+
+let match = keywords.some(k => msg.includes(k));
+
+// 🔥 fallback por nombre del servicio
+if(!match){
+  const nombre = normalizar(s.name || "");
+  match = msg.includes(nombre);
+}
 
   if(match){
 
@@ -885,7 +892,8 @@ for(const s of services.rows){
 
 const defaultResponse = detectarIntencionSemantica(msg);
 
-if(defaultResponse.texto){
+// 🔥 SOLO SI NO ES INFO GENÉRICA
+if(defaultResponse.texto && defaultResponse.ticket === true){
   return defaultResponse;
 }
 
@@ -949,7 +957,7 @@ if(
   msg.includes("menu")
 ){
   return {
-    texto: "Con gusto te comparto la información",
+    texto: "Claro 🙌 ¿Sobre qué servicio necesitas información?",
     ticket: false
   };
 }
