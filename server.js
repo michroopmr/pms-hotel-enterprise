@@ -940,33 +940,33 @@ if(
    prioridad: "normal"
  };
 }
- // 🔵 SOLICITUDES
- if(
-   msg.includes("mandar") ||
-   msg.includes("enviar") ||
-   msg.includes("necesito") ||
-   msg.includes("me puedes dar")
- ){
-   return {
-     texto: "Tu solicitud ha sido registrada",
-     ticket: true,
-     departamento: "Recepción",
-     prioridad: "normal"
-   };
- }
+ // 🟢 INFORMACIÓN (SUBIR PRIORIDAD)
+if(
+  msg.includes("horario") ||
+  msg.includes("donde") ||
+  msg.includes("informacion") ||
+  msg.includes("restaurante") ||
+  msg.includes("menu")
+){
+  return {
+    texto: "Con gusto te comparto la información",
+    ticket: false
+  };
+}
 
- // 🟢 INFORMACIÓN
- if(
-   msg.includes("horario") ||
-   msg.includes("donde") ||
-   msg.includes("que incluye") ||
-   msg.includes("informacion")
- ){
-   return {
-     texto: "Con gusto te comparto la información",
-     ticket: false
-   };
- }
+// 🔵 SOLICITUDES (BAJAR PRIORIDAD)
+if(
+  msg.includes("mandar") ||
+  msg.includes("enviar") ||
+  msg.includes("necesito") 
+){
+  return {
+    texto: "Tu solicitud ha sido registrada",
+    ticket: true,
+    departamento: "Recepción",
+    prioridad: "normal"
+  };
+}
 
  return { texto:null, ticket:false };
 }
