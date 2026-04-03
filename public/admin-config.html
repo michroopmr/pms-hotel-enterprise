@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<title>Molly Admin Panel</title>
+<title>Luka Admin Panel</title>
 
 <style>
 body{
@@ -105,6 +105,7 @@ td,th{
     <button onclick="mostrar('servicios')">⚙️ Servicios</button>
     <button onclick="mostrar('respuestas')">⚡ Respuestas</button>
     <button onclick="mostrar('dashboard')">📊 Dashboard</button>
+    <button onclick="logout()" style="background:#e74c3c;color:white;">🚪 Cerrar sesión</button>
   </div>
 </div>
 
@@ -252,6 +253,10 @@ function mostrar(seccion){
 
   if(seccion === "dashboard"){
     cargarDashboard();
+  }
+   // 🔥 AGREGA ESTO
+  if(seccion === "servicios"){
+    cargarServicios();
   }
 }
 const API = "https://mollyhelpers.com";
@@ -493,6 +498,7 @@ async function guardarServicio(){
   }
 
   alert("✅ Servicio guardado");
+cargarServicios(); // 🔥 refrescar tabla
 
  }catch(err){
   console.error("❌ ERROR guardarServicio:", err);
@@ -507,7 +513,7 @@ async function guardarRespuesta(){
   const trigger = document.getElementById("trigger").value;
   const respuesta = document.getElementById("respuestaTexto").value;
 
-  const res = await fetch(API + "/responses",{
+  const res = await fetch(API + "/admin/flows",{
     method:"POST",
     headers:{
       "Content-Type":"application/json"
@@ -532,6 +538,76 @@ async function guardarRespuesta(){
  }catch(err){
   console.error("❌ ERROR guardarRespuesta:", err);
  }
+
+}
+
+async function cargarServicios(){
+
+  try{
+
+    const res = await fetch(API + "/admin/services",{
+      headers:{
+        "Authorization":"Bearer " + localStorage.getItem("token")
+      }
+    });
+
+    const data = await res.json();
+
+    const tbody = document.getElementById("tablaServicios");
+    tbody.innerHTML = "";
+
+    data.forEach(s=>{
+
+      const tr = document.createElement("tr");
+
+      tr.innerHTML = `
+        <td>${s.name}</td>
+        <td>${s.department}</td>
+        <td>${s.type}</td>
+        <td>
+          <button class="btn-danger" onclick="eliminarServicio(${s.id})">Eliminar</button>
+        </td>
+      `;
+
+      tbody.appendChild(tr);
+
+    });
+
+  }catch(err){
+    console.error("❌ ERROR cargarServicios:", err);
+  }
+
+}
+function logout(){
+  localStorage.clear();
+  window.location.href = "/login.html";
+}
+async function eliminarServicio(id){
+
+  if(!confirm("¿Eliminar servicio?")) return;
+
+  try{
+
+    const res = await fetch(API + "/admin/services/" + id,{
+      method:"DELETE",
+      headers:{
+        "Authorization":"Bearer " + localStorage.getItem("token")
+      }
+    });
+
+    const data = await res.json();
+
+    if(!res.ok){
+      console.error("❌ ERROR:", data);
+      alert("Error eliminando");
+      return;
+    }
+
+    cargarServicios(); // 🔥 refresca tabla
+
+  }catch(err){
+    console.error("❌ ERROR eliminarServicio:", err);
+  }
 
 }
 // INIT CHAT
