@@ -126,7 +126,7 @@ io.to("admin_" + company_code).emit("task_update", result.rows[0]);
   res.status(500).json({error:"Error creando tarea"});
  }
 });
-app.post("/assign", async (req,res)=>{
+app.post("/assign", authMiddleware, async (req,res)=>{})
 
  const { guest_id, staff } = req.body;
 
@@ -136,7 +136,7 @@ app.post("/assign", async (req,res)=>{
  );
 
  res.json({ ok:true });
-});
+
 // ==========================
 // CHATBOT - HUÉSPEDES
 // ==========================
@@ -216,8 +216,14 @@ if(sender === "guest"){
   const guestData = guestRes.rows[0];
 
  // ================= IA =================
-const ai = await detectarIntencion(message, company_id);
-console.log("🧠 AI DEBUG:", ai);
+let ai;
+
+try{
+  ai = await detectarIntencion(message, company_id);
+}catch(e){
+  console.error("AI ERROR:", e);
+  ai = { texto:"Hubo un problema procesando tu mensaje", ticket:false };
+}
 
 if(!ai){
   console.log("⚠️ AI NULL");
@@ -333,16 +339,20 @@ app.get("/chat/:guest_id", async (req,res)=>{
   res.status(500).json({error:"Error obteniendo chat"});
  }
 });
+
 app.get("/tickets/:company_code", async (req,res)=>{
+
+ const company_id = await getCompanyId(req.params.company_code);
 
  const r = await db.query(`
   SELECT * FROM tickets
+  WHERE company_id=$1
   ORDER BY created_at DESC
- `);
+ `,[company_id]);
 
  res.json(r.rows);
-
 });
+
 // Lista de huéspedes
 app.get("/guests/:company_code", async (req,res)=>{
  try{
@@ -701,9 +711,15 @@ if (
 
 /* ================= SOCKET ================= */
 
-const onlineDepartments = {};
+const onlineDepartments = {}; // { department: timestamp }
 
 io.on("connection",(socket)=>{
+
+  socket.on("heartbeat", (department)=>{
+  if(department){
+    onlineDepartments[department] = Date.now();
+  }
+});
 
   socket.on("join_admin", (company_code)=>{
   socket.join("admin_" + company_code);
@@ -774,10 +790,12 @@ try{
 // 🔥 unir a departamento
 if(department){
   socket.join(department);
-  onlineDepartments[department] = true;
+
+  // guardar timestamp en lugar de booleano
+  onlineDepartments[department] = Date.now();
+
   console.log(`🟢 ${department} online`);
 }
-
 // 🔥 sistemas escucha todo
 if(decoded.role === "sistemas"){
   DEPARTMENTS.forEach(dep=>{
@@ -846,14 +864,16 @@ for(const s of services.rows){
   }
 }
 
-// 🔥 3. DEFAULT
+const defaultResponse = detectarIntencionSemantica(msg);
+
+if(defaultResponse.texto){
+  return defaultResponse;
+}
+
 return {
   texto: "¿Podrías darme más detalles para ayudarte?",
   ticket: false
 };
-
- // 🔥 SI NO HAY MATCH → IA SEMÁNTICA
- return detectarIntencionSemantica(msg);
 }
 
 function detectarIntencionSemantica(msg){
@@ -869,6 +889,11 @@ function detectarIntencionSemantica(msg){
   msg.includes("no funciona") ||
   msg.includes("no sirve") ||
   msg.includes("esta roto") ||
+  msg.includes("tele") ||
+msg.includes("pantalla") ||
+msg.includes("no prende") ||
+msg.includes("no enciende") ||
+msg.includes("foco") ||
   msg.includes("falla")
 ){
    return {
@@ -949,10 +974,13 @@ async function crearTicket({guest_id, room, tipo, prioridad="normal"}){
 
 async function sendPushByDepartment(department,title,message,taskId){
 
- if(onlineDepartments[department]){
-   console.log(`⚡ ${department} online → solo socket`);
-   return;
- }
+const lastSeen = onlineDepartments[department];
+
+// si estuvo activo en los últimos 30 segundos → NO push
+if(lastSeen && (Date.now() - lastSeen < 30000)){
+  console.log(`⚡ ${department} activo recientemente → solo socket`);
+  return;
+}
 
  const payload = JSON.stringify({
    title,
