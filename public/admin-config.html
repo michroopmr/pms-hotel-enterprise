@@ -276,10 +276,11 @@ function initSocket(){
       token: localStorage.getItem("token")
     }
   });
-
+  
   const company_code = localStorage.getItem("company_code");
 
   socket.emit("join_admin", company_code);
+
 
   socket.on("new_message",(msg)=>{
 
@@ -351,6 +352,7 @@ el.innerHTML = `
 
 el.onclick = ()=> seleccionarGuest(g.id);
 
+
 div.appendChild(el);
 
   });
@@ -361,7 +363,8 @@ div.appendChild(el);
 async function seleccionarGuest(id){
 
   currentGuest = id;
-
+  unread[id] = 0; // 🔥 limpiar contador
+  
    renderGuests();
 
   const company_code = localStorage.getItem("company_code");
@@ -421,8 +424,15 @@ function enviarMensaje(){
     company_code
   });
 
+  // 🔥 MOSTRAR INMEDIATO EN UI
+  agregarMensaje({
+    message: msg,
+    sender:"admin"
+  });
+
   input.value="";
 }
+
 async function asignar(){
 
   const staff = localStorage.getItem("user_name") || "Staff";

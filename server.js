@@ -775,14 +775,14 @@ await db.query(
  io.to("guest_" + guest_id).emit("new_message",{
   guest_id,
   message,
-  sender:"bot"
+  sender:"admin"
  });
 
  // actualizar admin (otros paneles)
  io.to("admin_" + company_code).emit("new_message",{
   guest_id,
   message,
-  sender:"bot"
+  sender:"admin"
  });
 
 });
@@ -924,7 +924,7 @@ msg.includes("foco") ||
   msg.includes("falla")
 ){
    return {
-     texto: "Hemos notificado al área correspondiente",
+     texto: "Hemos notificado al área correspondiente, en breve estaran asistiendo a tu habitación",
      ticket: true,
      departamento: "Mantenimiento",
      prioridad: "alta"
