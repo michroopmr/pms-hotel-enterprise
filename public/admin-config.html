@@ -469,18 +469,20 @@ async function guardarServicio(){
   const departamento = document.getElementById("department").value;
   const respuesta = document.getElementById("response").value;
 
-  const res = await fetch(API + "/services",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer " + localStorage.getItem("token")
-    },
-    body: JSON.stringify({
-      name: nombre,
-      department: departamento,
-      response: respuesta
-    })
-  });
+  const res = await fetch(API + "/admin/services",{
+  method:"POST",
+  headers:{
+    "Content-Type":"application/json",
+    "Authorization":"Bearer " + localStorage.getItem("token")
+  },
+  body: JSON.stringify({
+    name: nombre,
+    keywords: [], // puedes agregar después
+    department: departamento,
+    type: "info", // 🔥 clave
+    auto_response: respuesta
+  })
+});
 
   const data = await res.json();
 
@@ -494,6 +496,41 @@ async function guardarServicio(){
 
  }catch(err){
   console.error("❌ ERROR guardarServicio:", err);
+ }
+
+}
+
+async function guardarRespuesta(){
+
+ try{
+
+  const trigger = document.getElementById("trigger").value;
+  const respuesta = document.getElementById("respuestaTexto").value;
+
+  const res = await fetch(API + "/responses",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify({
+      trigger,
+      response: respuesta,
+      company_code: localStorage.getItem("company_code")
+    })
+  });
+
+  const data = await res.json();
+
+  if(!res.ok){
+    console.error("❌ ERROR:", data);
+    alert("Error guardando respuesta");
+    return;
+  }
+
+  alert("✅ Respuesta guardada");
+
+ }catch(err){
+  console.error("❌ ERROR guardarRespuesta:", err);
  }
 
 }

@@ -1137,37 +1137,6 @@ app.post("/tasks", authMiddleware, async (req,res)=>{
     req.user.company_id
   ]
 );
-app.post("/services", async (req,res)=>{
- try{
-
-  const { name, keywords, response, department, requires_ticket } = req.body;
-
-  const company_code = req.headers["x-company"] || req.body.company_code;
-
-  const company_id = await getCompanyId(company_code);
-
-  const r = await db.query(`
-    INSERT INTO services
-    (name, keywords, response, department, requires_ticket, company_id)
-    VALUES($1,$2,$3,$4,$5,$6)
-    RETURNING *
-  `,
-  [
-    name,
-    keywords || [],
-    response,
-    department,
-    requires_ticket || false,
-    company_id
-  ]);
-
-  res.json(r.rows[0]);
-
- }catch(err){
-  console.error("❌ ERROR /services:", err);
-  res.status(500).json({error:"Error creando servicio"});
- }
-});
 
  const nuevaTarea = result.rows[0];
  // 🔥 obtener empresa
@@ -1663,6 +1632,38 @@ app.get("/services/:company_code", async (req,res)=>{
 
  res.json(r.rows);
 });
+app.post("/services", async (req,res)=>{
+ try{
+
+  const { name, keywords, response, department, requires_ticket } = req.body;
+
+  const company_code = req.headers["x-company"] || req.body.company_code;
+
+  const company_id = await getCompanyId(company_code);
+
+  const r = await db.query(`
+    INSERT INTO services
+    (name, keywords, response, department, requires_ticket, company_id)
+    VALUES($1,$2,$3,$4,$5,$6)
+    RETURNING *
+  `,
+  [
+    name,
+    keywords || [],
+    response,
+    department,
+    requires_ticket || false,
+    company_id
+  ]);
+
+  res.json(r.rows[0]);
+
+ }catch(err){
+  console.error("❌ ERROR /services:", err);
+  res.status(500).json({error:"Error creando servicio"});
+ }
+});
+
 /* ================= LOGIN ================= */
 app.post("/login", async (req,res)=>{
 
