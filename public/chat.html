@@ -227,13 +227,13 @@ input.addEventListener("input", ()=>{
 socket.on("connect", ()=>{ 
   console.log("🟢 Socket conectado");
 
-  const guest_id = guest?.id || localStorage.getItem("guest_id");
+  const guest_id = guest?.id;
 
-  if(guest_id){
-    socket.emit("join_guest", guest_id);
-  }else{
-    console.warn("⚠️ guest_id no disponible");
-  }
+if(!guest_id){
+  console.error("❌ guest_id inválido");
+  return;
+}
+console.log("JOIN ROOM:", guest_id);
 });
 
 socket.on("disconnect", ()=>{
@@ -287,6 +287,7 @@ socket.on("typing_admin", ()=>{
   }, 1500);
 
 });
+
 function addMsg(text, type){
 
  const div = document.createElement("div");

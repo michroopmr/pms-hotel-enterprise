@@ -361,16 +361,22 @@ app.get("/chat/:guest_id", async (req,res)=>{
 });
 
 app.get("/tickets/:company_code", async (req,res)=>{
+ try{
 
- const company_id = await getCompanyId(req.params.company_code);
+  const company_id = await getCompanyId(req.params.company_code);
 
- const r = await db.query(`
-  SELECT * FROM tickets
-  WHERE company_id=$1
-  ORDER BY created_at DESC
- `,[company_id]);
+  const r = await db.query(`
+    SELECT * FROM tickets
+    WHERE company_id=$1
+    ORDER BY created_at DESC
+  `,[company_id]);
 
- res.json(r.rows);
+  res.json(r.rows);
+
+ }catch(err){
+  console.error("❌ ERROR /tickets:", err);
+  res.status(500).json({ error:"Error obteniendo tickets" });
+ }
 });
 
 // Lista de huéspedes

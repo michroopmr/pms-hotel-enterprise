@@ -178,6 +178,7 @@ td,th{
           <th>Nombre</th>
           <th>Depto</th>
           <th>Tipo</th>
+          <th>Keywords</th>
           <th></th>
         </tr>
       </thead>
@@ -271,7 +272,11 @@ function mostrar(seccion){
   if(seccion === "servicios"){
     cargarServicios();
   }
+  if(seccion === "respuestas"){
+  cargarRespuestas();
+  }
 }
+
 const API = "https://mollyhelpers.com";
 
 let socket;
@@ -334,21 +339,20 @@ socket.io.on("reconnect", ()=>{
   setTimeout(()=> div.remove(), 1500);
 
 });
-  socket.on("new_message",(msg)=>{
+  
+socket.on("new_message",(msg)=>{
 
-  if(msg.sender === "admin") return; // 🔥 evita duplicados
+  if(msg.sender === "admin") return;
 
-  if(msg.sender === "guest"){
-
-    if(msg.guest_id !== currentGuest){
-      unread[msg.guest_id] = (unread[msg.guest_id] || 0) + 1;
-      renderGuests();
-      audio.play();
-      return;
-    }
-
+  // 🔥 REFRESCA LISTA SI NO ES CHAT ACTIVO
+  if(msg.guest_id !== currentGuest){
+    unread[msg.guest_id] = (unread[msg.guest_id] || 0) + 1;
+    cargarGuests(); // 🔥 aquí entra tu cambio
+    audio.play();
+    return;
   }
 
+  // 🔥 SI ES EL CHAT ACTIVO → SOLO AGREGA
   if(msg.guest_id === currentGuest){
     agregarMensaje(msg);
   }
@@ -361,11 +365,13 @@ async function cargarGuests(){
   const company_code = localStorage.getItem("company_code");
 
   const res = await fetch(API + "/guests/" + company_code);
-  const data = await res.json();
 
-  window.guestsData = data;
+if(!res.ok){
+  console.error("❌ ERROR guests:", res.status);
+  return;
+}
 
-  renderGuests();
+const data = await res.json();
 }
 
 function renderGuests(){
@@ -506,7 +512,14 @@ async function cargarDashboard(){
   const company_code = localStorage.getItem("company_code");
 
   const guests = await fetch(API + "/guests/" + company_code).then(r=>r.json());
-  const tickets = await fetch(API + "/tickets/" + company_code).then(r=>r.json());
+  const resTickets = await fetch(API + "/tickets/" + company_code);
+
+if(!resTickets.ok){
+  console.error("HTTP ERROR tickets:", resTickets.status);
+  return;
+}
+
+const tickets = await resTickets.json();
 
   document.getElementById("totalGuests").innerText = guests.length;
   document.getElementById("totalTickets").innerText = tickets.length;
@@ -615,12 +628,17 @@ async function cargarServicios(){
   try{
 
     const res = await fetch(API + "/admin/services",{
-      headers:{
-        "Authorization":"Bearer " + localStorage.getItem("token")
-      }
-    });
+  headers:{
+    "Authorization":"Bearer " + localStorage.getItem("token")
+  }
+});
 
-    const data = await res.json();
+if(!res.ok){
+  console.error("❌ ERROR servicios:", res.status);
+  return;
+}
+
+const data = await res.json();
 
     const tbody = document.getElementById("tablaServicios");
     tbody.innerHTML = "";
@@ -634,6 +652,7 @@ async function cargarServicios(){
     <td>${s.name}</td>
     <td>${s.department}</td>
     <td>${s.type}</td>
+    <td>${(s.keywords || []).join(", ")}</td
     <td>
       <button onclick="editarServicio(${s.id})">✏️</button>
       <button class="btn-danger" onclick="eliminarServicio(${s.id})">Eliminar</button>
@@ -648,6 +667,44 @@ async function cargarServicios(){
     console.error("❌ ERROR cargarServicios:", err);
   }
 
+}
+async function cargarRespuestas(){
+
+  const res = await fetch(API + "/admin/flows",{
+    headers:{
+      "Authorization":"Bearer " + localStorage.getItem("token")
+    }
+  });
+
+  const data = await res.json();
+
+  const tbody = document.getElementById("tablaRespuestas");
+  tbody.innerHTML = "";
+
+  data.forEach(r=>{
+    const tr = document.createElement("tr");
+
+    tr.innerHTML = `
+      <td>${r.trigger}</td>
+      <td>${r.response}</td>
+      <td>
+        <button onclick="eliminarRespuesta(${r.id})">🗑️</button>
+      </td>
+    `;
+
+    tbody.appendChild(tr);
+  });
+}
+async function eliminarRespuesta(id){
+
+  await fetch(API + "/admin/flows/" + id,{
+    method:"DELETE",
+    headers:{
+      "Authorization":"Bearer " + localStorage.getItem("token")
+    }
+  });
+
+  cargarRespuestas();
 }
 function logout(){
   localStorage.clear();
