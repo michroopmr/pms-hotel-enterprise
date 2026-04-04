@@ -198,56 +198,94 @@ let sessionTimer;
 let inactivityTimer;
 
 // 🔥 AHORA SÍ SOCKET
-const socket = io({
-  transports: ["websocket"]
+const API = "https://mollyhelpers.com";
+
+const socket = io(API,{
+  transports: ["websocket"],
+  reconnection: true,
+  reconnectionAttempts: 10,
+  reconnectionDelay: 1000
 });
+const input = document.getElementById("input");
+
+let typingTimeout;
+
+input.addEventListener("input", ()=>{
+
+  socket.emit("typing",{
+    guest_id: guest.id,
+    company_code: guest.company_code
+  });
+
+  clearTimeout(typingTimeout);
+
+  typingTimeout = setTimeout(()=>{}, 1000);
+
+});
+
 socket.on("connect", ()=>{ 
-console.log("🟢 Socket conectado"); 
-}); 
+  console.log("🟢 Socket conectado");
+
+  const guest_id = guest?.id || localStorage.getItem("guest_id");
+
+  if(guest_id){
+    socket.emit("join_guest", guest_id);
+  }else{
+    console.warn("⚠️ guest_id no disponible");
+  }
+});
 
 socket.on("disconnect", ()=>{
-console.log("🔴 Socket desconectado");
+  console.log("🔴 Socket desconectado");
 });
-
-socket.on("typing", ()=>{
-  addMsg("Luka está escribiendo...", "bot");
-});
-
-socket.emit("join_guest", guest.id);
-
-if(!guest.company_code){
- console.warn("Guest sin empresa");
-}
 
 socket.on("new_message", (data)=>{
 
-  if(data.sender === "guest") return;
+  if(!data) return;
 
-  if(data.sender === "staff"){
-    addMsg("👨‍💼 " + data.message + "\n\n👍 Estoy contigo para ayudarte", "bot");
+  const { message, sender } = data;
 
-    showToast("Nuevo mensaje del staff");
+  if(!message) return;
 
-    resetInactivity();
-    sessionStorage.removeItem("despedida_enviada");
-    resetSessionTimer();
+  // 🔥 evitar duplicar mensajes propios
+  if(sender === "guest") return;
 
-    return;
-  }
-
-  if(data.sender === "bot"){
-
-    // eliminar "..."
-    document.querySelectorAll(".msg.bot").forEach(m=>{
-      if(m.innerText.includes("...")) m.remove();
-    });
-
-    addMsg(data.message, "bot");
-    return;
-  }
-
+   socket.emit("message_read",{
+  guest_id: guest.id,
+  company_code: guest.company_code
 });
 
+  if(sender === "admin" || sender === "staff"){
+    addMsg("👨‍💼 " + message, "bot");
+    showToast("Nuevo mensaje del staff");
+    return;
+  }
+
+  if(sender === "bot"){
+    addMsg(message, "bot");
+    return;
+  }
+ 
+
+});
+socket.on("typing_admin", ()=>{
+
+  const existing = document.getElementById("typing");
+
+  if(existing) return;
+
+  const div = document.createElement("div");
+  div.id = "typing";
+  div.className = "msg bot";
+  div.innerText = "🧑‍💼 escribiendo...";
+
+  document.getElementById("chatMessages").appendChild(div);
+
+  setTimeout(()=>{
+    div.remove();
+  }, 1500);
+
+});
 function addMsg(text, type){
 
  const div = document.createElement("div");
@@ -281,17 +319,15 @@ function resetInactivity(){
 
   if(sessionStorage.getItem("despedida_enviada")) return;
 
-  const despedida = "Gracias por contactarnos 🙌\nEsperamos que tu solicitud haya sido atendida.";
+  const despedida = "Gracias por contactarnos 🙌...";
 
-  addMsg(despedida, "bot");
-
-  const res = await fetch("/chat/message",{
+const res = await fetch("/chat/message",{
   method:"POST",
   headers:{"Content-Type":"application/json"},
   body: JSON.stringify({
     guest_id: guest.id,
-    message: text,
-    sender: "guest",
+    message: despedida,
+    sender: "bot",
     company_code: guest.company_code
   })
 });

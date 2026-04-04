@@ -242,6 +242,19 @@ td,th{
 <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
 
 <script>
+
+   const adminInput = document.getElementById("adminMessage");
+
+adminInput.addEventListener("input", ()=>{
+
+  if(!currentGuest) return;
+
+  socket.emit("admin_typing",{
+    guest_id: currentGuest
+  });
+
+});
+
 function mostrar(seccion){
   ["chats","servicios","respuestas","dashboard"].forEach(id=>{
     const el = document.getElementById(id);
@@ -269,20 +282,58 @@ let unread = {};
 const audio = new Audio("https://actions.google.com/sounds/v1/alarms/beep_short.ogg");
 
 // ================= SOCKET =================
-function initSocket(){
+socket = io(API,{
+  auth:{
+    token: localStorage.getItem("token")
+  },
+  transports:["websocket"],
+  reconnection:true
+});
 
-  socket = io(API,{
-    auth:{
-      token: localStorage.getItem("token")
-    }
-  });
-  
+socket.on("connect", ()=>{
+  console.log("🟢 Socket conectado");
+
   const company_code = localStorage.getItem("company_code");
-
   socket.emit("join_admin", company_code);
+});
 
+socket.on("disconnect", ()=>{
+  console.log("🔴 Socket desconectado");
+});
 
+socket.on("message_read",(data)=>{
+  console.log("👁️ mensaje leído", data);
+});
+
+socket.io.on("reconnect", ()=>{
+  console.log("🔄 reconectado");
+
+  cargarGuests();
+
+  if(currentGuest){
+    seleccionarGuest(currentGuest);
+  }
+});
+
+  socket.on("typing", (data)=>{
+
+  if(data.guest_id !== currentGuest) return;
+
+  const existing = document.getElementById("typingGuest");
+  if(existing) return;
+
+  const div = document.createElement("div");
+  div.id = "typingGuest";
+  div.innerHTML = "👤 escribiendo...";
+
+  document.getElementById("chatBox").appendChild(div);
+
+  setTimeout(()=> div.remove(), 1500);
+
+});
   socket.on("new_message",(msg)=>{
+
+  if(msg.sender === "admin") return; // 🔥 evita duplicados
 
   if(msg.sender === "guest"){
 
@@ -300,8 +351,6 @@ function initSocket(){
   }
 
 });
-
-}
 
 // ================= GUESTS =================
 async function cargarGuests(){
@@ -363,13 +412,14 @@ div.appendChild(el);
 async function seleccionarGuest(id){
 
   currentGuest = id;
+  
   unread[id] = 0; // 🔥 limpiar contador
   
    renderGuests();
 
   const company_code = localStorage.getItem("company_code");
 
-  const res = await fetch(API + "/chat/" + id + "?company_code=" + company_code);
+  const res = await fetch(`${API}/chat/${id}?company_code=${company_code}`);
   const data = await res.json();
 
   const chat = document.getElementById("chatBox");
@@ -393,14 +443,13 @@ function agregarMensaje(m){
   div.style.borderRadius="8px";
   div.style.maxWidth="70%";
 
-  if(m.sender === "guest"){
-    div.style.background="#2c3e50";
-    div.innerHTML = `👤 ${m.message}`;
-  }else{
-    div.style.background="#16a085";
-    div.style.alignSelf="flex-end";
-    div.innerHTML = `🤖 ${m.message}`;
-  }
+if(m.sender === "guest"){
+  div.innerHTML = `👤 ${m.message}`;
+}else if(m.sender === "admin"){
+  div.innerHTML = `🧑‍💼 ${m.message}`;
+}else if(m.sender === "bot"){
+  div.innerHTML = `🤖 ${m.message}`;
+}
 
   document.getElementById("chatBox").appendChild(div);
 
@@ -419,18 +468,17 @@ function enviarMensaje(){
   const company_code = localStorage.getItem("company_code");
 
   socket.emit("admin_send_message",{
-    guest_id: currentGuest,
-    message: msg,
-    company_code
-  });
+  guest_id: currentGuest,
+  message: msg,
+  company_code
+});
 
-  // 🔥 MOSTRAR INMEDIATO EN UI
-  agregarMensaje({
-    message: msg,
-    sender:"admin"
-  });
+agregarMensaje({
+  message: msg,
+  sender:"admin"
+});
 
-  input.value="";
+input.value="";
 }
 
 async function asignar(){
@@ -483,6 +531,7 @@ async function guardarServicio(){
   const nombre = document.getElementById("name").value;
   const departamento = document.getElementById("department").value;
   const respuesta = document.getElementById("response").value;
+  const tipo = document.getElementById("type").value;
 
   const res = await fetch(API + "/admin/services",{
   method:"POST",
@@ -492,9 +541,9 @@ async function guardarServicio(){
   },
   body: JSON.stringify({
     name: nombre,
-    keywords: [], // puedes agregar después
+    keywords: nombre.toLowerCase().split(" "),
     department: departamento,
-    type: "info", // 🔥 clave
+    type: tipo, // 🔥 clave
     auto_response: respuesta
   })
 });
@@ -621,7 +670,6 @@ async function eliminarServicio(id){
 
 }
 // INIT CHAT
-initSocket();
 cargarGuests();
 </script>
 </body>

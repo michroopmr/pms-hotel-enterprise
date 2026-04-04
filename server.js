@@ -23,8 +23,9 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["https://mollyhelpers.com"]
-  }
+    origin: "*"
+  },
+  transports: ["websocket","polling"]
 });
 
 // 🔥 DISPONIBLE EN TODAS LAS RUTAS
@@ -734,6 +735,30 @@ const onlineDepartments = {}; // { department: timestamp }
 
 io.on("connection",(socket)=>{
 
+  // ================= TYPING =================
+socket.on("typing", (data)=>{
+
+  const { guest_id, company_code } = data;
+
+  socket.to("admin_" + company_code).emit("typing",{
+    guest_id
+  });
+
+});
+
+socket.on("admin_typing", (data)=>{
+
+  const { guest_id } = data;
+
+  socket.to("guest_" + guest_id).emit("typing_admin");
+
+});
+
+// ================= READ =================
+socket.on("message_read",(data)=>{
+  io.to("admin_" + data.company_code).emit("message_read", data);
+});
+
   socket.on("heartbeat", (department)=>{
   if(department){
     onlineDepartments[department] = Date.now();
@@ -760,7 +785,11 @@ socket.on("call_staff", (data) => {
 });
 socket.on("admin_send_message", async (data)=>{
 
- const { guest_id, message, company_code } = data;
+  const { guest_id, message, company_code } = data; // 🔥 MOVER ARRIBA
+
+  io.to("guest_" + guest_id).emit("message_delivered",{
+    guest_id
+  });
 
  // guardar mensaje
  await db.query(
@@ -776,14 +805,13 @@ await db.query(
   guest_id,
   message,
   sender:"admin"
- });
-
+});
  // actualizar admin (otros paneles)
  io.to("admin_" + company_code).emit("new_message",{
   guest_id,
   message,
   sender:"admin"
- });
+});
 
 });
 
@@ -842,6 +870,22 @@ function normalizar(msg){
 async function detectarIntencion(msg, company_id){
 
  msg = normalizar(msg);
+
+ // ================= RESPUESTAS RÁPIDAS =================
+const flows = await db.query(
+  "SELECT * FROM bot_flows WHERE company_id=$1",
+  [company_id]
+);
+
+for(const f of flows.rows){
+  const trigger = normalizar(f.trigger);
+  if(msg.includes(trigger)){
+    return {
+      texto: f.response,
+      ticket: false
+    };
+  }
+}
 
  // 🔥 1. PRIMERO DETECTAR FALLAS (PRIORIDAD ALTA)
 const semantica = detectarIntencionSemantica(msg);
@@ -909,7 +953,13 @@ function detectarIntencionSemantica(msg){
  if(
   msg.includes("tv") ||
   msg.includes("tina") ||
-  msg.includes("baño") ||
+  msg.includes("baño") || 
+  msg.includes("wc") ||
+  msg.includes("foco") ||
+  msg.includes("lampara") ||
+  msg.includes("puerta") ||
+  msg.includes("inodoro") ||
+  msg.includes("sanitario") ||
   msg.includes("regadera") ||
   msg.includes("drenaje") ||
   msg.includes("tapada") ||
@@ -920,7 +970,6 @@ function detectarIntencionSemantica(msg){
 msg.includes("pantalla") ||
 msg.includes("no prende") ||
 msg.includes("no enciende") ||
-msg.includes("foco") ||
   msg.includes("falla")
 ){
    return {
