@@ -536,8 +536,14 @@ async function guardarServicio(){
   const respuesta = document.getElementById("response").value;
   const tipo = document.getElementById("type").value;
 
-  const res = await fetch(API + "/admin/services",{
-  method:"POST",
+ const url = window.editandoServicio
+  ? API + "/admin/services/" + window.editandoServicio
+  : API + "/admin/services";
+
+const method = window.editandoServicio ? "PUT" : "POST";
+
+const res = await fetch(url,{
+  method,
   headers:{
     "Content-Type":"application/json",
     "Authorization":"Bearer " + localStorage.getItem("token")
@@ -546,7 +552,7 @@ async function guardarServicio(){
     name: nombre,
     keywords: nombre.toLowerCase().split(" "),
     department: departamento,
-    type: tipo, // 🔥 clave
+    type: tipo,
     auto_response: respuesta
   })
 });
@@ -566,6 +572,7 @@ cargarServicios(); // 🔥 refrescar tabla
   console.error("❌ ERROR guardarServicio:", err);
  }
 
+ window.editandoServicio = null;
 }
 
 async function guardarRespuesta(){
@@ -618,18 +625,20 @@ async function cargarServicios(){
     const tbody = document.getElementById("tablaServicios");
     tbody.innerHTML = "";
 
+    window.serviciosData = data;
+
     data.forEach(s=>{
+  const tr = document.createElement("tr");
 
-      const tr = document.createElement("tr");
-
-      tr.innerHTML = `
-        <td>${s.name}</td>
-        <td>${s.department}</td>
-        <td>${s.type}</td>
-        <td>
-          <button class="btn-danger" onclick="eliminarServicio(${s.id})">Eliminar</button>
-        </td>
-      `;
+  tr.innerHTML = `
+    <td>${s.name}</td>
+    <td>${s.department}</td>
+    <td>${s.type}</td>
+    <td>
+      <button onclick="editarServicio(${s.id})">✏️</button>
+      <button class="btn-danger" onclick="eliminarServicio(${s.id})">Eliminar</button>
+    </td>
+  `;
 
       tbody.appendChild(tr);
 
@@ -671,6 +680,19 @@ async function eliminarServicio(id){
     console.error("❌ ERROR eliminarServicio:", err);
   }
 
+}
+async function editarServicio(id){
+
+  const servicio = (window.serviciosData || []).find(s=>s.id === id);
+
+  if(!servicio) return;
+
+  document.getElementById("name").value = servicio.name;
+  document.getElementById("department").value = servicio.department;
+  document.getElementById("type").value = servicio.type;
+  document.getElementById("response").value = servicio.auto_response;
+
+  window.editandoServicio = id;
 }
 // INIT CHAT
 cargarGuests();

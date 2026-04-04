@@ -1217,7 +1217,23 @@ const company_code = companyRes.rows[0].code;
 
   res.json(nuevaTarea);
 });
+app.put("/admin/services/:id", authMiddleware, async (req,res)=>{
 
+  const { name, keywords, department, type, auto_response } = req.body;
+
+  await db.query(`
+    UPDATE service_catalog
+    SET name=$1,
+        keywords=$2,
+        department=$3,
+        type=$4,
+        auto_response=$5
+    WHERE id=$6 AND company_id=$7
+  `,
+  [name, keywords, department, type, auto_response, req.params.id, req.user.company_id]);
+
+  res.json({ok:true});
+});
 app.put("/tasks/:id", authMiddleware, async (req,res)=>{
 
  try{
