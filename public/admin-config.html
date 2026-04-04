@@ -366,12 +366,15 @@ async function cargarGuests(){
 
   const res = await fetch(API + "/guests/" + company_code);
 
-if(!res.ok){
-  console.error("❌ ERROR guests:", res.status);
-  return;
-}
+  if(!res.ok){
+    console.error("❌ ERROR guests:", res.status);
+    return;
+  }
 
-const data = await res.json();
+  const data = await res.json();
+
+  window.guestsData = data;   // 🔥 FALTABA
+  renderGuests();             // 🔥 FALTABA
 }
 
 function renderGuests(){
@@ -652,7 +655,7 @@ const data = await res.json();
     <td>${s.name}</td>
     <td>${s.department}</td>
     <td>${s.type}</td>
-    <td>${(s.keywords || []).join(", ")}</td
+    <td>${(s.keywords || []).join(", ")}</td>
     <td>
       <button onclick="editarServicio(${s.id})">✏️</button>
       <button class="btn-danger" onclick="eliminarServicio(${s.id})">Eliminar</button>

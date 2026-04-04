@@ -234,6 +234,7 @@ if(!guest_id){
   return;
 }
 console.log("JOIN ROOM:", guest_id);
+socket.emit("join_guest", guest_id); // 🔥 CRÍTICO
 });
 
 socket.on("disconnect", ()=>{
