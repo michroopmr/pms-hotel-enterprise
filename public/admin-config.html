@@ -286,8 +286,11 @@ socket = io(API,{
   auth:{
     token: localStorage.getItem("token")
   },
-  transports:["websocket"],
-  reconnection:true
+  transports:["websocket","polling"],
+  reconnection:true,
+  reconnectionAttempts:5,
+  reconnectionDelay:1000,
+  timeout:20000
 });
 
 socket.on("connect", ()=>{
@@ -572,17 +575,17 @@ async function guardarRespuesta(){
   const trigger = document.getElementById("trigger").value;
   const respuesta = document.getElementById("respuestaTexto").value;
 
-  const res = await fetch(API + "/admin/flows",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json"
-    },
-    body: JSON.stringify({
-      trigger,
-      response: respuesta,
-      company_code: localStorage.getItem("company_code")
-    })
-  });
+ const res = await fetch(API + "/admin/flows",{
+  method:"POST",
+  headers:{
+    "Content-Type":"application/json",
+    "Authorization":"Bearer " + localStorage.getItem("token") // 🔥 CLAVE
+  },
+  body: JSON.stringify({
+    trigger,
+    response: respuesta
+  })
+}); 
 
   const data = await res.json();
 
