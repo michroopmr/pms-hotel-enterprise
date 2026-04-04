@@ -3,6 +3,8 @@
 const express = require("express");
 const app = express();
 
+app.set('trust proxy', true);
+
 const http = require("http");
 const { Server } = require("socket.io");
 
@@ -680,6 +682,10 @@ CREATE TABLE IF NOT EXISTS tickets(
 )
 `);
 await db.query(`
+ALTER TABLE tickets ADD COLUMN IF NOT EXISTS company_id INTEGER
+`);
+
+await db.query(`
   ALTER TABLE guests ADD COLUMN IF NOT EXISTS assigned_to TEXT
 `);
 
@@ -1047,11 +1053,13 @@ function detectarPrioridad(msg, tipo){
  return "normal";
 }
 
-async function crearTicket({guest_id, room, tipo, prioridad="normal"}){
+async function crearTicket({guest_id, room, tipo, prioridad="normal", company_id}){
+
  await db.query(`
-  INSERT INTO tickets (guest_id, room, type, priority)
-  VALUES ($1,$2,$3,$4)
- `,[guest_id, room, tipo, prioridad]);
+  INSERT INTO tickets (guest_id, room, type, priority, company_id)
+  VALUES ($1,$2,$3,$4,$5)
+ `,[guest_id, room, tipo, prioridad, company_id]);
+
 }
 
 /* ================= PUSH HELPER ================= */
