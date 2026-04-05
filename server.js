@@ -73,7 +73,7 @@ app.use(express.json());
 
 app.use("/chat", rateLimit({
  windowMs: 60 * 1000,
- max: 40
+ max: 200
 }));
 
 app.use("/guest", rateLimit({
@@ -485,7 +485,46 @@ app.get("/admin/flows", authMiddleware, async (req,res)=>{
   );
   res.json(result.rows);
 });
+app.get("/dashboard/:company_code", async (req,res)=>{
+ try{
 
+  const company_id = await getCompanyId(req.params.company_code);
+
+  const guests = await db.query(
+    "SELECT * FROM guests WHERE company_id=$1 AND active=true",
+    [company_id]
+  );
+
+  const tickets = await db.query(
+    "SELECT * FROM tickets WHERE company_id=$1",
+    [company_id]
+  );
+
+  const messages = await db.query(`
+    SELECT COUNT(*) FROM messages m
+    JOIN guests g ON m.guest_id = g.id
+    WHERE g.company_id=$1
+  `,[company_id]);
+
+  const pendientes = await db.query(`
+    SELECT COUNT(*) FROM guests
+    WHERE company_id=$1
+    AND last_message_at IS NOT NULL
+    AND last_response_at IS NULL
+  `,[company_id]);
+
+  res.json({
+    guests: guests.rows.length,
+    tickets: tickets.rows.length,
+    messages: Number(messages.rows[0].count),
+    pending: Number(pendientes.rows[0].count)
+  });
+
+ }catch(err){
+  console.error("❌ dashboard error:", err);
+  res.status(500).json({error:"dashboard error"});
+ }
+});
 app.post("/admin/flows", authMiddleware, async (req,res)=>{
   const { trigger, response } = req.body;
 

@@ -71,6 +71,7 @@ button{
   flex-direction:column;
   height:100vh;
   background:#efeae2;
+  overflow:hidden; /* 🔥 importante */
 }
 
 .chat-messages{
@@ -80,17 +81,23 @@ button{
   display:flex;
   flex-direction:column;
   gap:8px;
-  padding-bottom:80px;
+
+  padding-bottom:90px; /* 🔥 más espacio */
 }
 
 .chat-input{
+  position:fixed;
+  bottom:0;
+  left:0;
+  width:100%;
   display:flex;
   padding:10px;
   background:white;
   border-top:1px solid #ddd;
   gap:8px;
-  position:sticky;
-  bottom:0;
+  z-index:100;
+
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
 }
 
 .chat-input input{

@@ -514,34 +514,19 @@ async function cargarDashboard(){
 
   const company_code = localStorage.getItem("company_code");
 
-  const guests = await fetch(API + "/guests/" + company_code).then(r=>r.json());
-  const resTickets = await fetch(API + "/tickets/" + company_code);
+  const res = await fetch(API + "/dashboard/" + company_code);
 
-if(!resTickets.ok){
-  console.error("HTTP ERROR tickets:", resTickets.status);
-  return;
-}
-
-const tickets = await resTickets.json();
-
-  document.getElementById("totalGuests").innerText = guests.length;
-  document.getElementById("totalTickets").innerText = tickets.length;
-
-  let total = 0;
-  let sinResponder = 0;
-
-  for(const g of guests){
-
-    const msgs = await fetch(API + "/chat/" + g.id + "?company_code=" + company_code).then(r=>r.json());
-    total += msgs.length;
-
-    if(g.last_message_at && !g.last_response_at){
-      sinResponder++;
-    }
+  if(!res.ok){
+    console.error("HTTP ERROR dashboard:", res.status);
+    return;
   }
 
-  document.getElementById("totalMessages").innerText = total;
-  document.getElementById("totalPending").innerText = sinResponder;
+  const data = await res.json();
+
+  document.getElementById("totalGuests").innerText = data.guests;
+  document.getElementById("totalTickets").innerText = data.tickets;
+  document.getElementById("totalMessages").innerText = data.messages;
+  document.getElementById("totalPending").innerText = data.pending;
 }
 async function guardarServicio(){
 
