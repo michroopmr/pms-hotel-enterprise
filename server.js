@@ -19,6 +19,15 @@ const pino = require("pino");
 
 const logger = pino();
 
+// 🔥 PROTECCIÓN GLOBAL DE ERRORES
+process.on("uncaughtException", err => {
+  logger.error("💥 UNCAUGHT:", err);
+});
+
+process.on("unhandledRejection", err => {
+  logger.error("💥 PROMISE ERROR:", err);
+});
+
 // 🔥 SERVER + SOCKET
 
 const server = http.createServer(app);
@@ -799,33 +808,57 @@ socket.on("call_staff", (data) => {
 });
 socket.on("admin_send_message", async (data)=>{
 
-  const { guest_id, message, company_code } = data; // 🔥 MOVER ARRIBA
+  const { guest_id, message, company_code } = data;
 
-  io.to("guest_" + guest_id).emit("message_delivered",{
-    guest_id
-  });
+  // 🔒 VALIDACIÓN
+  if(!guest_id || !message || !company_code){
+    console.error("❌ Datos incompletos admin_send_message:", data);
+    return;
+  }
 
- // guardar mensaje
- await db.query(
-  "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'admin')",
-  [guest_id, message]
- );
-await db.query(
-  "UPDATE guests SET last_response_at=NOW() WHERE id=$1",
-  [guest_id]
-);
- // enviar al huésped
- io.to("guest_" + guest_id).emit("new_message",{
-  guest_id,
-  message,
-  sender:"admin"
-});
- // actualizar admin (otros paneles)
- io.to("admin_" + company_code).emit("new_message",{
-  guest_id,
-  message,
-  sender:"admin"
-});
+  try{
+
+    // 🔥 1. GUARDAR MENSAJE
+    await db.query(
+      "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'admin')",
+      [guest_id, message]
+    );
+
+    // 🔥 2. ACTUALIZAR ESTADO DEL GUEST
+    await db.query(
+      "UPDATE guests SET last_response_at=NOW() WHERE id=$1",
+      [guest_id]
+    );
+
+    // 🔥 3. CONFIRMAR ENTREGA (opcional tipo WhatsApp)
+    io.to("guest_" + guest_id).emit("message_delivered",{
+      guest_id
+    });
+
+    // 🔥 4. ENVIAR AL HUÉSPED
+    io.to("guest_" + guest_id).emit("new_message",{
+      guest_id,
+      message,
+      sender:"admin"
+    });
+
+    // 🔥 5. ACTUALIZAR TODOS LOS ADMINS
+    io.to("admin_" + company_code).emit("new_message",{
+      guest_id,
+      message,
+      sender:"admin"
+    });
+
+  }catch(err){
+
+    console.error("❌ ERROR admin_send_message:", err);
+
+    // 🔥 NO romper socket
+    io.to("admin_" + company_code).emit("error_message",{
+      error:"No se pudo enviar el mensaje"
+    });
+
+  }
 
 });
 
