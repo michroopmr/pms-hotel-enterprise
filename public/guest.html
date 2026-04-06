@@ -6,54 +6,68 @@
 <title>Asistente del Hotel</title>
 
 <style>
-body{
-  font-family: Arial;
-  background:#f3f4f6;
-  display:flex;
-  justify-content:center;
-  align-items:center;
-  min-height:100dvh; /* 🔥 fix móvil */
-  margin:0;
+/* RESET PRO */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
-.card{
-  background:white;
-  padding:24px;
-  border-radius:16px;
-  width:90%;
-  max-width:350px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.1);
+/* BODY */
+body {
+  font-family: Arial, sans-serif;
+  background: #f3f4f6;
 }
 
-/* 🔥 inputs */
-.card input{
-  width:100%;
-  padding:12px;
-  margin-top:12px;
-  border-radius:10px;
-  border:1px solid #ccc;
-  font-size:16px;
+/* CONTAINER */
+.login-container {
+  height: 100dvh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
 }
 
-/* 🔥 botón */
-.card button{
-  width:100%;
-  padding:14px;
-  margin-top:16px;
-  border:none;
-  background:#111827;
-  color:white;
-  border-radius:10px;
-  font-size:16px;
-}
-.card h2{
-  margin-bottom:10px;
+/* CARD */
+.login-card {
+  width: 100%;
+  max-width: 380px;
+  background: white;
+  padding: 25px 20px;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.08);
 }
 
-.card p{
-  font-size:14px;
-  color:#666;
-  margin-bottom:10px;
+/* TEXT */
+.login-card h2 {
+  margin-bottom: 5px;
+}
+
+.login-card p {
+  color: #6b7280;
+  margin-bottom: 15px;
+}
+
+/* INPUTS */
+.login-card input {
+  width: 100%;
+  padding: 14px;
+  margin-top: 10px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  font-size: 16px;
+}
+
+/* BUTTON */
+.login-card button {
+  width: 100%;
+  margin-top: 18px;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  background: #0f172a;
+  color: white;
+  font-size: 16px;
 }
 </style>
 
@@ -61,14 +75,18 @@ body{
 
 <body>
 
-<div class="card">
-<h2>Bienvenido 👋</h2>
-<p>Ingresa tus datos para continuar</p>
+<div class="login-container">
+  <div class="login-card">
+    
+    <h2>Bienvenido 👋</h2>
+    <p>Ingresa tus datos para continuar</p>
 
-<input type="text" id="name" placeholder="Nombre">
-<input type="text" id="room" placeholder="Número de habitación">
+    <input type="text" placeholder="Nombre" id="guest_name">
+    <input type="text" placeholder="Habitación" id="guest_room">
 
-<button onclick="login()">Entrar</button>
+    <button onclick="entrarChat()">Entrar</button>
+
+  </div>
 </div>
 
 <script>
