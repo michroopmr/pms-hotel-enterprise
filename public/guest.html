@@ -84,7 +84,7 @@ body {
     <input type="text" placeholder="Nombre" id="guest_name">
     <input type="text" placeholder="Habitación" id="guest_room">
 
-    <button onclick="entrarChat()">Entrar</button>
+    <button onclick="login()">Entrar</button>
 
   </div>
 </div>
@@ -94,8 +94,8 @@ body {
 const company_code = params.get("empresa") || "DEMO01";
 
 async function login(){
- const name = document.getElementById("name").value;
- const room = document.getElementById("room").value;
+ const name = document.getElementById("guest_name").value;
+const room = document.getElementById("guest_room").value;
 
  if(!name || !room){
    alert("Completa todos los campos");

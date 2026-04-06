@@ -4,20 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
 
+
 <style>
-/* RESET */
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
   margin: 0;
   padding: 0;
-  overflow: hidden; /* 🔥 evita bugs mobile */
-  font-family: Arial, sans-serif;
+  overflow: hidden;
+  font-family: Arial;
 }
 
-/* CONTENEDOR GENERAL */
 .chat-container {
   height: 100dvh;
   display: flex;
@@ -26,7 +23,6 @@ body {
   background: #e5ddd5;
 }
 
-/* HEADER */
 .chat-header {
   padding: 15px;
   background: #0f172a;
@@ -34,7 +30,6 @@ body {
   font-weight: bold;
 }
 
-/* MENSAJES */
 .chat-messages {
   flex: 1;
   overflow-y: auto;
@@ -42,10 +37,9 @@ body {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  padding-bottom: 120px; /* 🔥 evita overlap */
+  padding-bottom: 120px;
 }
 
-/* BURBUJAS */
 .msg {
   max-width: 75%;
   padding: 10px 14px;
@@ -53,19 +47,16 @@ body {
   font-size: 14px;
 }
 
-/* BOT */
 .msg.bot {
   background: white;
   align-self: flex-start;
 }
 
-/* USER */
 .msg.user {
   background: #bbf7d0;
   align-self: flex-end;
 }
 
-/* INPUT AREA */
 .chat-input {
   position: sticky;
   bottom: 0;
@@ -73,12 +64,11 @@ body {
   display: flex;
   gap: 10px;
   padding: 10px;
-  padding-bottom: calc(10px + env(safe-area-inset-bottom)); /* 🔥 iPhone */
+  padding-bottom: calc(10px + env(safe-area-inset-bottom));
   background: white;
   border-top: 1px solid #ddd;
 }
 
-/* INPUT */
 .chat-input input {
   flex: 1;
   padding: 12px;
@@ -86,7 +76,6 @@ body {
   border: 1px solid #ddd;
 }
 
-/* BUTTON */
 .chat-input button {
   background: #22c55e;
   border: none;
@@ -94,24 +83,22 @@ body {
   border-radius: 20px;
   color: white;
 }
-.msg span {
-  opacity: 0.7;
-}
 </style>
 </head>
 
 <body>
-
 <script src="/socket.io/socket.io.js"></script>
-
 <div class="chat-container">
 
+  <!-- HEADER -->
   <div class="chat-header">
-    Luka 🤖
+    <span>Luka 🤖</span>
   </div>
 
+  <!-- MENSAJES -->
   <div class="chat-messages" id="chatMessages"></div>
 
+  <!-- INPUT -->
   <div class="chat-input">
     <input type="text" id="msgInput" placeholder="Escribe un mensaje...">
     <button onclick="send()">Enviar</button>
@@ -120,186 +107,385 @@ body {
 </div>
 
 <script>
-
-// ================= CONFIG =================
+  
 const params = new URLSearchParams(window.location.search);
 const company_code = params.get("empresa") || "DEMO01";
 
 let guest = null;
 
 try{
-  guest = JSON.parse(localStorage.getItem("guest"));
+ guest = JSON.parse(localStorage.getItem("guest"));
 }catch(e){
-  console.error("Error parsing guest");
+ console.error("Error parsing guest");
 }
 
 if(!guest){
-  window.location.replace(`/guest.html?empresa=${company_code}`);
-  throw new Error("Redirigiendo...");
+ window.location.replace(`/guest.html?empresa=${company_code}`);
+ throw new Error("Redirigiendo...");
 }
 
-// guardar empresa
-guest.company_code = company_code;
-localStorage.setItem("guest", JSON.stringify(guest));
+// 🔥 4. guardar empresa
+if(company_code){
+  guest.company_code = company_code;
+  localStorage.setItem("guest", JSON.stringify(guest));
+}
 
-// ================= SOCKET =================
+// 🔥 DEBUG
+console.log("Guest:", guest);
+console.log("Empresa:", guest.company_code);
+console.log("Empresa actual:", guest.company_code);
+
+const audio = new Audio("https://actions.google.com/sounds/v1/notifications/notification_simple-01.mp3");
+
+function showToast(msg){
+
+ const toast = document.createElement("div");
+
+ toast.innerText = msg;
+
+ toast.style.position = "fixed";
+ toast.style.top = "20px";
+ toast.style.right = "20px";
+ toast.style.background = "#25d366";
+ toast.style.color = "#fff";
+ toast.style.padding = "12px 18px";
+ toast.style.borderRadius = "10px";
+ toast.style.boxShadow = "0 4px 10px rgba(0,0,0,0.2)";
+ toast.style.zIndex = "9999";
+
+ document.body.appendChild(toast);
+
+ audio.play(); // 🔥 aquí sí funciona
+
+ setTimeout(()=>toast.remove(),3000);
+}
+
+let sessionTimer;
+let inactivityTimer;
+
+// 🔥 AHORA SÍ SOCKET
 const API = "https://mollyhelpers.com";
 
 const socket = io(API,{
-  transports:["websocket","polling"]
+  transports:["websocket","polling"],
+  reconnection:true,
+  reconnectionAttempts:5,
+  reconnectionDelay:1000,
+  timeout:20000
 });
-
-// ================= INPUT =================
 const input = document.getElementById("msgInput");
 
+let typingTimeout;
+
 input.addEventListener("input", ()=>{
+
   socket.emit("typing",{
     guest_id: guest.id,
     company_code: guest.company_code
   });
+
+  clearTimeout(typingTimeout);
+
+  typingTimeout = setTimeout(()=>{}, 1000);
+
 });
 
-// ================= CONNECT =================
-socket.on("connect", ()=>{
-  socket.emit("join_guest", guest.id);
+socket.on("connect", ()=>{ 
+  console.log("🟢 Socket conectado");
+
+  const guest_id = guest?.id;
+
+if(!guest_id){
+  console.error("❌ guest_id inválido");
+  return;
+}
+console.log("JOIN ROOM:", guest_id);
+socket.emit("join_guest", guest_id); // 🔥 CRÍTICO
 });
 
-// ================= MENSAJES =================
+socket.on("disconnect", ()=>{
+  console.log("🔴 Socket desconectado");
+});
+
 socket.on("new_message", (data)=>{
 
-  if(!data || data.sender === "guest") return;
+  if(!data) return;
 
-  socket.emit("message_read",{
-    guest_id: guest.id,
-    company_code: guest.company_code
-  });
+  const { message, sender } = data;
 
-  if(data.sender === "admin" || data.sender === "staff"){
-    addMsg("👨‍💼 " + data.message, "bot");
-  }
+  if(!message) return;
 
-  if(data.sender === "bot"){
-    addMsg(data.message, "bot");
-  }
+  // 🔥 evitar duplicar mensajes propios
+  if(sender === "guest") return;
 
+   socket.emit("message_read",{
+  guest_id: guest.id,
+  company_code: guest.company_code
 });
 
-// ================= TYPING =================
+  if(sender === "admin" || sender === "staff"){
+    addMsg("👨‍💼 " + message, "bot");
+    showToast("Nuevo mensaje del staff");
+    return;
+  }
+
+  if(sender === "bot"){
+    addMsg(message, "bot");
+    return;
+  }
+ 
+
+});
 socket.on("typing_admin", ()=>{
 
-  if(document.getElementById("typing")) return;
+  const existing = document.getElementById("typing");
+
+  if(existing) return;
 
   const div = document.createElement("div");
   div.id = "typing";
   div.className = "msg bot";
   div.innerText = "🧑‍💼 escribiendo...";
 
-  chatMessages.appendChild(div);
+  document.getElementById("chatMessages").appendChild(div);
 
-  setTimeout(()=> div.remove(), 1500);
+  setTimeout(()=>{
+    div.remove();
+  }, 1500);
 
 });
-function getHora(){
-  const now = new Date();
-  return now.toLocaleTimeString([], {
-    hour: '2-digit',
-    minute: '2-digit'
-  });
-}
-// ================= UI =================
-function addMsg(text, type){
+function addMessage(text, type) {
+  const container = document.getElementById("chatMessages");
 
   const div = document.createElement("div");
   div.className = "msg " + type;
+  div.innerText = text;
 
-  const sender = type === "bot" ? "Luka 🤖" : "Tú";
-  const hora = getHora();
+  container.appendChild(div);
 
-  div.innerHTML = `
-    <div style="display:flex; justify-content:space-between; align-items:end; gap:10px;">
-      
-      <div>
-        <strong>${sender}</strong>
-        <div>${text}</div>
-      </div>
+  // 🔥 auto scroll SIEMPRE al final
+  container.scrollTop = container.scrollHeight;
+}
+function addMsg(text, type){
 
-      <span style="
-        font-size:11px;
-        color:#6b7280;
-        white-space:nowrap;
-      ">
-        ${hora}
-      </span>
+ const div = document.createElement("div");
+ div.className = "msg " + type;
 
-    </div>
-  `;
+ // 🔥 Nombre del emisor
+ let sender = "";
 
-  chatMessages.appendChild(div);
-  scrollBottom();
+ if(type === "bot"){
+   sender = "Luka 🤖";
+ }else{
+   sender = "Tú";
+ }
+
+ div.innerHTML = `
+  <strong>${sender}</strong>
+  <div>${text}</div>
+`;
+
+ const chat = document.getElementById("chatMessages");
+ chat.appendChild(div);
+
+scrollBottom();
 }
 
-function scrollBottom(){
-  chatMessages.scrollTop = chatMessages.scrollHeight;
+function resetInactivity(){
+
+ clearTimeout(inactivityTimer);
+
+ inactivityTimer = setTimeout(async () => {
+
+  if(sessionStorage.getItem("despedida_enviada")) return;
+
+  const despedida = "Gracias por contactarnos 🙌...";
+
+const res = await fetch("/chat/message",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({
+    guest_id: guest.id,
+    message: despedida,
+    sender: "bot",
+    company_code: guest.company_code
+  })
+});
+
+const data = await res.json();
+
+if(!res.ok){
+  console.error("❌ ERROR BACKEND:", data);
 }
 
-// ================= SEND =================
+  sessionStorage.setItem("despedida_enviada", "true");
+
+ }, 180000);
+}
+
 let sending = false;
 
 async function send(){
 
-  if(sending) return;
-  sending = true;
+ if(sending) return;
+ sending = true;
 
-  const text = input.value.trim();
+ const input = document.getElementById("msgInput");
+ const text = input.value.trim();
 
-  if(!text){
-    sending = false;
-    return;
-  }
+ sessionStorage.removeItem("despedida_enviada");
 
-  addMsg(text,"user");
-
-  await fetch("/chat/message",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      guest_id: guest.id,
-      message: text,
-      sender: "guest",
-      company_code: guest.company_code
-    })
-  });
-
-  input.value="";
-  input.focus();
-
+ if(!guest || !guest.id){
+  console.error("Guest inválido");
   sending = false;
+  return;
 }
 
-// ENTER
-input.addEventListener("keypress",(e)=>{
-  if(e.key === "Enter"){
-    send();
-  }
+ if(!text){
+  sending = false;
+  return;
+}
+
+ if(text.toLowerCase() === "menu"){
+  addMsg(text,"user");
+
+ const res = await fetch("/chat/message",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({
+    guest_id: guest.id,
+    message: text,
+    sender: "guest",
+    company_code: guest.company_code
+  })
 });
 
-// ================= BIENVENIDA =================
-(function(){
+const data = await res.json();
 
-  const hora = new Date().getHours();
-  let saludo = "Hola";
+if(!res.ok){
+  console.error("❌ ERROR BACKEND:", data);
+}
 
-  if(hora < 12) saludo = "Buenos días";
-  else if(hora < 19) saludo = "Buenas tardes";
-  else saludo = "Buenas noches";
+  sending = false; 
+  return;
+}
 
-  const mensaje = `${saludo} ${guest.name} 👋  
-Soy Luka 🤖 ¿En qué puedo ayudarte?`;
+ addMsg(text,"user");
+
+
+ await fetch("/chat/message",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({
+   guest_id: guest.id,
+   message: text,
+   sender: "guest",
+   company_code: guest.company_code
+  })
+});
+
+ input.value="";
+ input.focus();
+
+ resetInactivity();
+ resetSessionTimer();
+ sending = false;
+
+}
+function closeSession(){
+
+  const mensaje = "🔒 Por seguridad, tu sesión ha finalizado.\n\nPor favor escanea nuevamente el código QR para nuevas solicitudes.";
 
   addMsg(mensaje, "bot");
 
+  // limpiar sesión
+  localStorage.removeItem("guest");
+
+  // bloquear input
+  document.getElementById("msgInput").disabled = true;
+ 
+  setTimeout(()=>{
+  window.location.href = `/guest.html?empresa=${company_code}`;
+}, 4000);
+
+}
+function resetSessionTimer(){
+
+  clearTimeout(sessionTimer);
+
+  sessionTimer = setTimeout(()=>{
+    closeSession();
+  }, 900000); // 15 min
+}
+function scrollBottom(){
+  const chat = document.getElementById("chatMessages");
+  if(!chat) return;
+
+  chat.scrollTo({
+    top: chat.scrollHeight,
+    behavior: "smooth"
+  });
+}
+// 🔥 mensaje de bienvenida PRO
+
+const hora = new Date().getHours();
+
+let saludo = "Hola";
+
+if(hora < 12) saludo = "Buenos días";
+else if(hora < 19) saludo = "Buenas tardes";
+else saludo = "Buenas noches";
+
+(async () => {
+
+ const mensaje = `${saludo} ${guest.name} 👋  
+Soy Luka 🤖, tu asistente virtual del hotel.  
+
+¿En qué puedo ayudarte hoy?`;
+
+ addMsg(mensaje, "bot");
+
+ const res = await fetch("/chat/message",{
+  method:"POST",
+  headers:{"Content-Type":"application/json"},
+  body: JSON.stringify({
+    guest_id: guest.id,
+    message: mensaje,
+    sender: "bot",
+    company_code: guest.company_code
+  })
+ });
+
+ const data = await res.json();
+
+ if(!res.ok){
+  console.error("❌ ERROR BACKEND:", data);
+ }
+
 })();
 
+window.addEventListener("load", ()=>{
+
+  const input = document.getElementById("msgInput");
+
+  if(input){
+
+    input.addEventListener("keypress", function(e){
+      if(e.key === "Enter"){
+        send();
+      }
+    });
+
+    input.addEventListener("focus", ()=>{
+      setTimeout(scrollBottom, 300);
+    });
+
+  }
+
+});
+
+resetInactivity();
+resetSessionTimer();
 </script>
 
 </body>
