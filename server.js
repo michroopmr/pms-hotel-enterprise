@@ -502,11 +502,8 @@ app.get("/dashboard/:company_code", async (req,res)=>{
 
   const messages = await db.query(`
   SELECT COUNT(*) FROM messages m
-  WHERE EXISTS (
-    SELECT 1 FROM guests g
-    WHERE g.id = m.guest_id
-    AND g.company_id=$1
-  )
+  LEFT JOIN guests g ON m.guest_id = g.id
+  WHERE (g.company_id=$1 OR g.company_id IS NULL)
 `,[company_id]);
 
   const pendientes = await db.query(`
