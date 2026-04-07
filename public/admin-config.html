@@ -520,19 +520,18 @@ async function cargarDashboard(){
 
   const company_code = localStorage.getItem("company_code");
 
-  const res = await fetch(API + "/dashboard/" + company_code);
+ const res = await fetch(API + "/dashboard/" + company_code);
 
-  if(!res.ok){
-    console.error("HTTP ERROR dashboard:", res.status);
-    return;
-  }
+if(!res.ok){
+  console.error("HTTP ERROR dashboard:", res.status);
 
-  const data = await res.json();
+  document.getElementById("totalGuests").innerText = 0;
+  document.getElementById("totalTickets").innerText = 0;
+  document.getElementById("totalMessages").innerText = 0;
+  document.getElementById("totalPending").innerText = 0;
 
-  document.getElementById("totalGuests").innerText = data.guests;
-  document.getElementById("totalTickets").innerText = data.tickets;
-  document.getElementById("totalMessages").innerText = data.messages;
-  document.getElementById("totalPending").innerText = data.pending;
+  return;
+}
 }
 async function guardarServicio(){
 
