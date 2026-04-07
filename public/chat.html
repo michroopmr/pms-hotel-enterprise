@@ -193,14 +193,14 @@ input.addEventListener("input", ()=>{
 socket.on("connect", ()=>{ 
   console.log("🟢 Socket conectado");
 
-  const guest_id = guest?.id;
+  if(!guest || !guest.id){
+    console.error("❌ guest inválido");
+    return;
+  }
 
-if(!guest_id){
-  console.error("❌ guest_id inválido");
-  return;
-}
-console.log("JOIN ROOM:", guest_id);
-socket.emit("join_guest", guest_id); // 🔥 CRÍTICO
+  console.log("JOIN ROOM:", guest.id);
+
+  socket.emit("join_guest", guest.id);
 });
 
 socket.on("disconnect", ()=>{
@@ -216,7 +216,7 @@ socket.on("new_message", (data)=>{
   if(!message) return;
 
   // 🔥 evitar duplicar mensajes propios
-  if(sender === "guest") return;
+  if(sender === "guest" && data.guest_id === guest.id) return;
 
    socket.emit("message_read",{
   guest_id: guest.id,

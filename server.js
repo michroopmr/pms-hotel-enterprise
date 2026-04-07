@@ -495,15 +495,15 @@ app.get("/dashboard/:company_code", async (req,res)=>{
   [company_id]
 );
 
-  const tickets = await db.query(
-    "SELECT COUNT(*) FROM tickets WHERE company_id=$1",
-    [company_id]
-  );
+ const tickets = await db.query(
+  "SELECT COUNT(*) FROM tasks WHERE company_id=$1",
+  [company_id]
+);
 
   const messages = await db.query(`
   SELECT COUNT(*) FROM messages m
   LEFT JOIN guests g ON m.guest_id = g.id
-  WHERE (g.company_id=$1 OR g.company_id IS NULL)
+  WHERE (g.company_id=$1
 `,[company_id]);
 
   const pendientes = await db.query(`
