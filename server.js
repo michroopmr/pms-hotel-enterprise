@@ -250,6 +250,15 @@ try{
     sender
   });
 
+  console.log("📡 Enviando a guest:", guest_id);
+  
+  // 🔥 ENVIAR TAMBIÉN AL HUÉSPED
+io.to("guest_" + guest_id).emit("new_message", {
+  guest_id,
+  message,
+  sender
+});
+
   // 🔥 SOLO SI ES MENSAJE DEL HUÉSPED
   if(sender === "guest"){
 
