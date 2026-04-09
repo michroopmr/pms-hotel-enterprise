@@ -251,7 +251,7 @@ try{
   });
 
   console.log("📡 Enviando a guest:", guest_id);
-  
+
   // 🔥 ENVIAR TAMBIÉN AL HUÉSPED
 io.to("guest_" + guest_id).emit("new_message", {
   guest_id,
@@ -971,82 +971,144 @@ function normalizar(msg){
 
 async function detectarIntencion(msg, company_id){
 
- msg = normalizar(msg);
+  msg = normalizar(msg);
 
- // ================= RESPUESTAS RÁPIDAS =================
-const flows = await db.query(
-  "SELECT * FROM bot_flows WHERE company_id=$1",
-  [company_id]
-);
+  // ================= RESPUESTAS RÁPIDAS (DB) =================
+  const flows = await db.query(
+    "SELECT * FROM bot_flows WHERE company_id=$1",
+    [company_id]
+  );
 
-for(const f of flows.rows){
-  const trigger = normalizar(f.trigger);
-  if(msg.includes(trigger)){
-    return {
-      texto: f.response,
-      ticket: false
-    };
-  }
-}
-
- // 🔥 1. PRIMERO DETECTAR FALLAS (PRIORIDAD ALTA)
-const semantica = detectarIntencionSemantica(msg);
-
-if(semantica.ticket === true){
-  return semantica;
-}
-
-// 🔥 2. LUEGO CATÁLOGO
-const services = await db.query(
-  "SELECT * FROM service_catalog WHERE company_id=$1",
-  [company_id]
-);
-
-for(const s of services.rows){
-
-  const keywords = (s.keywords || []).map(k => normalizar(k));
-
-let match = keywords.some(k => msg.includes(k));
-
-// 🔥 fallback por nombre del servicio
-if(!match){
-  const nombre = normalizar(s.name || "");
-  match = msg.includes(nombre);
-}
-
-  if(match){
-
-    const response = {
-      texto: s.auto_response,
-      ticket: false
-    };
-
-    if(s.type === "info"){
-      return response;
-    }
-
-    if(s.type === "request" || s.type === "issue"){
+  for(const f of flows.rows){
+    const trigger = normalizar(f.trigger);
+    if(msg.includes(trigger)){
       return {
-        ...response,
-        ticket: true,
-        departamento: s.department,
-        prioridad: detectarPrioridad(msg, s.type)
+        texto: f.response,
+        ticket: false
       };
     }
   }
-}
 
-const defaultResponse = detectarIntencionSemantica(msg);
+  // 🔥 1. FALLAS (PRIORIDAD ALTA)
+  const semantica = detectarIntencionSemantica(msg);
 
-// 🔥 SOLO SI NO ES INFO GENÉRICA
-if(defaultResponse.texto && defaultResponse.ticket === true){
-  return defaultResponse;
-}
+  if(semantica.ticket === true){
+    return semantica;
+  }
 
-return {
-  texto: "¿Podrías darme más detalles para ayudarte?",
-  ticket: false
-};
+  // ================= RESPUESTAS FIJAS HOTEL =================
+  const RESPUESTAS_HOTEL = [
+    {
+      keywords: ["spa","masaje","temazcal","vapor"],
+      texto: `💆‍♀️ Spa
+🕘 9:00 a.m. a 5:00 p.m.
+✨ Masajes, cabina de vapor y temazcal
+📅 Todos los servicios requieren reservación previa`
+    },
+    {
+      keywords: ["boutique","tienda"],
+      texto: `🛍️ Boutique
+🕘 9:00 a.m. a 5:00 p.m.
+🚫 Cerrado los miércoles`
+    },
+    {
+      keywords: ["padel","pádel","cancha"],
+      texto: `🎾 Cancha de pádel
+🕘 8:00 a.m. a 7:00 p.m.
+📅 Uso con previa reservación`
+    },
+    {
+      keywords: ["arqueria","arco"],
+      texto: `🏹 Arquería
+📅 Disponible bajo reservación`
+    },
+    {
+      keywords: ["alberca","piscina","pool","kasuko"],
+      texto: `🏊‍♀️ Alberca KASUKO
+🕘 11:00 a.m. a 7:00 p.m.
+📅 Disponible de viernes a domingo`
+    },
+    {
+      keywords: ["restaurante","comida","desayuno","cena","yo"],
+      texto: `🍽️ Restaurante YO
+
+🥐 Desayuno: 8:00 a.m. a 12:30 p.m.
+🍝 Comida y cena: 1:00 p.m. a 10:00 p.m.`
+    },
+    {
+      keywords: ["menu","servicios","info","informacion","hotel"],
+      texto: `¡Hola! 😊 Con gusto te comparto nuestros servicios:
+
+🛍️ Boutique  
+💆‍♀️ Spa  
+🎾 Actividades deportivas  
+🏊‍♀️ Alberca KASUKO  
+🍽️ Restaurante YO  
+
+Escribe el servicio que te interese 😉`
+    }
+  ];
+
+  for(const r of RESPUESTAS_HOTEL){
+    const match = r.keywords.some(k => msg.includes(k));
+    if(match){
+      return {
+        texto: r.texto,
+        ticket: false
+      };
+    }
+  }
+
+  // 🔥 2. CATÁLOGO DINÁMICO (DB)
+  const services = await db.query(
+    "SELECT * FROM service_catalog WHERE company_id=$1",
+    [company_id]
+  );
+
+  for(const s of services.rows){
+
+    const keywords = (s.keywords || []).map(k => normalizar(k));
+
+    let match = keywords.some(k => msg.includes(k));
+
+    if(!match){
+      const nombre = normalizar(s.name || "");
+      match = msg.includes(nombre);
+    }
+
+    if(match){
+
+      const response = {
+        texto: s.auto_response,
+        ticket: false
+      };
+
+      if(s.type === "info"){
+        return response;
+      }
+
+      if(s.type === "request" || s.type === "issue"){
+        return {
+          ...response,
+          ticket: true,
+          departamento: s.department,
+          prioridad: detectarPrioridad(msg, s.type)
+        };
+      }
+    }
+  }
+
+  // 🔥 FALLBACK FINAL
+  const defaultResponse = detectarIntencionSemantica(msg);
+
+  if(defaultResponse.texto && defaultResponse.ticket === true){
+    return defaultResponse;
+  }
+
+  return {
+    texto: "¿Podrías darme más detalles para ayudarte?",
+    ticket: false
+  };
 }
 
 function detectarIntencionSemantica(msg){
