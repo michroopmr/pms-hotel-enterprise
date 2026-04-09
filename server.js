@@ -16,6 +16,13 @@ const path = require("path");
 const bcrypt = require("bcrypt");
 const rateLimit = require("express-rate-limit");
 const pino = require("pino");
+const multer = require("multer");
+const cloudinary = require("./config/cloudinary");
+
+const upload = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 3 * 1024 * 1024 }
+});
 
 const logger = pino();
 
@@ -34,9 +41,8 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: "*"
-  },
-  transports: ["websocket","polling"]
+    origin: ["https://mollyhelpers.com"]
+  }
 });
 
 // 🔥 DISPONIBLE EN TODAS LAS RUTAS
@@ -142,6 +148,10 @@ io.to("admin_" + company_code).emit("task_update", result.rows[0]);
   res.status(500).json({error:"Error creando tarea"});
  }
 });
+// ==========================
+// EVIDENCIAS
+// ==========================
+
 app.post("/assign", authMiddleware, async (req,res)=>{
  try{
 
@@ -159,7 +169,6 @@ app.post("/assign", authMiddleware, async (req,res)=>{
   res.status(500).json({error:"Error asignando staff"});
  }
 });
-
 // ==========================
 // CHATBOT - HUÉSPEDES
 // ==========================
@@ -270,11 +279,49 @@ io.to("guest_" + guest_id).emit("new_message", {
     try{
   ai = await detectarIntencion(message, company_id);
   console.log("🧠 AI RESULT:", ai);
+
 }catch(e){
   console.error("❌ AI ERROR DETALLE:", e);
   ai = { texto:"Error IA", ticket:false };
 }
+// 🔥 detectar cuando bot no entiende
+if(!ai.texto || ai.texto.includes("¿Podrías darme más detalles")){
 
+  console.log("⚠️ BOT NO ENTENDIÓ");
+
+  // 🔥 aumentar contador
+  await db.query(`
+    UPDATE guests 
+    SET fail_count = COALESCE(fail_count,0) + 1
+    WHERE id=$1
+  `,[guest_id]);
+
+  const fail = await db.query(
+    "SELECT fail_count FROM guests WHERE id=$1",
+    [guest_id]
+  );
+
+  const intentos = fail.rows[0].fail_count;
+
+  console.log("Intentos fallidos:", intentos);
+
+  // 🔥 si llega a 3 → alertar staff
+  if(intentos >= 3){
+
+    console.log("🚨 ESCALANDO A STAFF");
+
+    io.to("admin_" + company_code).emit("staff_alert",{
+      guest_id,
+      message: "⚠️ El bot no entiende al huésped"
+    });
+
+    // 🔥 resetear contador
+    await db.query(
+      "UPDATE guests SET fail_count=0 WHERE id=$1",
+      [guest_id]
+    );
+  }
+}
     if(!ai){
       console.log("⚠️ AI NULL");
       return res.json({ ok:true, ia:false });
@@ -512,7 +559,7 @@ app.get("/dashboard/:company_code", async (req,res)=>{
   const messages = await db.query(`
   SELECT COUNT(*) FROM messages m
   LEFT JOIN guests g ON m.guest_id = g.id
-  WHERE (g.company_id=$1
+  WHERE g.company_id=$1
 `,[company_id]);
 
   const pendientes = await db.query(`
@@ -1002,7 +1049,9 @@ async function detectarIntencion(msg, company_id){
       keywords: ["spa","masaje","temazcal","vapor"],
       texto: `💆‍♀️ Spa
 🕘 9:00 a.m. a 5:00 p.m.
-✨ Masajes, cabina de vapor y temazcal
+✨ Masajes.
+Cabina de vapor.
+Temazcal
 📅 Todos los servicios requieren reservación previa`
     },
     {
@@ -1043,7 +1092,7 @@ async function detectarIntencion(msg, company_id){
 💆‍♀️ Spa  
 🎾 Actividades deportivas  
 🏊‍♀️ Alberca KASUKO  
-🍽️ Restaurante YO  
+🍽️ Restaurante  
 
 Escribe el servicio que te interese 😉`
     }
@@ -1973,14 +2022,7 @@ server.listen(PORT,()=>{
  console.log("🚀 Server running on port",PORT);
 });
 
-const multer = require("multer");
-const cloudinary = require("./config/cloudinary");
-
-const upload = multer({
-  storage: multer.memoryStorage(),
-  limits: { fileSize: 3 * 1024 * 1024 }
-});
-
+// ================= UPLOAD CONFIG =================
 app.post("/tasks/:id/evidence", authMiddleware, upload.single("image"), async (req,res)=>{
   try{
 

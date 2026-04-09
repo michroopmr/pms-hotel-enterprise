@@ -721,6 +721,13 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 </div>
       <h3>Tareas</h3>
 
+<select onchange="filtrarDepto(this.value)" style="margin-bottom:10px;">
+  <option value="">Todos los departamentos</option>
+  <option>Recepción</option>
+  <option>Mantenimiento</option>
+  <option>Housekeeping</option>
+  <option>Operaciones</option>
+</select>
       <div id="lista"></div>
 
     </div>
@@ -771,7 +778,12 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
       <button onclick="limpiarFiltros()" style="margin-left:10px;">
         Limpiar
       </button>
-
+<select id="filtroDeptoPDF" style="margin-bottom:10px;">
+  <option value="">Todos</option>
+  <option>Recepción</option>
+  <option>Mantenimiento</option>
+  <option>Housekeeping</option>
+</select>
     </div>
 
     <input type="date" id="from">
@@ -946,6 +958,7 @@ if(esAdmin){
 let tareas=[];
 let filtroEstado=null;
 let filtroFecha=null;
+let filtroDepto = null;
 let usuarioEditando = false;
 let vistaActual = "dashboard"; // 🔥 saber qué vista está activa
 let logoCloudData = null;
@@ -1202,6 +1215,9 @@ function render(){
 
  // dataset base limpio
  let visibles = [...tareas];
+ if(filtroDepto){
+  visibles = visibles.filter(t => t.department === filtroDepto);
+}
 // 🔥 PMS UX: Reportes solo muestra resultados al consultar
 
 if(vistaActual === "reportes" && !filtroFecha){
@@ -2061,7 +2077,13 @@ function obtenerTareasVisibles(){
 
 /* ================= EXPORT ================= */
 function exportarPDF(){
+const dep = document.getElementById("filtroDeptoPDF").value;
 
+let data = [...tareas];
+
+if(dep){
+  data = data.filter(t => t.department === dep);
+}
   try{
  const { jsPDF } = window.jspdf;
 
@@ -2846,40 +2868,49 @@ function seleccionarImagen(id){
   document.getElementById(`file-${id}`).click();
 }
 
-function activarInputEvidencia(id){
+function activarInputEvidencia(task_id){
 
-  const input = document.getElementById(`file-${id}`);
-  if(!input) return;
+ const input = document.getElementById("file-" + task_id);
 
-  input.onchange = async () => {
+ if(!input) return;
 
-    const file = input.files[0];
-    if(!file) return;
+ input.onchange = async function(){
 
-    
+   const file = input.files[0];
 
-    const formData = new FormData();
-    formData.append("image", file);
+   if(!file) return;
 
-    const res = await fetch(
-      `https://mollyhelpers.com/tasks/${id}/evidence`,
-      {
-        method:"POST",
-        headers:{"Authorization":"Bearer " + localStorage.getItem("token")
-      },
-        body:formData
-      }
-    );
+   const formData = new FormData();
+   formData.append("image", file);
+   formData.append("task_id", task_id);
+   formData.append("uploaded_by", "admin");
 
-    const data = await res.json();
+   try{
 
-    if(data.ok){
-      cargarEvidencias(id);
-    }else{
-      alert("Error subiendo evidencia");
-    }
+     const res = await fetch("https://mollyhelpers.com/task/evidence",{
+       method:"POST",
+       body: formData
+     });
 
-  };
+     const data = await res.json();
+
+     if(!res.ok){
+       console.error("❌ ERROR:", data);
+       alert("Error subiendo evidencia");
+       return;
+     }
+
+     console.log("✅ Evidencia subida");
+
+     // 🔥 recargar tarea
+     cargar();
+
+   }catch(err){
+     console.error(err);
+     alert("Error conexión");
+   }
+
+ };
 }
 
 async function cargarEvidencias(id){
@@ -2919,7 +2950,56 @@ async function cargarEvidencias(id){
   }
 
 }
+function seleccionarImagen(task_id){
 
+ const input = document.getElementById("file-" + task_id);
+
+ if(!input) return;
+
+ input.click();
+}
+function filtrarDepto(dep){
+  filtroDepto = dep || null;
+  render();
+}
+async function subirEvidencia(task_id){
+
+ const fileInput = document.getElementById("evidenceInput");
+
+ if(!fileInput.files.length){
+  alert("Selecciona imagen");
+  return;
+ }
+
+ const file = fileInput.files[0];
+
+ const formData = new FormData();
+ formData.append("image", file);
+ formData.append("task_id", task_id);
+ formData.append("uploaded_by", "admin");
+
+ try{
+
+  const res = await fetch("https://mollyhelpers.com/task/evidence",{
+    method:"POST",
+    body: formData
+  });
+
+  const data = await res.json();
+
+  if(!res.ok){
+    console.error("❌ ERROR:", data);
+    alert("Error subiendo imagen");
+    return;
+  }
+
+  alert("✅ Evidencia subida");
+
+ }catch(err){
+  console.error(err);
+  alert("Error conexión");
+ }
+}
 function verImagen(url){
 
  const modal = document.createElement("div");

@@ -297,7 +297,7 @@ socket = io(API,{
   auth:{
     token: localStorage.getItem("token")
   },
-  transports:["websocket","polling"],
+  transports:["websocket"],
   reconnection:true,
   reconnectionAttempts:5,
   reconnectionDelay:1000,
@@ -329,7 +329,8 @@ socket.io.on("reconnect", ()=>{
   }
 });
 
-  socket.on("typing", (data)=>{
+// ================= TYPING =================
+socket.on("typing", (data)=>{
 
   if(data.guest_id !== currentGuest) return;
 
@@ -345,26 +346,38 @@ socket.io.on("reconnect", ()=>{
   setTimeout(()=> div.remove(), 1500);
 
 });
-  
+
+// ================= MENSAJES =================
 socket.on("new_message",(msg)=>{
 
   if(msg.sender === "admin") return;
 
-  // 🔥 REFRESCA LISTA SI NO ES CHAT ACTIVO
+  // 🔥 si NO es chat activo → contador + sonido
   if(msg.guest_id !== currentGuest){
     unread[msg.guest_id] = (unread[msg.guest_id] || 0) + 1;
-    cargarGuests(); // 🔥 aquí entra tu cambio
+    cargarGuests();
     audio.play();
     return;
   }
 
-  // 🔥 SI ES EL CHAT ACTIVO → SOLO AGREGA
+  // 🔥 si es chat activo → mostrar mensaje
   if(msg.guest_id === currentGuest){
     agregarMensaje(msg);
   }
 
 });
 
+// ================= ALERTA STAFF (🔥 AQUÍ CORRECTO) =================
+socket.on("staff_alert", (data)=>{
+  console.log("🚨 ALERTA STAFF:", data);
+
+  alert("⚠️ Atención requerida en chat");
+
+  // 🔥 abrir automáticamente el chat
+  if(data.guest_id){
+    seleccionarGuest(data.guest_id);
+  }
+});
 // ================= GUESTS =================
 async function cargarGuests(){
 
@@ -476,27 +489,35 @@ if(m.sender === "guest"){
 }
 
 // ================= ENVIAR =================
-function enviarMensaje(){
+async function enviarMensaje(){
 
-  const input = document.getElementById("adminMessage");
-  const msg = input.value;
+ if(!currentGuest) return;
 
-  if(!msg || !currentGuest) return;
+ const btn = event.target;
+ btn.disabled = true;
 
-  const company_code = localStorage.getItem("company_code");
+ try{
 
-  socket.emit("admin_send_message",{
-  guest_id: currentGuest,
-  message: msg,
-  company_code
-});
+  const msg = document.getElementById("adminMessage").value;
 
-agregarMensaje({
-  message: msg,
-  sender:"admin"
-});
+  await fetch(API + "/chat/message",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      guest_id: currentGuest,
+      message: msg,
+      sender: "admin",
+      company_code: localStorage.getItem("company_code")
+    })
+  });
 
-input.value="";
+  document.getElementById("adminMessage").value="";
+
+ }catch(e){
+  alert("Error enviando mensaje");
+ }
+
+ btn.disabled = false;
 }
 
 async function asignar(){
@@ -518,20 +539,21 @@ async function asignar(){
 }
 async function cargarDashboard(){
 
-  const company_code = localStorage.getItem("company_code");
+ const company_code = localStorage.getItem("company_code");
 
  const res = await fetch(API + "/dashboard/" + company_code);
 
-if(!res.ok){
-  console.error("HTTP ERROR dashboard:", res.status);
+ if(!res.ok){
+   console.error("Error dashboard");
+   return;
+ }
 
-  document.getElementById("totalGuests").innerText = 0;
-  document.getElementById("totalTickets").innerText = 0;
-  document.getElementById("totalMessages").innerText = 0;
-  document.getElementById("totalPending").innerText = 0;
+ const data = await res.json();
 
-  return;
-}
+ document.getElementById("totalGuests").innerText = data.guests;
+ document.getElementById("totalMessages").innerText = data.messages;
+ document.getElementById("totalTickets").innerText = data.tickets;
+ document.getElementById("totalPending").innerText = data.pending;
 }
 async function guardarServicio(){
 
