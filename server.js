@@ -772,7 +772,17 @@ ALTER TABLE tickets ADD COLUMN IF NOT EXISTS company_id INTEGER
 await db.query(`
   ALTER TABLE guests ADD COLUMN IF NOT EXISTS assigned_to TEXT
 `);
+await db.query(`
+  ALTER TABLE guests ADD COLUMN IF NOT EXISTS last_response_at TIMESTAMP
+`);
 
+await db.query(`
+  ALTER TABLE guests ADD COLUMN IF NOT EXISTS last_message_at TIMESTAMP
+`);
+
+await db.query(`
+  ALTER TABLE guests ADD COLUMN IF NOT EXISTS fail_count INTEGER DEFAULT 0
+`);
 await db.query(`CREATE INDEX IF NOT EXISTS idx_tasks_company ON tasks(company_id)`);
 await db.query(`CREATE INDEX IF NOT EXISTS idx_messages_guest ON messages(guest_id)`);
 await db.query(`CREATE INDEX IF NOT EXISTS idx_guests_company ON guests(company_id)`);
