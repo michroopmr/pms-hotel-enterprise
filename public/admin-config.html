@@ -559,13 +559,7 @@ async function enviarMensaje(){
       return;
     }
 
-    // 🔥 MOSTRAR MENSAJE SOLO SI TODO OK
-    agregarMensaje({
-      message: msg,
-      sender: "admin"
-    });
-
-    input.value = "";
+        input.value = "";
 
   }catch(e){
     console.error("❌ ERROR:", e);
