@@ -348,39 +348,40 @@ async function send(){
   console.error("Guest inválido");
   sending = false;
   return;
-}
+ }
 
  if(!text){
   sending = false;
   return;
-}
+ }
 
+ // 🔥 MENÚ
  if(text.toLowerCase() === "menu"){
   addMsg(text,"user");
 
- const res = await fetch("/chat/message",{
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body: JSON.stringify({
-    guest_id: guest.id,
-    message: text,
-    sender: "guest",
-    company_code: guest.company_code
-  })
-});
+  const res = await fetch("/chat/message",{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      guest_id: guest.id,
+      message: text,
+      sender: "guest",
+      company_code: guest.company_code
+    })
+  });
 
-const data = await res.json();
+  const data = await res.json();
 
-if(!res.ok){
-  console.error("❌ ERROR BACKEND:", data);
-}
+  if(!res.ok){
+    console.error("❌ ERROR BACKEND:", data);
+  }
 
-  sending = false; 
+  sending = false;
   return;
-}
+ }
 
+ // 🔥 MENSAJE NORMAL
  addMsg(text,"user");
-
 
  await fetch("/chat/message",{
   method:"POST",
@@ -391,15 +392,15 @@ if(!res.ok){
    sender: "guest",
    company_code: guest.company_code
   })
-});
+ });
 
  input.value="";
  input.focus();
 
  resetInactivity();
  resetSessionTimer();
- sending = false;
 
+ sending = false;
 }
 function closeSession(){
 
