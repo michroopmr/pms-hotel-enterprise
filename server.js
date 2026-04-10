@@ -285,74 +285,81 @@ try{
   }
 
   // 🔥 SOLO SI ES GUEST → IA
-  if(sender === "guest"){
+ if(sender === "guest"){
 
-    let ai;
+  let ai;
 
+  try{
+    ai = await detectarIntencion(message, company_id);
+  }catch(e){
+    ai = { texto:"Error IA", ticket:false };
+  }
+
+  if(!ai || !ai.texto){
+    return res.json({ ok:true, ia:false });
+  }
+
+  // 🔥 CREAR TASK SI APLICA
+  let taskCreada = null;
+
+  if(ai.ticket === true){
     try{
-      ai = await detectarIntencion(message, company_id);
-    }catch(e){
-      console.error("❌ AI ERROR:", e);
-      ai = { texto:"Error IA", ticket:false };
+
+      const task = await db.query(`
+        INSERT INTO tasks
+        (title, description, department, status, created_by, company_id)
+        VALUES($1,$2,$3,$4,$5,$6)
+        RETURNING *
+      `,
+      [
+        "Solicitud habitación " + guestData.room,
+        message,
+        ai.departamento || "Recepción",
+        "abierto",
+        guestData.name + " - Hab " + guestData.room,
+        guestData.company_id
+      ]);
+
+      taskCreada = task.rows[0];
+
+      io.to("admin_" + company_code).emit("task_update", taskCreada);
+
+      io.to("admin_" + company_code).emit("staff_alert",{
+        guest_id,
+        guest_name: guestData.name,
+        room: guestData.room,
+        message
+      });
+
+    }catch(err){
+      console.error("❌ ERROR CREANDO TASK:", err);
     }
+  }
 
-    if(!ai || !ai.texto){
-      return res.json({ ok:true, ia:false });
-    }
-
-    // 🔥 NO ENTENDIÓ
-    if(ai.texto.includes("¿Podrías darme más detalles")){
-
-      await db.query(`
-        UPDATE guests 
-        SET fail_count = COALESCE(fail_count,0) + 1
-        WHERE id=$1
-      `,[guest_id]);
-
-      const fail = await db.query(
-        "SELECT fail_count FROM guests WHERE id=$1",
-        [guest_id]
-      );
-
-      if(fail.rows[0].fail_count >= 3){
-
-        io.to("admin_" + company_code).emit("staff_alert",{
-          guest_id,
-          guest_name: guestData.name,
-          room: guestData.room,
-          message
-        });
-
-        await db.query(
-          "UPDATE guests SET fail_count=0 WHERE id=$1",
-          [guest_id]
-        );
-      }
-    }
-
-   try{
+  // 🔥 RESPUESTA BOT (ya la tienes)
   await db.query(
     "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
     [guest_id, ai.texto]
   );
-}catch(err){
-  console.error("❌ ERROR INSERT BOT:", err);
+
+  io.to("guest_" + guest_id).emit("new_message",{
+    guest_id,
+    message: ai.texto,
+    sender: "bot"
+  });
+
+  io.to("admin_" + company_code).emit("new_message",{
+    guest_id,
+    message: ai.texto,
+    sender: "bot"
+  });
+
+  return res.json({
+    ok:true,
+    ia:true,
+    task: !!taskCreada
+  });
 }
-
-    io.to("guest_" + guest_id).emit("new_message",{
-      guest_id,
-      message: ai.texto,
-      sender: "bot"
-    });
-
-    io.to("admin_" + company_code).emit("new_message",{
-      guest_id,
-      message: ai.texto,
-      sender: "bot"
-    });
-
-    return res.json({ ok:true, ia:true });
-  }
 
   return res.json({ ok:true });
 
