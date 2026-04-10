@@ -221,19 +221,19 @@ socket.on("new_message", (data)=>{
   // 🔥 evitar duplicar mensajes propios
   if(sender === "guest" && data.guest_id === guest.id) return;
 
-   socket.emit("message_read",{
-  guest_id: guest.id,
-  company_code: guest.company_code
-});
-
-if(userInteracted){
-  audio.currentTime = 0;
-  audio.play().catch(e=>{
-    console.log("Audio bloqueado:", e);
+  socket.emit("message_read",{
+    guest_id: guest.id,
+    company_code: guest.company_code
   });
-}
-});
 
+  if(userInteracted){
+    audio.currentTime = 0;
+    audio.play().catch(e=>{
+      console.log("Audio bloqueado:", e);
+    });
+  }
+
+  // ✅ TODO VA DENTRO
   if(sender === "admin" || sender === "staff"){
     addMsg("👨‍💼 " + message, "bot");
     showToast("Nuevo mensaje del staff");
@@ -244,25 +244,33 @@ if(userInteracted){
     addMsg(message, "bot");
     return;
   }
+
+});
  
+let typingTimer;
+
 socket.on("typing_admin", ()=>{
 
   const existing = document.getElementById("typing");
 
-  if(existing) return;
+  if(!existing){
+    const div = document.createElement("div");
+    div.id = "typing";
+    div.className = "msg bot";
+    div.innerText = "🧑‍💼 escribiendo...";
 
-  const div = document.createElement("div");
-  div.id = "typing";
-  div.className = "msg bot";
-  div.innerText = "🧑‍💼 escribiendo...";
+    document.getElementById("chatMessages").appendChild(div);
+  }
 
-  document.getElementById("chatMessages").appendChild(div);
+  clearTimeout(typingTimer);
 
-  setTimeout(()=>{
-    div.remove();
+  typingTimer = setTimeout(()=>{
+    const el = document.getElementById("typing");
+    if(el) el.remove();
   }, 1500);
 
 });
+
 function addMessage(text, type) {
   const container = document.getElementById("chatMessages");
 
