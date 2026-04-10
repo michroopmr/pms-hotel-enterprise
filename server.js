@@ -201,36 +201,24 @@ app.post("/guest/login", async (req,res)=>{
 // Guardar mensaje
 app.post("/chat/message", async (req, res) => {
  try{
-if(sender === "admin"){
-  await db.query(`
-    UPDATE guests 
-    SET last_response_at = NOW()
-    WHERE id=$1
-  `,[guest_id]);
-}
+
   const io = req.app.get("io");
 
   const { guest_id, message, sender, company_code } = req.body;
-
-  console.log("📩 REQUEST:", {
-  guest_id,
-  message,
-  sender,
-  company_code
-});
 
   if(!guest_id || !company_code || !message || !sender){
     return res.status(400).json({error:"Datos incompletos"});
   }
 
-  let company_id;
+  if(sender === "admin"){
+    await db.query(`
+      UPDATE guests 
+      SET last_response_at = NOW()
+      WHERE id=$1
+    `,[guest_id]);
+  }
 
-try{
-  company_id = await getCompanyId(company_code);
-}catch(err){
-  console.error("❌ ERROR EMPRESA:", err.message);
-  return res.status(400).json({error:"Empresa inválida"});
-}
+  let company_id = await getCompanyId(company_code);
 
   const guestCheck = await db.query(
     "SELECT * FROM guests WHERE id=$1 AND company_id=$2",
@@ -243,16 +231,11 @@ try{
 
   const guestData = guestCheck.rows[0];
 
-  // guardar mensaje
-  try{
-    await db.query(
-      "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
-      [guest_id, message, sender]
-    );
-  }catch(err){
-    console.error("❌ ERROR INSERT MESSAGE:", err);
-    return res.status(500).json({error:"Error guardando mensaje"});
-  }
+  // 🔥 guardar mensaje
+  await db.query(
+    "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
+    [guest_id, message, sender]
+  );
 
   await db.query(
     "UPDATE guests SET last_message_at=NOW() WHERE id=$1",
@@ -265,141 +248,63 @@ try{
     sender
   });
 
-  console.log("📡 Enviando a guest:", guest_id);
-
-  // 🔥 ENVIAR TAMBIÉN AL HUÉSPED
-io.to("guest_" + guest_id).emit("new_message", {
-  guest_id,
-  message,
-  sender
-});
-
-  // 🔥 SOLO SI ES MENSAJE DEL HUÉSPED
+  // 🔥 SOLO SI ES MENSAJE DEL HUÉSPED (AQUÍ VA)
   if(sender === "guest"){
 
-    console.log("Mensaje:", message);
-
-    // ================= IA =================
     let ai;
 
     try{
-  ai = await detectarIntencion(message, company_id);
-  console.log("🧠 AI RESULT:", ai);
+      ai = await detectarIntencion(message, company_id);
+    }catch(e){
+      ai = { texto:"Error IA", ticket:false };
+    }
 
-}catch(e){
-  console.error("❌ AI ERROR DETALLE:", e);
-  ai = { texto:"Error IA", ticket:false };
-}
-// 🔥 detectar cuando bot no entiende
-if(!ai.texto || ai.texto.includes("¿Podrías darme más detalles")){
-
-  console.log("⚠️ BOT NO ENTENDIÓ");
-
-  // 🔥 aumentar contador
-  await db.query(`
-    UPDATE guests 
-    SET fail_count = COALESCE(fail_count,0) + 1
-    WHERE id=$1
-  `,[guest_id]);
-
-  const fail = await db.query(
-    "SELECT fail_count FROM guests WHERE id=$1",
-    [guest_id]
-  );
-
-  const intentos = fail.rows[0].fail_count;
-
-  console.log("Intentos fallidos:", intentos);
-
-  // 🔥 si llega a 3 → alertar staff
-  if(intentos >= 3){
-
-    console.log("🚨 ESCALANDO A STAFF");
-
-    emit("staff_alert",{
-  guest_id,
-  guest_name: guestData.name,
-  room: guestData.room,
-  message
-});
-
-    // 🔥 resetear contador
-    await db.query(
-      "UPDATE guests SET fail_count=0 WHERE id=$1",
-      [guest_id]
-    );
-  }
-}
-    if(!ai){
-      console.log("⚠️ AI NULL");
+    if(!ai || !ai.texto){
       return res.json({ ok:true, ia:false });
     }
 
-    let taskCreada = null;
+    if(ai.texto.includes("¿Podrías darme más detalles")){
 
-    if(ai.ticket === true){
-      try{
-        const task = await db.query(`
-          INSERT INTO tasks
-          (title, description, department, status, created_by, company_id)
-          VALUES($1,$2,$3,$4,$5,$6)
-          RETURNING *
-        `,
-        [
-          "Solicitud habitación " + guestData.room,
-          message,
-          ai.departamento || "Recepción",
-          "abierto",
-          guestData.name + " - Hab " + guestData.room,
-          guestData.company_id
-        ]);
+      await db.query(`
+        UPDATE guests 
+        SET fail_count = COALESCE(fail_count,0) + 1
+        WHERE id=$1
+      `,[guest_id]);
 
-        taskCreada = task.rows[0];
+      const fail = await db.query(
+        "SELECT fail_count FROM guests WHERE id=$1",
+        [guest_id]
+      );
 
-        io.to("admin_" + company_code).emit("task_update", taskCreada);
+      if(fail.rows[0].fail_count >= 3){
 
-      }catch(err){
-        console.error("❌ ERROR CREANDO TASK:", err);
+        io.to("admin_" + company_code).emit("staff_alert",{
+          guest_id,
+          guest_name: guestData.name,
+          room: guestData.room,
+          message
+        });
+
+        await db.query(
+          "UPDATE guests SET fail_count=0 WHERE id=$1",
+          [guest_id]
+        );
       }
     }
 
-    if(ai.texto){
-      await db.query(
-        "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
-        [guest_id, ai.texto]
-      );
-
-      io.to("guest_" + guest_id).emit("new_message",{
-        guest_id,
-        message: ai.texto,
-        sender: "bot"
-      });
-
-      io.to("admin_" + company_code).emit("new_message",{
-        guest_id,
-        message: ai.texto,
-        sender: "bot"
-      });
-    }
-
-    return res.json({
-      ok:true,
-      ia:true,
-      task: !!taskCreada
-    });
+    return res.json({ ok:true, ia:true });
   }
 
-  res.json({ ok:true });
+  return res.json({ ok:true });
 
  } catch(err){
   console.error("❌ ERROR /chat/message:", err);
-  res.status(500).json({
+  return res.status(500).json({
     error:"Error en chat",
     detalle: err.message
   });
  }
 });
-
 // Obtener chat
 app.get("/chat/:guest_id", async (req,res)=>{
  try{
