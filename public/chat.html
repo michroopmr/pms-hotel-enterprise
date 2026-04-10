@@ -112,12 +112,18 @@ const params = new URLSearchParams(window.location.search);
 const company_code = params.get("empresa") || "DEMO01";
 const audio = new Audio("https://actions.google.com/sounds/v1/notifications/notification_simple-01.mp3");
 audio.preload = "auto";
+
+function reproducirSonido(){
+  audio.play().catch(err=>{
+    console.warn("🔇 Audio bloqueado:", err.message);
+  });
+}
 let guest = null;
 let userInteracted = false;
 
 document.addEventListener("click", ()=>{
   userInteracted = true;
-});
+}, { once:true });
 try{
  guest = JSON.parse(localStorage.getItem("guest"));
 }catch(e){
@@ -221,17 +227,25 @@ socket.on("new_message", (data)=>{
   // 🔥 evitar duplicar mensajes propios
   if(sender === "guest" && data.guest_id === guest.id) return;
 
+  // 🔥 marcar como leído
   socket.emit("message_read",{
     guest_id: guest.id,
     company_code: guest.company_code
   });
 
+  // 🔥 mostrar mensaje en UI
+  agregarMensaje(data);
+
+  // 🔔 reproducir sonido SOLO si el usuario ya interactuó
   if(userInteracted){
     audio.currentTime = 0;
+
     audio.play().catch(e=>{
-      console.log("Audio bloqueado:", e);
+      console.log("🔇 Audio bloqueado:", e.message);
     });
   }
+
+});
 
   // ✅ TODO VA DENTRO
   if(sender === "admin" || sender === "staff"){
@@ -244,8 +258,6 @@ socket.on("new_message", (data)=>{
     addMsg(message, "bot");
     return;
   }
-
-});
  
 let typingTimer;
 
