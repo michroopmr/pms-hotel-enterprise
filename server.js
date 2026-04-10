@@ -201,7 +201,13 @@ app.post("/guest/login", async (req,res)=>{
 // Guardar mensaje
 app.post("/chat/message", async (req, res) => {
  try{
-
+if(sender === "admin"){
+  await db.query(`
+    UPDATE guests 
+    SET last_response_at = NOW()
+    WHERE id=$1
+  `,[guest_id]);
+}
   const io = req.app.get("io");
 
   const { guest_id, message, sender, company_code } = req.body;
@@ -310,10 +316,12 @@ if(!ai.texto || ai.texto.includes("¿Podrías darme más detalles")){
 
     console.log("🚨 ESCALANDO A STAFF");
 
-    io.to("admin_" + company_code).emit("staff_alert",{
-      guest_id,
-      message: "⚠️ El bot no entiende al huésped"
-    });
+    emit("staff_alert",{
+  guest_id,
+  guest_name: guestData.name,
+  room: guestData.room,
+  message
+});
 
     // 🔥 resetear contador
     await db.query(
@@ -1094,7 +1102,7 @@ Temazcal
 🏊‍♀️ Alberca KASUKO  
 🍽️ Restaurante  
 
-Escribe el servicio que te interese 😉`
+👉 Escribe el servicio que te interese 😉`
     }
   ];
 

@@ -110,9 +110,14 @@ body {
   
 const params = new URLSearchParams(window.location.search);
 const company_code = params.get("empresa") || "DEMO01";
-
+const audio = new Audio("https://actions.google.com/sounds/v1/notifications/notification_simple-01.mp3");
+audio.preload = "auto";
 let guest = null;
+let userInteracted = false;
 
+document.addEventListener("click", ()=>{
+  userInteracted = true;
+});
 try{
  guest = JSON.parse(localStorage.getItem("guest"));
 }catch(e){
@@ -134,8 +139,6 @@ if(company_code){
 console.log("Guest:", guest);
 console.log("Empresa:", guest.company_code);
 console.log("Empresa actual:", guest.company_code);
-
-const audio = new Audio("https://actions.google.com/sounds/v1/notifications/notification_simple-01.mp3");
 
 function showToast(msg){
 
@@ -223,6 +226,14 @@ socket.on("new_message", (data)=>{
   company_code: guest.company_code
 });
 
+if(userInteracted){
+  audio.currentTime = 0;
+  audio.play().catch(e=>{
+    console.log("Audio bloqueado:", e);
+  });
+}
+});
+
   if(sender === "admin" || sender === "staff"){
     addMsg("👨‍💼 " + message, "bot");
     showToast("Nuevo mensaje del staff");
@@ -234,8 +245,6 @@ socket.on("new_message", (data)=>{
     return;
   }
  
-
-});
 socket.on("typing_admin", ()=>{
 
   const existing = document.getElementById("typing");
@@ -299,7 +308,7 @@ function resetInactivity(){
 
   if(sessionStorage.getItem("despedida_enviada")) return;
 
-  const despedida = "Gracias por contactarnos 🙌...";
+  const despedida = "Gracias por contactarnos 🙌  Estamos para ayudarte en lo que necesites Que tengas una excelente estancia 😊";
 
 const res = await fetch("/chat/message",{
   method:"POST",

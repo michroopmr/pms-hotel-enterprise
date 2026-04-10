@@ -1867,11 +1867,12 @@ async function crearTarea(){
    if(!res) return;
    
    if(!res.ok){
-     const text = await res.text();
-     throw new Error(text);
-   }
+  const text = await res.text();
+  console.error("ERROR:", text);
+  return;
+}
 
-   const data = await res.json();
+const data = await res.json();
 
    await recargarTareas();
 
@@ -2887,20 +2888,25 @@ function activarInputEvidencia(task_id){
 
    try{
 
-     const res = await fetch("https://mollyhelpers.com/task/evidence",{
-       method:"POST",
-       body: formData
-     });
+     const token = localStorage.getItem("token");
 
-     const data = await res.json();
+const res = await fetch(`https://mollyhelpers.com/tasks/${task_id}/evidence`,{
+  method:"POST",
+  headers:{
+    Authorization: "Bearer " + token
+  },
+  body: formData
+});
 
-     if(!res.ok){
-       console.error("❌ ERROR:", data);
-       alert("Error subiendo evidencia");
-       return;
-     }
+if(!res.ok){
+  const text = await res.text();
+  console.error("❌ ERROR:", text);
+  alert("Error subiendo evidencia");
+  return;
+}
 
-     console.log("✅ Evidencia subida");
+const data = await res.json();
+console.log("✅ Subido:", data);
 
      // 🔥 recargar tarea
      cargar();
