@@ -233,31 +233,27 @@ socket.on("new_message", (data)=>{
     company_code: guest.company_code
   });
 
-  // 🔥 mostrar mensaje en UI
-  agregarMensaje(data);
+  // 🔥 MENSAJES SEGÚN EMISOR
+  if(sender === "admin" || sender === "staff"){
+    addMsg("👨‍💼 " + message, "bot");
+    showToast("Nuevo mensaje del staff");
+  }
+  else if(sender === "bot"){
+    addMsg(message, "bot");
+  }
+  else{
+    addMsg(message, "user");
+  }
 
-  // 🔔 reproducir sonido SOLO si el usuario ya interactuó
+  // 🔔 sonido
   if(userInteracted){
     audio.currentTime = 0;
-
     audio.play().catch(e=>{
       console.log("🔇 Audio bloqueado:", e.message);
     });
   }
 
 });
-
-  // ✅ TODO VA DENTRO
-  if(sender === "admin" || sender === "staff"){
-    addMsg("👨‍💼 " + message, "bot");
-    showToast("Nuevo mensaje del staff");
-    return;
-  }
-
-  if(sender === "bot"){
-    addMsg(message, "bot");
-    return;
-  }
  
 let typingTimer;
 
