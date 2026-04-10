@@ -252,13 +252,17 @@ td,th{
 
    const adminInput = document.getElementById("adminMessage");
 
+let typingTimeout;
+
 adminInput.addEventListener("input", ()=>{
 
-  if(!currentGuest) return;
+  clearTimeout(typingTimeout);
 
-  socket.emit("admin_typing",{
-    guest_id: currentGuest
-  });
+  typingTimeout = setTimeout(()=>{
+    socket.emit("admin_typing",{
+      guest_id: currentGuest
+    });
+  }, 300);
 
 });
 
@@ -357,7 +361,7 @@ socket.on("typing", (data)=>{
 // ================= MENSAJES =================
 socket.on("new_message",(msg)=>{
 
-  if(msg.sender === "admin") return;
+  if(msg.sender === "admin" && msg.guest_id !== currentGuest) return;
 
   // 🔥 validar mensaje correcto
   if(!msg.message) return;
@@ -527,6 +531,10 @@ async function enviarMensaje(){
       company_code: localStorage.getItem("company_code")
     })
   });
+  agregarMensaje({
+  message: msg,
+  sender: "admin"
+});
 
   document.getElementById("adminMessage").value="";
 

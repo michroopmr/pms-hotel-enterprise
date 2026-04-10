@@ -247,53 +247,81 @@ app.post("/chat/message", async (req, res) => {
     message,
     sender
   });
+  io.to("guest_" + guest_id).emit("new_message", {
+  guest_id,
+  message,
+  sender
+});
 
   // 🔥 SOLO SI ES MENSAJE DEL HUÉSPED (AQUÍ VA)
   if(sender === "guest"){
 
-    let ai;
+  let ai;
 
-    try{
-      ai = await detectarIntencion(message, company_id);
-    }catch(e){
-      ai = { texto:"Error IA", ticket:false };
-    }
+  try{
+    ai = await detectarIntencion(message, company_id);
+  }catch(e){
+    ai = { texto:"Error IA", ticket:false };
+  }
 
-    if(!ai || !ai.texto){
-      return res.json({ ok:true, ia:false });
-    }
+  // 🔥 validar IA
+  if(!ai || !ai.texto){
+    return res.json({ ok:true, ia:false });
+  }
 
-    if(ai.texto.includes("¿Podrías darme más detalles")){
+  // 🔥 no entendió
+  if(ai.texto.includes("¿Podrías darme más detalles")){
 
-      await db.query(`
-        UPDATE guests 
-        SET fail_count = COALESCE(fail_count,0) + 1
-        WHERE id=$1
-      `,[guest_id]);
+    await db.query(`
+      UPDATE guests 
+      SET fail_count = COALESCE(fail_count,0) + 1
+      WHERE id=$1
+    `,[guest_id]);
 
-      const fail = await db.query(
-        "SELECT fail_count FROM guests WHERE id=$1",
+    const fail = await db.query(
+      "SELECT fail_count FROM guests WHERE id=$1",
+      [guest_id]
+    );
+
+    if(fail.rows[0].fail_count >= 3){
+
+      io.to("admin_" + company_code).emit("staff_alert",{
+        guest_id,
+        guest_name: guestData.name,
+        room: guestData.room,
+        message
+      });
+
+      await db.query(
+        "UPDATE guests SET fail_count=0 WHERE id=$1",
         [guest_id]
       );
-
-      if(fail.rows[0].fail_count >= 3){
-
-        io.to("admin_" + company_code).emit("staff_alert",{
-          guest_id,
-          guest_name: guestData.name,
-          room: guestData.room,
-          message
-        });
-
-        await db.query(
-          "UPDATE guests SET fail_count=0 WHERE id=$1",
-          [guest_id]
-        );
-      }
     }
-
-    return res.json({ ok:true, ia:true });
   }
+
+  // 🔥 responder al huésped
+  if(ai.texto){
+
+    await db.query(
+      "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
+      [guest_id, ai.texto]
+    );
+
+    io.to("guest_" + guest_id).emit("new_message",{
+      guest_id,
+      message: ai.texto,
+      sender: "bot"
+    });
+
+    io.to("admin_" + company_code).emit("new_message",{
+      guest_id,
+      message: ai.texto,
+      sender: "bot"
+    });
+  }
+
+  return res.json({ ok:true, ia:true });
+}
 
   return res.json({ ok:true });
 
@@ -470,8 +498,9 @@ app.get("/dashboard/:company_code", async (req,res)=>{
 );
 
   const messages = await db.query(`
-  SELECT COUNT(*) FROM messages m
-  LEFT JOIN guests g ON m.guest_id = g.id
+  SELECT COUNT(*) 
+  FROM messages m
+  INNER JOIN guests g ON m.guest_id = g.id
   WHERE g.company_id=$1
 `,[company_id]);
 

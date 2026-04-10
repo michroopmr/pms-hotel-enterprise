@@ -332,7 +332,7 @@ const res = await fetch("/chat/message",{
 const data = await res.json();
 
 if(!res.ok){
-  console.error("❌ ERROR BACKEND:", data);
+  console.error("Error enviando mensaje");
 }
 
   sessionStorage.setItem("despedida_enviada", "true");
