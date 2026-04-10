@@ -212,14 +212,24 @@ app.post("/chat/message", async (req, res) => {
     sender,
     company_code
   });
+  if(!message){
+  console.error("❌ MENSAJE VACÍO DETECTADO");
+}
 
   // 🔥 VALIDACIÓN
   if(!guest_id || !company_code || !sender || !message?.trim()){
     return res.status(400).json({error:"Datos incompletos"});
   }
 
-  // 🔥 EMPRESA
-  const company_id = await getCompanyId(company_code);
+  // 🔥 EMPRESA (PROTEGIDO)
+let company_id;
+
+try{
+  company_id = await getCompanyId(company_code);
+}catch(err){
+  console.error("❌ ERROR EMPRESA:", err.message);
+  return res.status(400).json({error:"Empresa inválida"});
+}
 
   // 🔥 VALIDAR GUEST
   const guestCheck = await db.query(
@@ -233,11 +243,16 @@ app.post("/chat/message", async (req, res) => {
 
   const guestData = guestCheck.rows[0];
 
-  // 🔥 GUARDAR MENSAJE
+  // 🔥 GUARDAR MENSAJE (PROTEGIDO)
+try{
   await db.query(
     "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
     [guest_id, message, sender]
   );
+}catch(err){
+  console.error("❌ ERROR INSERT MESSAGE:", err);
+  return res.status(500).json({error:"Error guardando mensaje"});
+}
 
   // 🔥 ACTUALIZAR TIMESTAMP
   await db.query(
@@ -315,11 +330,14 @@ app.post("/chat/message", async (req, res) => {
       }
     }
 
-    // 🔥 RESPUESTA BOT
-    await db.query(
-      "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
-      [guest_id, ai.texto]
-    );
+   try{
+  await db.query(
+    "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
+    [guest_id, ai.texto]
+  );
+}catch(err){
+  console.error("❌ ERROR INSERT BOT:", err);
+}
 
     io.to("guest_" + guest_id).emit("new_message",{
       guest_id,
