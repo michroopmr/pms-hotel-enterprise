@@ -125,9 +125,18 @@ td,th{
 <div style="display:flex; gap:20px;">
 
   <div style="width:250px; border-right:1px solid #333;">
-    <h3>Huéspedes</h3>
-    <div id="listaGuests"></div>
+  
+  <h3>Huéspedes</h3>
+
+  <!-- 🔥 FILTRO -->
+  <div style="margin-bottom:10px; display:flex; gap:5px;">
+    <button onclick="cargarGuests('today')">Hoy</button>
+    <button onclick="cargarGuests('all')">Todos</button>
   </div>
+
+  <div id="listaGuests"></div>
+
+</div>
 
   <div style="flex:1; display:flex; flex-direction:column; height:80vh;">
 
@@ -404,7 +413,7 @@ async function cargarGuests(){
 
   const company_code = localStorage.getItem("company_code");
 
-  const res = await fetch(API + "/guests/" + company_code);
+  fetch(API + "/guests/" + company_code + "?date=today")
 
   if(!res.ok){
     console.error("❌ ERROR guests:", res.status);
@@ -772,6 +781,34 @@ async function eliminarRespuesta(id){
 
   cargarRespuestas();
 }
+function cargarGuests(filtro = "today"){
+
+  const company_code = localStorage.getItem("company_code");
+
+  let url = API + "/guests/" + company_code;
+
+  if(filtro === "today"){
+    url += "?date=today";
+  }
+
+  fetch(url)
+    .then(r=>r.json())
+    .then(data=>{
+      renderGuests(data);
+    });
+}
+function renderGuests(data){
+
+  const cont = document.getElementById("listaGuests");
+  cont.innerHTML = "";
+
+  data.forEach(g=>{
+    const div = document.createElement("div");
+    div.innerText = g.name + " - Hab " + g.room;
+    cont.appendChild(div);
+  });
+
+}
 function logout(){
   localStorage.clear();
   window.location.href = "/login.html";
@@ -818,7 +855,7 @@ async function editarServicio(id){
   window.editandoServicio = id;
 }
 // INIT CHAT
-cargarGuests();
+cargarGuests("today");
 </script>
 </body>
 </html>
