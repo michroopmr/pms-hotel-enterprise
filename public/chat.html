@@ -299,7 +299,7 @@ function addMsg(text, type){
 
  div.innerHTML = `
   <strong>${sender}</strong>
-  <div>${text}</div>
+  <div style="white-space: pre-line;">${text}</div>
 `;
 
  const chat = document.getElementById("chatMessages");
@@ -316,7 +316,9 @@ function resetInactivity(){
 
   if(sessionStorage.getItem("despedida_enviada")) return;
 
-  const despedida = "Gracias por contactarnos 🙌  Estamos para ayudarte en lo que necesites Que tengas una excelente estancia 😊";
+  const despedida = `Gracias por utilizar nuestro servicio de concierge digital 🙌  
+Esperamos que tu solicitud haya sido atendida satisfactoriamente.  
+¡Te deseamos una excelente estancia! 😊`;
 
 const res = await fetch("/chat/message",{
   method:"POST",

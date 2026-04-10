@@ -206,20 +206,22 @@ app.post("/chat/message", async (req, res) => {
 
   const { guest_id, message, sender, company_code } = req.body;
 
-  if(!guest_id || !company_code || !message || !sender){
+  console.log("📩 REQUEST:", {
+    guest_id,
+    message,
+    sender,
+    company_code
+  });
+
+  // 🔥 VALIDACIÓN
+  if(!guest_id || !company_code || !sender || !message?.trim()){
     return res.status(400).json({error:"Datos incompletos"});
   }
 
-  if(sender === "admin"){
-    await db.query(`
-      UPDATE guests 
-      SET last_response_at = NOW()
-      WHERE id=$1
-    `,[guest_id]);
-  }
+  // 🔥 EMPRESA
+  const company_id = await getCompanyId(company_code);
 
-  let company_id = await getCompanyId(company_code);
-
+  // 🔥 VALIDAR GUEST
   const guestCheck = await db.query(
     "SELECT * FROM guests WHERE id=$1 AND company_id=$2",
     [guest_id, company_id]
@@ -231,77 +233,89 @@ app.post("/chat/message", async (req, res) => {
 
   const guestData = guestCheck.rows[0];
 
-  // 🔥 guardar mensaje
+  // 🔥 GUARDAR MENSAJE
   await db.query(
     "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
     [guest_id, message, sender]
   );
 
+  // 🔥 ACTUALIZAR TIMESTAMP
   await db.query(
     "UPDATE guests SET last_message_at=NOW() WHERE id=$1",
     [guest_id]
   );
 
+  // 🔥 SOCKETS
   io.to("admin_" + company_code).emit("new_message", {
     guest_id,
     message,
     sender
   });
+
   io.to("guest_" + guest_id).emit("new_message", {
-  guest_id,
-  message,
-  sender
-});
+    guest_id,
+    message,
+    sender
+  });
 
-  // 🔥 SOLO SI ES MENSAJE DEL HUÉSPED (AQUÍ VA)
-  if(sender === "guest"){
-
-  let ai;
-
-  try{
-    ai = await detectarIntencion(message, company_id);
-  }catch(e){
-    ai = { texto:"Error IA", ticket:false };
-  }
-
-  // 🔥 validar IA
-  if(!ai || !ai.texto){
-    return res.json({ ok:true, ia:false });
-  }
-
-  // 🔥 no entendió
-  if(ai.texto.includes("¿Podrías darme más detalles")){
-
+  // 🔥 SI ES ADMIN → TERMINA AQUÍ
+  if(sender === "admin"){
     await db.query(`
       UPDATE guests 
-      SET fail_count = COALESCE(fail_count,0) + 1
+      SET last_response_at = NOW()
       WHERE id=$1
     `,[guest_id]);
 
-    const fail = await db.query(
-      "SELECT fail_count FROM guests WHERE id=$1",
-      [guest_id]
-    );
-
-    if(fail.rows[0].fail_count >= 3){
-
-      io.to("admin_" + company_code).emit("staff_alert",{
-        guest_id,
-        guest_name: guestData.name,
-        room: guestData.room,
-        message
-      });
-
-      await db.query(
-        "UPDATE guests SET fail_count=0 WHERE id=$1",
-        [guest_id]
-      );
-    }
+    return res.json({ ok:true });
   }
 
-  // 🔥 responder al huésped
-  if(ai.texto){
+  // 🔥 SOLO SI ES GUEST → IA
+  if(sender === "guest"){
 
+    let ai;
+
+    try{
+      ai = await detectarIntencion(message, company_id);
+    }catch(e){
+      console.error("❌ AI ERROR:", e);
+      ai = { texto:"Error IA", ticket:false };
+    }
+
+    if(!ai || !ai.texto){
+      return res.json({ ok:true, ia:false });
+    }
+
+    // 🔥 NO ENTENDIÓ
+    if(ai.texto.includes("¿Podrías darme más detalles")){
+
+      await db.query(`
+        UPDATE guests 
+        SET fail_count = COALESCE(fail_count,0) + 1
+        WHERE id=$1
+      `,[guest_id]);
+
+      const fail = await db.query(
+        "SELECT fail_count FROM guests WHERE id=$1",
+        [guest_id]
+      );
+
+      if(fail.rows[0].fail_count >= 3){
+
+        io.to("admin_" + company_code).emit("staff_alert",{
+          guest_id,
+          guest_name: guestData.name,
+          room: guestData.room,
+          message
+        });
+
+        await db.query(
+          "UPDATE guests SET fail_count=0 WHERE id=$1",
+          [guest_id]
+        );
+      }
+    }
+
+    // 🔥 RESPUESTA BOT
     await db.query(
       "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
       [guest_id, ai.texto]
@@ -318,10 +332,9 @@ app.post("/chat/message", async (req, res) => {
       message: ai.texto,
       sender: "bot"
     });
-  }
 
-  return res.json({ ok:true, ia:true });
-}
+    return res.json({ ok:true, ia:true });
+  }
 
   return res.json({ ok:true });
 
@@ -1028,13 +1041,12 @@ Temazcal
     },
     {
       keywords: ["menu","servicios","info","informacion","hotel"],
-      texto: `¡Hola! 😊 Con gusto te comparto nuestros servicios:
-
-🛍️ Boutique  
-💆‍♀️ Spa  
-🎾 Actividades deportivas  
-🏊‍♀️ Alberca KASUKO  
-🍽️ Restaurante  
+      texto: `¡Hola! 😊 Con gusto te comparto nuestros servicios:\n\n
+• 🛍️ Boutique  
+• 💆‍♀️ Spa  
+• 🎾 Actividades deportivas  
+• 🏊‍♀️ Alberca KASUKO  
+• 🍽️ Restaurante  
 
 👉 Escribe el servicio que te interese 😉`
     }

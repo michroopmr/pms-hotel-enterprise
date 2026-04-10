@@ -512,37 +512,67 @@ if(m.sender === "guest"){
 // ================= ENVIAR =================
 async function enviarMensaje(){
 
- if(!currentGuest) return;
+  if(!currentGuest) return;
 
- const btn = event.target;
- btn.disabled = true;
+  const btn = event.target;
+  btn.disabled = true;
 
- try{
+  try{
 
-  const msg = document.getElementById("adminMessage").value;
+    const input = document.getElementById("adminMessage");
+    const msg = input.value;
 
-  await fetch(API + "/chat/message",{
-    method:"POST",
-    headers:{"Content-Type":"application/json"},
-    body: JSON.stringify({
-      guest_id: currentGuest,
+    // 🔥 VALIDAR MENSAJE
+    if(!msg.trim()){
+      btn.disabled = false;
+      return;
+    }
+
+    // 🔥 VALIDAR EMPRESA
+    const company = localStorage.getItem("company_code");
+
+    if(!company){
+      alert("Error: empresa no definida");
+      btn.disabled = false;
+      return;
+    }
+
+    // 🔥 ENVIAR
+    const res = await fetch(API + "/chat/message",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({
+        guest_id: currentGuest,
+        message: msg,
+        sender: "admin",
+        company_code: company
+      })
+    });
+
+    const data = await res.json();
+
+    // 🔥 VALIDAR ERROR BACKEND
+    if(!res.ok){
+      console.error("❌ BACKEND:", data);
+      alert("Error enviando mensaje");
+      btn.disabled = false;
+      return;
+    }
+
+    // 🔥 MOSTRAR MENSAJE SOLO SI TODO OK
+    agregarMensaje({
       message: msg,
-      sender: "admin",
-      company_code: localStorage.getItem("company_code")
-    })
-  });
-  agregarMensaje({
-  message: msg,
-  sender: "admin"
-});
+      sender: "admin"
+    });
 
-  document.getElementById("adminMessage").value="";
+    input.value = "";
 
- }catch(e){
-  alert("Error enviando mensaje");
- }
+  }catch(e){
+    console.error("❌ ERROR:", e);
+    alert("Error enviando mensaje");
+  }
 
- btn.disabled = false;
+  btn.disabled = false;
 }
 
 async function asignar(){
