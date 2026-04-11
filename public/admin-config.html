@@ -488,7 +488,7 @@ function renderGuests(){
    let alerta = "";
 
 if(g.last_message_at && !g.last_response_at){
-  alerta = " 🔴";
+  alerta = " 🟢";
 }
 
     const el = document.createElement("div");
@@ -505,7 +505,7 @@ if(g.last_message_at && !g.last_response_at){
   : `<div style="font-size:11px;color:#999;">Sin asignar</div>`;
 
 const badge = unread[g.id] 
-  ? `<span style="color:red;">(${unread[g.id]})</span>` 
+  ? `<span style="color:#2ecc71;">(${unread[g.id]})</span>` 
   : "";
 
 el.innerHTML = `
@@ -526,6 +526,9 @@ div.appendChild(el);
 function seleccionarGuest(id){
 
   currentGuest = id;
+
+  // 🔥 LIMPIAR NO LEÍDOS
+  unread[id] = 0;
 
   fetch(API + "/chat/" + id + "?company_code=" + localStorage.getItem("company_code"))
     .then(r=>r.json())
