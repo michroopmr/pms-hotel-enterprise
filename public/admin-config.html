@@ -97,6 +97,49 @@ td,th{
   min-height: 0;
   overflow-y: auto;
 }
+.msg {
+  padding:8px;
+  margin:5px 0;
+  border-radius:8px;
+  max-width:70%;
+}
+
+.msg.admin {
+  background:#3498db;
+  color:white;
+  margin-left:auto;
+  text-align:right;
+}
+
+.msg.guest {
+  background:#ecf0f1;
+  color:black;
+  margin-right:auto;
+}
+.msg {
+  padding:8px;
+  border-radius:8px;
+  max-width:70%;
+}
+
+.msg.admin {
+  background:#3498db;
+  color:white;
+  margin-left:auto;
+  text-align:right;
+}
+
+.msg.guest {
+  background:#ecf0f1;
+  color:black;
+  margin-right:auto;
+}
+
+.msg.bot {
+  background:#2ecc71;
+  color:white;
+  margin-right:auto;
+}
 </style>
 </head>
 <body>
@@ -127,6 +170,12 @@ td,th{
   <div style="width:250px; border-right:1px solid #333;">
   
   <h3>Huéspedes</h3>
+
+  <div style="margin-bottom:10px;">
+  <input type="date" id="fromDate">
+  <input type="date" id="toDate">
+  <button onclick="filtrarPorFecha()">Filtrar</button>
+</div>
 
   <!-- 🔥 FILTRO -->
   <div style="margin-bottom:10px; display:flex; gap:5px;">
@@ -409,11 +458,15 @@ socket.on("staff_alert", (data)=>{
   }
 });
 // ================= GUESTS =================
-async function cargarGuests(){
+async function cargarGuests(filtro = "today"){
 
   const company_code = localStorage.getItem("company_code");
 
-  fetch(API + "/guests/" + company_code + "?date=today")
+  const url = filtro === "today"
+    ? API + "/guests/" + company_code + "?date=today"
+    : API + "/guests/" + company_code;
+
+  const res = await fetch(url);
 
   if(!res.ok){
     console.error("❌ ERROR guests:", res.status);
@@ -422,8 +475,8 @@ async function cargarGuests(){
 
   const data = await res.json();
 
-  window.guestsData = data;   // 🔥 FALTABA
-  renderGuests();             // 🔥 FALTABA
+  window.guestsData = data;
+  renderGuests();
 }
 
 function renderGuests(){
@@ -470,28 +523,23 @@ div.appendChild(el);
 
 
 // ================= CHAT =================
-async function seleccionarGuest(id){
+function seleccionarGuest(id){
 
   currentGuest = id;
-  
-  unread[id] = 0; // 🔥 limpiar contador
-  
-   renderGuests();
 
-  const company_code = localStorage.getItem("company_code");
+  fetch(API + "/chat/" + id + "?company_code=" + localStorage.getItem("company_code"))
+    .then(r=>r.json())
+    .then(data=>{
 
-  const res = await fetch(`${API}/chat/${id}?company_code=${company_code}`);
-  const data = await res.json();
+      const chat = document.getElementById("chatBox");
+      chat.innerHTML = "";
 
-  const chat = document.getElementById("chatBox");
+      data.forEach(m=>{
+        agregarMensaje(m);
+      });
 
-chat.innerHTML = `
-  <div style="margin-bottom:10px;">
-    <button onclick="asignar()">Asignarme este chat</button>
-  </div>
-`;
+    });
 
-  data.forEach(m=> agregarMensaje(m));
 }
 
 // ================= MENSAJE =================
@@ -499,22 +547,31 @@ function agregarMensaje(m){
 
   const div = document.createElement("div");
 
+  // 🔥 ESTILO
+  if(m.sender === "admin"){
+    div.className = "msg admin";
+  }else if(m.sender === "bot"){
+    div.className = "msg bot";
+  }else{
+    div.className = "msg guest";
+  }
+
   div.style.marginBottom="8px";
   div.style.padding="6px 10px";
   div.style.borderRadius="8px";
   div.style.maxWidth="70%";
 
-if(m.sender === "guest"){
-  div.innerHTML = `👤 ${m.message}`;
-}else if(m.sender === "admin"){
-  div.innerHTML = `🧑‍💼 ${m.message}`;
-}else if(m.sender === "bot"){
-  div.innerHTML = `🤖 ${m.message}`;
-}
-
-  document.getElementById("chatBox").appendChild(div);
+  if(m.sender === "guest"){
+    div.innerHTML = `👤 ${m.message}`;
+  }else if(m.sender === "admin"){
+    div.innerHTML = `🧑‍💼 ${m.message}`;
+  }else if(m.sender === "bot"){
+    div.innerHTML = `🤖 ${m.message}`;
+  }
 
   const chat = document.getElementById("chatBox");
+  chat.appendChild(div);
+
   chat.scrollTop = chat.scrollHeight;
 }
 
@@ -781,14 +838,17 @@ async function eliminarRespuesta(id){
 
   cargarRespuestas();
 }
-function cargarGuests(filtro = "today"){
+function filtrarPorFecha(){
+
+  const from = document.getElementById("fromDate").value;
+  const to = document.getElementById("toDate").value;
 
   const company_code = localStorage.getItem("company_code");
 
   let url = API + "/guests/" + company_code;
 
-  if(filtro === "today"){
-    url += "?date=today";
+  if(from && to){
+    url += `?from=${from}&to=${to}`;
   }
 
   fetch(url)
@@ -796,18 +856,6 @@ function cargarGuests(filtro = "today"){
     .then(data=>{
       renderGuests(data);
     });
-}
-function renderGuests(data){
-
-  const cont = document.getElementById("listaGuests");
-  cont.innerHTML = "";
-
-  data.forEach(g=>{
-    const div = document.createElement("div");
-    div.innerText = g.name + " - Hab " + g.room;
-    cont.appendChild(div);
-  });
-
 }
 function logout(){
   localStorage.clear();

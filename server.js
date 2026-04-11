@@ -432,7 +432,8 @@ app.get("/guests/:company_code", async (req,res)=>{
  try{
 
   const company_id = await getCompanyId(req.params.company_code);
-  const { date } = req.query; // 🔥 nuevo
+
+  const { from, to, date } = req.query;
 
   let query = `
     SELECT *
@@ -443,22 +444,34 @@ app.get("/guests/:company_code", async (req,res)=>{
 
   let params = [company_id];
 
-  // 🔥 FILTRO HOY
-  if(date === "today"){
+  // 🔥 FILTRO POR RANGO (CALENDARIO)
+  if(from && to){
     query += `
-      AND DATE(last_message_at) = CURRENT_DATE
+      AND DATE(COALESCE(last_message_at, created_at)) 
+      BETWEEN $2 AND $3
+    `;
+    params.push(from, to);
+  }
+
+  // 🔥 FILTRO HOY
+  else if(date === "today"){
+    query += `
+      AND (
+        last_message_at >= CURRENT_DATE
+        OR (last_message_at IS NULL AND created_at >= CURRENT_DATE)
+      )
     `;
   }
 
-  query += ` ORDER BY last_message_at DESC`;
+  query += ` ORDER BY COALESCE(last_message_at, created_at) DESC`;
 
   const result = await db.query(query, params);
 
   res.json(result.rows);
 
  }catch(err){
-  console.error("ERROR chat:", err);
-  res.status(500).json({error:"Error obteniendo chat"});
+  console.error("ERROR guests:", err);
+  res.status(500).json({error:"Error obteniendo guests"});
  }
 });
 
