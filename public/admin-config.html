@@ -843,18 +843,23 @@ function filtrarPorFecha(){
   const from = document.getElementById("fromDate").value;
   const to = document.getElementById("toDate").value;
 
+  if(!from || !to){
+    alert("Selecciona ambas fechas");
+    return;
+  }
+
   const company_code = localStorage.getItem("company_code");
 
-  let url = API + "/guests/" + company_code;
+  const url = API + `/guests/${company_code}?from=${from}&to=${to}`;
 
-  if(from && to){
-    url += `?from=${from}&to=${to}`;
-  }
+  console.log("🔍 URL:", url); // DEBUG
 
   fetch(url)
     .then(r=>r.json())
     .then(data=>{
-      renderGuests(data);
+      console.log("📦 RESULTADO:", data); // DEBUG
+      window.guestsData = data;
+      renderGuests();
     });
 }
 function logout(){

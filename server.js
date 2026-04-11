@@ -432,7 +432,6 @@ app.get("/guests/:company_code", async (req,res)=>{
  try{
 
   const company_id = await getCompanyId(req.params.company_code);
-
   const { from, to, date } = req.query;
 
   let query = `
@@ -444,14 +443,16 @@ app.get("/guests/:company_code", async (req,res)=>{
 
   let params = [company_id];
 
-  // 🔥 FILTRO POR RANGO (CALENDARIO)
-  if(from && to){
-    query += `
-      AND DATE(COALESCE(last_message_at, created_at)) 
-      BETWEEN $2 AND $3
-    `;
-    params.push(from, to);
-  }
+  // 🔥 FILTRO POR RANGO
+ if(from && to){
+  query += `
+    AND (
+      DATE(created_at) BETWEEN $2 AND $3
+      OR DATE(last_message_at) BETWEEN $2 AND $3
+    )
+  `;
+  params.push(from, to);
+}
 
   // 🔥 FILTRO HOY
   else if(date === "today"){
@@ -464,6 +465,9 @@ app.get("/guests/:company_code", async (req,res)=>{
   }
 
   query += ` ORDER BY COALESCE(last_message_at, created_at) DESC`;
+
+  console.log("🧠 QUERY:", query);
+  console.log("📊 PARAMS:", params);
 
   const result = await db.query(query, params);
 
