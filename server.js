@@ -338,17 +338,21 @@ try{
   }
 
   // 🔥 obtener idioma del huésped
-const langResult = await db.query(
-  "SELECT lang FROM guests WHERE id=$1",
-  [guest_id]
-);
-
-const guestLang = langResult.rows[0]?.lang || "es";
-
+  
 let textoFinal = ai.texto;
 
 // 🔥 traducir con IA SOLO si no es español
-if(guestLang !== "es"){
+if(guestLang !== "es" && process.env.OPENAI_API_KEY){
+  textoFinal = await traducirIA(ai.texto, guestLang);
+}
+
+// 🔥 DEBUG AQUÍ
+console.log("🌐 LANG:", guestLang);
+console.log("🤖 RESPUESTA ORIGINAL:", ai.texto);
+console.log("🌍 RESPUESTA FINAL:", textoFinal);
+
+// 🔥 traducir con IA SOLO si no es español
+if(guestLang !== "es" && process.env.OPENAI_API_KEY){
   textoFinal = await traducirIA(ai.texto, guestLang);
 }
 
@@ -697,6 +701,15 @@ async function traducirIA(texto, idioma){
     });
 
     const data = await res.json();
+
+    // 🔥 DEBUG OPENAI
+    console.log("🧠 OPENAI RAW:", data);
+
+    // 🔥 VALIDAR ERROR
+    if(data.error){
+      console.error("❌ OPENAI ERROR:", data.error);
+      return texto;
+    }
 
     return data.choices?.[0]?.message?.content || texto;
 
