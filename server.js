@@ -338,16 +338,19 @@ try{
   }
 
   // 🔥 obtener idioma del huésped
-const guestLang = guestData.lang || "es";
+const langResult = await db.query(
+  "SELECT lang FROM guests WHERE id=$1",
+  [guest_id]
+);
 
-// 🔥 preparar respuesta
+const guestLang = langResult.rows[0]?.lang || "es";
+
 let textoFinal = ai.texto;
 
 if(guestLang === "en"){
   textoFinal = traducirAIngles(ai.texto);
 }
 
-// 🔥 guardar mensaje
 await db.query(
   "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
   [guest_id, textoFinal]
