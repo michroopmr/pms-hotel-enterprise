@@ -186,7 +186,7 @@ app.post("/guest/login", async (req,res)=>{
   const company_id = await getCompanyId(company_code);
 
   const result = await db.query(
-   "INSERT INTO guests (name, room, company_id, lang) VALUES ($1,$2,$3) RETURNING *",
+   "INSERT INTO guests (name, room, company_id, lang) VALUES ($1,$2,$3,$4) RETURNING *",
    [name, room, company_id, lang || "es"]
   );
 
