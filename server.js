@@ -347,8 +347,9 @@ const guestLang = langResult.rows[0]?.lang || "es";
 
 let textoFinal = ai.texto;
 
-if(guestLang === "en"){
-  textoFinal = traducirAIngles(ai.texto);
+// 🔥 traducir con IA SOLO si no es español
+if(guestLang !== "es"){
+  textoFinal = await traducirIA(ai.texto, guestLang);
 }
 
 await db.query(
@@ -665,23 +666,44 @@ const DEPARTMENTS = [
   "Tabaqueria",
   "Gerencia General"
 ];
-function traducirAIngles(texto){
+async function traducirIA(texto, idioma){
 
   if(!texto) return texto;
 
-  if(texto.includes("Hemos notificado")){
-    return "We have notified the corresponding department. Our team will assist you shortly.";
-  }
+  // 🔥 si es español, no traduce
+  if(idioma === "es") return texto;
 
-  if(texto.includes("Enviamos al equipo")){
-    return "We have sent the team to assist you.";
-  }
+  try{
 
-  if(texto.includes("Error IA")){
-    return "AI error, please try again.";
-  }
+    const res = await fetch("https://api.openai.com/v1/chat/completions",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer " + process.env.OPENAI_API_KEY
+      },
+      body: JSON.stringify({
+        model: "gpt-4.1-mini",
+        messages: [
+          {
+            role: "system",
+            content: `Translate the following text to ${idioma}. Keep tone natural and friendly.`
+          },
+          {
+            role: "user",
+            content: texto
+          }
+        ]
+      })
+    });
 
-  return texto; // fallback
+    const data = await res.json();
+
+    return data.choices?.[0]?.message?.content || texto;
+
+  }catch(err){
+    console.error("❌ ERROR TRADUCCIÓN:", err);
+    return texto;
+  }
 }
 function authMiddleware(req, res, next){
 
