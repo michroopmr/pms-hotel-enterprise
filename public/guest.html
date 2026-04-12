@@ -84,6 +84,11 @@ body {
     <input type="text" placeholder="Nombre" id="guest_name">
     <input type="text" placeholder="Habitación" id="guest_room">
 
+    <select id="lang">
+  <option value="es">🇲🇽 Español</option>
+  <option value="en">🇺🇸 English</option>
+</select>
+
     <button onclick="login()">Entrar</button>
 
   </div>
@@ -109,10 +114,11 @@ async function login(){
   method:"POST",
   headers:{"Content-Type":"application/json"},
   body: JSON.stringify({
-    name,
-    room,
-    company_code
-  })
+  name,
+  room,
+  company_code,
+  lang: document.getElementById("lang").value // 🔥 AQUÍ
+})
  });
 
  const data = await res.json();

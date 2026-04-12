@@ -177,7 +177,7 @@ app.post("/assign", authMiddleware, async (req,res)=>{
 app.post("/guest/login", async (req,res)=>{
  try{
 
-  const { name, room, company_code } = req.body;
+  const { name, room, company_code, lang } = req.body;
 
   if(!name || !room || !company_code){
    return res.status(400).json({error:"Datos incompletos"});
@@ -186,8 +186,8 @@ app.post("/guest/login", async (req,res)=>{
   const company_id = await getCompanyId(company_code);
 
   const result = await db.query(
-   "INSERT INTO guests (name, room, company_id) VALUES ($1,$2,$3) RETURNING *",
-   [name, room, company_id]
+   "INSERT INTO guests (name, room, company_id, lang) VALUES ($1,$2,$3) RETURNING *",
+   [name, room, company_id, lang || "es"]
   );
 
   res.json(result.rows[0]);
@@ -242,6 +242,7 @@ try{
   }
 
   const guestData = guestCheck.rows[0];
+  const guestLang = guestData.lang || "es";
 
   // 🔥 GUARDAR MENSAJE (PROTEGIDO)
 try{
@@ -336,15 +337,25 @@ try{
     }
   }
 
-  // 🔥 RESPUESTA BOT (ya la tienes)
-  await db.query(
-    "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
-    [guest_id, ai.texto]
-  );
+  // 🔥 obtener idioma del huésped
+const guestLang = guestData.lang || "es";
+
+// 🔥 preparar respuesta
+let textoFinal = ai.texto;
+
+if(guestLang === "en"){
+  textoFinal = traducirAIngles(ai.texto);
+}
+
+// 🔥 guardar mensaje
+await db.query(
+  "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
+  [guest_id, textoFinal]
+);
 
   io.to("guest_" + guest_id).emit("new_message",{
     guest_id,
-    message: ai.texto,
+    message: textoFinal,
     sender: "bot"
   });
 
@@ -651,6 +662,24 @@ const DEPARTMENTS = [
   "Tabaqueria",
   "Gerencia General"
 ];
+function traducirAIngles(texto){
+
+  if(!texto) return texto;
+
+  if(texto.includes("Hemos notificado")){
+    return "We have notified the corresponding department. Our team will assist you shortly.";
+  }
+
+  if(texto.includes("Enviamos al equipo")){
+    return "We have sent the team to assist you.";
+  }
+
+  if(texto.includes("Error IA")){
+    return "AI error, please try again.";
+  }
+
+  return texto; // fallback
+}
 function authMiddleware(req, res, next){
 
  const authHeader = req.headers.authorization;
