@@ -75,7 +75,8 @@ app.use((req,res,next)=>{
 
 console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
 
-app.use(express.json());
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ limit: "10mb", extended: true }));
 
 app.use("/chat", rateLimit({
  windowMs: 60 * 1000,
@@ -857,6 +858,10 @@ CREATE TABLE IF NOT EXISTS settings(
 )
 `);
 await db.query(`
+ALTER TABLE settings
+ADD CONSTRAINT IF NOT EXISTS unique_settings UNIQUE (key, company_id)
+`);
+await db.query(`
 CREATE TABLE IF NOT EXISTS tickets(
  id SERIAL PRIMARY KEY,
  guest_id INT,
@@ -1455,18 +1460,35 @@ app.get("/settings", authMiddleware, async (req,res)=>{
 
 
 app.post("/settings", authMiddleware, async (req,res)=>{
+ try{
 
- const { key, value } = req.body;
+   const { key, value } = req.body;
 
- await db.query(`
- INSERT INTO settings(key,value,company_id)
- VALUES($1,$2,$3)
- ON CONFLICT (key,company_id)
- DO UPDATE SET value=EXCLUDED.value
- `,
- [key,value,req.user.company_id]);
+   console.log("📦 BODY SETTINGS:", req.body);
 
- res.json({ok:true});
+   console.log("⚙️ SETTINGS:", {
+     key,
+     size: value?.length,
+     company: req.user.company_id
+   });
+
+   await db.query(`
+     INSERT INTO settings(key,value,company_id)
+     VALUES($1,$2,$3)
+     ON CONFLICT (key,company_id)
+     DO UPDATE SET value=EXCLUDED.value
+   `,
+   [key,value,req.user.company_id]);
+
+   res.json({ok:true});
+
+ }catch(err){
+   console.error("❌ ERROR SETTINGS:", err);
+   res.status(500).json({
+     error:"Error guardando settings",
+     detalle: err.message
+   });
+ }
 });
 /* ================= CREATE TASK ================= */
 app.post("/tasks", authMiddleware, async (req,res)=>{

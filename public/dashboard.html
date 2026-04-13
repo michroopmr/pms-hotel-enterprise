@@ -719,7 +719,13 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 <h4 style="margin:0 0 10px 0;">Actividad por departamento</h4>
 <div id="deptChart"></div>
 </div>
-      <h3>Tareas</h3>
+   <h3>Tareas</h3>
+
+<!-- 🔥 NUEVO FILTRO HOY / TODAS -->
+<div style="margin-bottom:10px; display:flex; gap:10px;">
+  <button onclick="modoFecha='today'; render()" style="background:#22c55e;">Hoy</button>
+  <button onclick="modoFecha='all'; render()" style="background:#6b7280;">Todas</button>
+</div>
 
 <select onchange="filtrarDepto(this.value)" style="margin-bottom:10px;">
   <option value="">Todos los departamentos</option>
@@ -974,6 +980,7 @@ let filtroFecha=null;
 let filtroDepto = null;
 let usuarioEditando = false;
 let vistaActual = "dashboard"; // 🔥 saber qué vista está activa
+let modoFecha = "today"; // 🔥 AQUÍ
 let logoCloudData = null;
 
 /* ===== PLANTILLAS DE TAREAS ===== */
@@ -1250,24 +1257,34 @@ if(vistaActual === "reportes" && !filtroFecha){
 }
  // ================= DASHBOARD = SOLO HOY =================
 
- if(vistaActual === "dashboard" && !filtroEstado){
+ if(vistaActual === "dashboard" && !filtroEstado && modoFecha === "today"){
 
-   const hoy = new Date();
-   hoy.setHours(0,0,0,0);
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
 
-   const finHoy = new Date();
-   finHoy.setHours(23,59,59,999);
+  const finHoy = new Date();
+  finHoy.setHours(23,59,59,999);
 
-   visibles = visibles.filter(t=>{
+  visibles = visibles.filter(t=>{
 
-     if(!t.due_date) return true;
+    // 🔥 PRIORIDAD: created_at
+    if(t.created_at){
+      const fecha = new Date(String(t.created_at).replace(" ","T"));
+      return fecha >= hoy && fecha <= finHoy;
+    }
 
-     const fecha = new Date(t.due_date.replace(" ","T"));
+    // 🔥 fallback (por si no existe created_at)
+    if(t.due_date){
+      const fecha = new Date(String(t.due_date).replace(" ","T"));
+      return fecha >= hoy && fecha <= finHoy;
+    }
 
-     return fecha >= hoy && fecha <= finHoy;
- });
- actividadDepartamento();
- }
+    return false;
+
+  });
+
+  actividadDepartamento();
+}
 
  // KPI solo aplica en dashboard
 
@@ -2054,66 +2071,57 @@ function obtenerTareasVisibles(){
 
  let visibles = [...tareas];
 
+ // 🔥 FILTRO DEPARTAMENTO
+ if(filtroDepto){
+   visibles = visibles.filter(t => 
+     (t.department || "").trim().toLowerCase() === 
+     (filtroDepto || "").trim().toLowerCase()
+   );
+ }
+
  // ===== DASHBOARD SOLO HOY =====
  if(vistaActual === "dashboard" && !filtroEstado){
 
- const hoy = new Date();
- hoy.setHours(0,0,0,0);
+   const hoy = new Date();
+   hoy.setHours(0,0,0,0);
 
- const finHoy = new Date();
- finHoy.setHours(23,59,59,999);
+   const finHoy = new Date();
+   finHoy.setHours(23,59,59,999);
 
- visibles = visibles.filter(t=>{
-
-   if(!t.due_date) return true;
-
-   const fecha = new Date(t.due_date.replace(" ","T"));
-
-   return fecha >= hoy && fecha <= finHoy;
-
- });
-
-}
+   visibles = visibles.filter(t=>{
+     if(!t.created_at) return false;
+     const fecha = new Date(t.created_at.replace(" ","T"));
+     return fecha >= hoy && fecha <= finHoy;
+   });
+ }
 
  // ===== FILTRO ESTADO =====
  if(filtroEstado){
    visibles = visibles.filter(t=>estado(t)===filtroEstado);
  }
 
-  // ===== FILTRO FECHA (IMPORTANTE - YA NO DEPENDE DE VISTA) =====
+ // ===== FILTRO FECHA =====
  if(filtroFecha){
-
    visibles = visibles.filter(t=>{
-
      if(!t.created_at) return false;
-
      const d = new Date(t.created_at.replace(" ","T"));
      return d >= filtroFecha.from && d <= filtroFecha.to;
-
    });
-
  }
 
  return visibles;
-
 }
 
 /* ================= EXPORT ================= */
 function exportarPDF(){
-const dep = document.getElementById("filtroDeptoPDF").value;
 
-let data = [...tareas];
-
-if(dep){
-  data = data.filter(t => t.department === dep);
-}
   try{
  const { jsPDF } = window.jspdf;
 
  const pdf = new jsPDF('l','mm','a4');
  const logoMollyHelpersData = "icon-192.png";
 
- let y = 65;
+ let y = 70;
  
  const data = obtenerTareasVisibles();
 
@@ -2205,13 +2213,19 @@ pdf.text(`Tiempo promedio resolución: ${promedio} min`,170,45);
 
 y = 65;
 
+// 🔥 MOSTRAR FILTROS APLICADOS
+let filtroTexto = `Departamento: ${filtroDepto || "Todos"}`;
+
 if(filtroFecha){
- pdf.text(
-   `Periodo: ${filtroFecha.from.toLocaleDateString()} - ${filtroFecha.to.toLocaleDateString()}`,
-   14,
-   34
- );
+  filtroTexto += ` | Periodo: ${
+    filtroFecha.from.toLocaleDateString()
+  } - ${
+    filtroFecha.to.toLocaleDateString()
+  }`;
 }
+
+pdf.setFontSize(10);
+pdf.text(filtroTexto, 14, 34);
  // ===== TABLE DATA =====
 
  pdf.setFontSize(9);
