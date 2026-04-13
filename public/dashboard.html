@@ -1846,29 +1846,18 @@ function filtrarPorFecha(){
    return;
  }
 
- const i = new Date(fromInput.value+"T00:00:00");
- const f = new Date(toInput.value+"T23:59:59");
+ const i = new Date(fromInput.value + "T00:00:00");
+ const f = new Date(toInput.value + "T23:59:59");
 
- filtroFecha = {from:i,to:f};
+ filtroFecha = { from: i, to: f };
+
+ // 🔥 NUEVO
+ const depPDF = document.getElementById("filtroDeptoPDF").value;
+ filtroDepto = depPDF || null;
 
  document.getElementById("filtroActivo").style.display="block";
 
-
  render();
-
-}
-
-
-function verTodas(){
-
- filtroEstado = null;
-
- document.querySelectorAll(".card").forEach(c=>{
-   c.classList.remove("active");
- });
-
- render();
-
 }
 /* ================= CRUD ================= */
 async function crearTarea(){
@@ -2069,288 +2058,248 @@ async function borrarUsuario(id){
 
 function obtenerTareasVisibles(){
 
- let visibles = [...tareas];
+  return tareas.filter(t=>{
 
- // 🔥 FILTRO DEPARTAMENTO
- if(filtroDepto){
-   visibles = visibles.filter(t => 
-     (t.department || "").trim().toLowerCase() === 
-     (filtroDepto || "").trim().toLowerCase()
-   );
- }
+    if(filtroDepto && t.department !== filtroDepto){
+      return false;
+    }
 
- // ===== DASHBOARD SOLO HOY =====
- if(vistaActual === "dashboard" && !filtroEstado){
+    if(filtroFecha){
 
-   const hoy = new Date();
-   hoy.setHours(0,0,0,0);
+      if(!t.created_at) return false;
 
-   const finHoy = new Date();
-   finHoy.setHours(23,59,59,999);
+      const fecha = new Date((t.created_at || "").replace(" ","T"));
 
-   visibles = visibles.filter(t=>{
-     if(!t.created_at) return false;
-     const fecha = new Date(t.created_at.replace(" ","T"));
-     return fecha >= hoy && fecha <= finHoy;
-   });
- }
+      if(isNaN(fecha)) return false;
 
- // ===== FILTRO ESTADO =====
- if(filtroEstado){
-   visibles = visibles.filter(t=>estado(t)===filtroEstado);
- }
+      if(fecha < filtroFecha.from || fecha > filtroFecha.to){
+        return false;
+      }
+    }
 
- // ===== FILTRO FECHA =====
- if(filtroFecha){
-   visibles = visibles.filter(t=>{
-     if(!t.created_at) return false;
-     const d = new Date(t.created_at.replace(" ","T"));
-     return d >= filtroFecha.from && d <= filtroFecha.to;
-   });
- }
-
- return visibles;
+    return true;
+  });
 }
 
 /* ================= EXPORT ================= */
 function exportarPDF(){
 
   try{
- const { jsPDF } = window.jspdf;
+    const { jsPDF } = window.jspdf;
 
- const pdf = new jsPDF('l','mm','a4');
- const logoMollyHelpersData = "icon-192.png";
+    const pdf = new jsPDF('l','mm','a4');
+    const logoMollyHelpersData = "icon-192.png";
 
- let y = 70;
- 
- const data = obtenerTareasVisibles();
+    let y = 70;
+    
+    const data = obtenerTareasVisibles();
+    console.log("📊 DATA PDF:", data);
 
-let total = data.length;
-let enTiempo = 0;
-let fueraTiempo = 0;
-let tiempoTotal = 0;
+    // 🔥 SOLO tareas cerradas
+    const cerradas = data.filter(t => t.closed_at);
 
-data.forEach(t=>{
+    let total = cerradas.length;
+    let enTiempo = 0;
+    let fueraTiempo = 0;
+    let tiempoTotal = 0;
 
- if(!t.closed_at) return;
+    cerradas.forEach(t=>{
 
- const inicio = new Date(t.created_at.replace(" ","T"));
- const fin = new Date(t.closed_at.replace(" ","T"));
- const limite = t.due_date ? new Date(t.due_date.replace(" ","T")) : null;
+      if(!t.created_at || !t.closed_at) return;
 
- const minutos = Math.floor((fin - inicio)/60000);
- tiempoTotal += minutos;
+      const inicio = new Date((t.created_at || "").replace(" ","T"));
+      const fin = new Date((t.closed_at || "").replace(" ","T"));
+      const limite = t.due_date ? new Date((t.due_date || "").replace(" ","T")) : null;
 
- if(limite && fin <= limite){
-   enTiempo++;
- }else if(limite){
-   fueraTiempo++;
- }
+      if(isNaN(inicio) || isNaN(fin)) return;
 
-});
+      const minutos = Math.floor((fin - inicio)/60000);
+      tiempoTotal += minutos;
 
-const promedio = total ? Math.round(tiempoTotal/total) : 0;
-const cumplimiento = total ? Math.round((enTiempo/total)*100) : 0;
- 
- // ===== HEADER EXECUTIVO PRO =====
+      if(limite && fin <= limite){
+        enTiempo++;
+      }else if(limite){
+        fueraTiempo++;
+      }
 
-const pageWidth = pdf.internal.pageSize.getWidth();
+    });
 
-// LOGO CLIENTE
-if(logoCloudData && logoCloudData.startsWith("data:image")){
+    const promedio = total ? Math.round(tiempoTotal/total) : 0;
+    const cumplimiento = total ? Math.round((enTiempo/total)*100) : 0;
 
-   pdf.addImage(
-      logoCloudData,
-      "PNG",
-      14,
-      10,
-      20,
-      20
-   );
-}
+    // ===== HEADER =====
+    const pageWidth = pdf.internal.pageSize.getWidth();
 
+    if(logoCloudData && logoCloudData.startsWith("data:image")){
+      pdf.addImage(logoCloudData,"PNG",14,10,20,20);
+    }
 
-// LOGO MOLLYHELPERS DERECHA
-pdf.addImage(
-   logoMollyHelpersData,
-   "PNG",
-   pageWidth - 34,
-   10,
-   20,
-   20
-);
-// NOMBRE SISTEMA DERECHA
-pdf.setFontSize(14);
-pdf.setFont(undefined,"bold");
+    pdf.addImage(logoMollyHelpersData,"PNG",pageWidth - 34,10,20,20);
 
-pdf.text(
-   "MollyHelpers",
-   pageWidth - 40,
-   35,
-   { align:"right" }
-);
+    pdf.setFontSize(14);
+    pdf.setFont(undefined,"bold");
+    pdf.text("MollyHelpers",pageWidth - 40,35,{ align:"right" });
 
-// TITULO PRINCIPAL IZQUIERDA
-pdf.setFontSize(16);
-pdf.setFont(undefined,"normal");
+    pdf.setFontSize(16);
+    pdf.setFont(undefined,"normal");
+    pdf.text("Reporte Ejecutivo Operativo",50,18);
 
-pdf.text("Reporte Ejecutivo Operativo",50,18);
-pdf.setDrawColor(200);
-pdf.line(14,38,pageWidth-14,38);
+    pdf.setDrawColor(200);
+    pdf.line(14,38,pageWidth-14,38);
 
-// INFO GENERAL
-pdf.setFontSize(10);
+    pdf.setFontSize(10);
+    pdf.text(`Usuario: ${user.username}`,50,24);
+    pdf.text(`Generado: ${new Date().toLocaleString()}`,50,30);
 
-pdf.text(`Usuario: ${user.username}`,50,24);
-pdf.text(`Generado: ${new Date().toLocaleString()}`,50,30);
+    pdf.setFontSize(11);
+    pdf.text(`Total tareas: ${total}`,14,45);
+    pdf.text(`Cumplimiento SLA: ${cumplimiento}%`,60,45);
+    pdf.text(`Fuera de tiempo: ${fueraTiempo}`,120,45);
+    pdf.text(`Tiempo promedio resolución: ${promedio} min`,170,45);
 
-pdf.setFontSize(11);
+    // ===== FILTROS =====
+    let filtroTexto = `Departamento: ${filtroDepto || "Todos"}`;
 
-pdf.text(`Total tareas: ${total}`,14,45);
-pdf.text(`Cumplimiento SLA: ${cumplimiento}%`,60,45);
-pdf.text(`Fuera de tiempo: ${fueraTiempo}`,120,45);
-pdf.text(`Tiempo promedio resolución: ${promedio} min`,170,45);
+    if(filtroFecha){
+      filtroTexto += ` | Periodo: ${
+        filtroFecha.from.toLocaleDateString()
+      } - ${
+        filtroFecha.to.toLocaleDateString()
+      }`;
+    }
 
-y = 65;
+    pdf.setFontSize(10);
 
-// 🔥 MOSTRAR FILTROS APLICADOS
-let filtroTexto = `Departamento: ${filtroDepto || "Todos"}`;
+    pdf.setFont(undefined,"bold");
+    pdf.text("Filtros:", 14, 40);
 
-if(filtroFecha){
-  filtroTexto += ` | Periodo: ${
-    filtroFecha.from.toLocaleDateString()
-  } - ${
-    filtroFecha.to.toLocaleDateString()
-  }`;
-}
+    pdf.setFont(undefined,"normal");
+    pdf.text(filtroTexto, 30, 40);
 
-pdf.setFontSize(10);
-pdf.text(filtroTexto, 14, 34);
- // ===== TABLE DATA =====
+    // ===== TABLA =====
+    y = 65;
 
- pdf.setFontSize(9);
- const colWidth = [40, 30, 28, 30, 35, 25, 25, 25, 55];
- pdf.setFont(undefined,"bold");
+    pdf.setFontSize(9);
 
-const headers = [
- "Tarea",
- "Departamento",
- "Estado",
- "Usuario",
- "Fecha",
- "Tiempo Total",
- "SLA",
- "Score",
- "Comentarios"
-];
+    const colWidth = [40, 30, 28, 30, 35, 25, 25, 25, 55];
 
-let x = 14;
+    pdf.setFont(undefined,"bold");
 
-headers.forEach((h,i)=>{
-  pdf.text(h,x,y);
-  x += colWidth[i];
-});
+    const headers = [
+      "Tarea",
+      "Departamento",
+      "Estado",
+      "Usuario",
+      "Fecha",
+      "Tiempo Total",
+      "SLA",
+      "Score",
+      "Comentarios"
+    ];
 
-pdf.setFont(undefined,"normal");
+    let x = 14;
 
-y += 8;
+    headers.forEach((h,i)=>{
+      pdf.text(h,x,y);
+      x += colWidth[i];
+    });
 
- data.forEach(t=>{
+    pdf.setFont(undefined,"normal");
 
-   let comentariosTexto="";
+    y += 8;
 
-   try{
-     let comentarios=[];
+    data.forEach(t=>{
 
-     if(Array.isArray(t.comments)) comentarios=t.comments;
-     else if(typeof t.comments==="string")
-       comentarios=JSON.parse(t.comments);
+      let comentariosTexto = "";
 
-     comentariosTexto = comentarios
-       .map(c=>`${c.user}: ${c.texto}`)
-       .join(" | ");
+      try{
+        let comentarios = [];
 
-   }catch(e){}
+        if(Array.isArray(t.comments)) comentarios = t.comments;
+        else if(typeof t.comments === "string")
+          comentarios = JSON.parse(t.comments);
 
-   const fecha = fechaPMS(t.created_at);
+        comentariosTexto = comentarios
+          .map(c=>`${c.user}: ${c.texto}`)
+          .join(" | ");
 
-   const row=[
- t.title || "",
- t.department || "",
- estado(t).replace("_"," ").toUpperCase(),
- t.created_by || "",
- `${fecha.fecha} ${fecha.hora}`,
- calcularTiempoTotal(t),
- calcularSLA(t),
- calcularScore(t),
- comentariosTexto
-];
+      }catch(e){}
 
-   const splitRow=row.map((col,i)=>
-     pdf.splitTextToSize(String(col),colWidth[i]-8)
-   );
+      const fecha = fechaPMS(t.created_at);
 
-   const rowHeight=Math.max(...splitRow.map(r=>r.length))*5;
+      const row = [
+        t.title || "",
+        t.department || "",
+        estado(t).replace("_"," ").toUpperCase(),
+        t.created_by || "",
+        `${fecha.fecha} ${fecha.hora}`,
+        calcularTiempoTotal(t),
+        calcularSLA(t),
+        calcularScore(t),
+        comentariosTexto
+      ];
 
-   let x=14;
+      const splitRow = row.map((col,i)=>
+        pdf.splitTextToSize(String(col),colWidth[i]-8)
+      );
 
-   // 🔥 Verificar si la fila cabe antes de dibujarla
-if(y + rowHeight > 190){
+      const rowHeight = Math.max(...splitRow.map(r=>r.length))*5;
 
-   pdf.addPage();
-   y = 20;
+      if(y + rowHeight > 190){
 
-   // Reimprimir header
-   pdf.setFont(undefined,"bold");
+        pdf.addPage();
+        y = 20;
 
-   let xHeader = 14;
+        pdf.setFont(undefined,"bold");
 
-   headers.forEach((h,i)=>{
-      pdf.text(h,xHeader,y);
-      xHeader += colWidth[i];
-   });
+        let xHeader = 14;
 
-   pdf.setFont(undefined,"normal");
+        headers.forEach((h,i)=>{
+          pdf.text(h,xHeader,y);
+          xHeader += colWidth[i];
+        });
 
-   y += 8;
-}
+        pdf.setFont(undefined,"normal");
 
-// Ahora sí dibujar fila
-x = 14;
+        y += 8;
+      }
 
-splitRow.forEach((col,i)=>{
+      x = 14;
 
-  // 🎯 COLOR SLA
-  if(i === 6){
-   if(String(col).includes("En tiempo")){
-      pdf.setTextColor(0,150,0);
-   }
-   else if(String(col).includes("Fuera")){
-      pdf.setTextColor(200,0,0);
-   }
-}
+      splitRow.forEach((col,i)=>{
 
-  pdf.text(col,x,y);
+        if(i === 6){
+          if(String(col).includes("En tiempo")){
+            pdf.setTextColor(0,150,0);
+          }
+          else if(String(col).includes("Fuera")){
+            pdf.setTextColor(200,0,0);
+          }
+        }
 
-  pdf.setTextColor(0,0,0); // reset color
+        pdf.text(col,x,y);
+        pdf.setTextColor(0,0,0);
 
-  x+=colWidth[i];
+        x += colWidth[i];
 
-});
+      });
 
-y += rowHeight;
+      y += rowHeight;
 
- });
-agregarFooter(pdf);
-pdf.save("reporte_ejecutivo_operativo.pdf");
-   console.log("✅ PDF GENERADO OK");
+    });
 
- }catch(error){
+    agregarFooter(pdf);
 
-   console.error("💥 ERROR EXPORT PDF:", error);
-   alert("Error generando PDF — revisa consola (F12)");
+    pdf.save("reporte_ejecutivo_operativo.pdf");
 
- }
+    console.log("✅ PDF GENERADO OK");
+
+  }catch(error){
+
+    console.error("💥 ERROR EXPORT PDF:", error);
+    alert("Error generando PDF — revisa consola (F12)");
+
+  }
 }
 // ================= FOOTER =================
 function agregarFooter(pdf){
@@ -3002,6 +2951,9 @@ function seleccionarImagen(task_id){
 }
 function filtrarDepto(dep){
   filtroDepto = dep || null;
+
+  console.log("Filtro seleccionado:", filtroDepto);
+
   render();
 }
 async function subirEvidencia(task_id){
