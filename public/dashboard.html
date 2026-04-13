@@ -878,7 +878,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 <footer>
 © <span id="year"></span> Michelle Romero para Empresa
 </footer>
-<input type="date" id="fechaPostergar" style="display:none;">
+<input type="date" id="fechaPostergar" style="position:absolute; opacity:0;">
 <script>
   /* ===== DETECTAR MODO APP INSTALADA ===== */
 
@@ -3013,17 +3013,26 @@ async function subirEvidencia(task_id){
 }
 function postergarTarea(taskId){
 
+  console.log("📅 Postergar click:", taskId);
+
   const input = document.getElementById("fechaPostergar");
+
+  if(!input){
+    console.error("❌ No existe input fechaPostergar");
+    return;
+  }
 
   input.value = "";
 
-  input.onchange = async function(){
+  // 🔥 IMPORTANTE: usar addEventListener en vez de onchange
+  input.onchange = null;
 
-    const fecha = this.value;
+  input.addEventListener("change", async function handler(){
+
+    const fecha = input.value;
 
     if(!fecha) return;
 
-    // 🔥 👉 AQUÍ VA TU VALIDACIÓN
     const hoy = new Date().toISOString().split("T")[0];
 
     if(fecha < hoy){
@@ -3031,24 +3040,41 @@ function postergarTarea(taskId){
       return;
     }
 
-    // 🔥 FETCH
-    await fetch("https://mollyhelpers.com/tasks/" + taskId,{
-      method:"PUT",
-      headers:{
-        "Content-Type":"application/json",
-        "Authorization":"Bearer " + localStorage.getItem("token")
-      },
-      body: JSON.stringify({
-        due_date: fecha
-      })
-    });
+    try{
 
-    await cargar(); // 🔥 recargar dashboard
+      const res = await fetch("https://mollyhelpers.com/tasks/" + taskId,{
+        method:"PUT",
+        headers:{
+          "Content-Type":"application/json",
+          "Authorization":"Bearer " + localStorage.getItem("token")
+        },
+        body: JSON.stringify({
+          due_date: fecha
+        })
+      });
 
-    alert("✅ Tarea postergada");
+      if(!res.ok){
+        const error = await res.text();
+        console.error("❌ ERROR BACKEND:", error);
+        alert("Error actualizando tarea");
+        return;
+      }
 
-  };
+      await cargar();
 
+      alert("✅ Tarea postergada");
+
+    }catch(err){
+      console.error("❌ ERROR:", err);
+    }
+
+    // 🔥 evitar múltiples listeners
+    input.removeEventListener("change", handler);
+
+  });
+
+  // 🔥 FORZAR APERTURA (CLAVE)
+  input.showPicker?.();
   input.click();
 }
 function verImagen(url){
