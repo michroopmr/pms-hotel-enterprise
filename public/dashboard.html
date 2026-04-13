@@ -1137,20 +1137,22 @@ function calcularTiempoTotal(t){
  return `${mins} min`;
 }
 
-function calcularScore(t){
+function calcularSLA(t){
 
- if(!t.created_at || !t.closed_at) return "-";
+ if(!t.created_at) return "-";
 
  const inicio = new Date(t.created_at);
- const fin = new Date(t.closed_at);
+
+ const fin = t.closed_at
+   ? new Date(t.closed_at)
+   : new Date();
 
  const minutos = Math.floor((fin - inicio)/60000);
 
- if(minutos <= 30) return "Excelente";
- if(minutos <= 60) return "Regular"
- if(minutos <= 120) return "Critico"
+ if(minutos <= 15) return "En tiempo";
+ if(minutos <= 30) return "Aceptable";
 
- return "Crítico";
+ return "Fuera de tiempo";
 }
 
 function calcularSLA(t){
@@ -1171,24 +1173,22 @@ function calcularSLA(t){
 
 function estadoTiempo(t){
 
- // 🔥 si la tarea ya está cerrada NO evaluar tiempo
- if(t.status === "terminado"){
-   return "";
- }
+ if(t.status === "terminado") return "";
 
- if(!t.due_date) return "";
+ if(!t.created_at) return "";
 
+ const inicio = new Date(t.created_at);
  const ahora = new Date();
- const vence = new Date(t.due_date.replace(" ","T"));
 
- const diferenciaMs = vence - ahora;
- const diferenciaMin = diferenciaMs / 60000;
+ const minutos = (ahora - inicio) / 60000;
 
- if(diferenciaMin <= 0){
+ // 🔴 vencido >30 min
+ if(minutos > 30){
    return "vencido";
  }
 
- if(diferenciaMin <= 10){
+ // 🟡 cerca de vencer (>15)
+ if(minutos > 15){
    return "proximo";
  }
 
