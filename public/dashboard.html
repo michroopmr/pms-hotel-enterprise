@@ -723,14 +723,14 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
 <select onchange="filtrarDepto(this.value)" style="margin-bottom:10px;">
   <option value="">Todos los departamentos</option>
-  <option>Recepción</option>
-  <option>Mantenimiento</option>
-  <option>Housekeeping</option>
-  <option>Operaciones</option>
-  <option>Alimentos y Bebidas</option>
-  <option>Spa</option>
-  <option>Cocina</option>
-  <option>Gerencia General</option>
+  <option value="Recepción">Recepción</option>
+  <option value="Mantenimiento">Mantenimiento</option>
+  <option value="Housekeeping">Housekeeping</option>
+  <option value="Operaciones">Operaciones</option>
+  <option value="Alimentos y Bebidas">Alimentos y Bebidas</option>
+  <option value="Spa">Spa</option>
+  <option value="Cocina">Cocina</option>
+  <option value="Gerencia General">Gerencia General</option>
 </select>
       <div id="lista"></div>
 
@@ -878,7 +878,16 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 <footer>
 © <span id="year"></span> Michelle Romero para Empresa
 </footer>
-<input type="date" id="fechaPostergar" style="position:fixed; bottom:20px; left:20px; z-index:9999;">
+<input 
+  type="date" 
+  id="fechaPostergar" 
+  style="
+    position: fixed;
+    bottom: -100px;
+    left: 0;
+    opacity: 0;
+    pointer-events: none;
+  ">
 <script>
   /* ===== DETECTAR MODO APP INSTALADA ===== */
 
@@ -1219,8 +1228,16 @@ function render(){
 
  // dataset base limpio
  let visibles = [...tareas];
- if(filtroDepto){
-  visibles = visibles.filter(t => t.department === filtroDepto);
+
+ // 🔍 DEBUG
+console.log("Filtro seleccionado:", filtroDepto);
+console.log("Departamentos en tareas:", tareas.map(t => t.department));
+
+if(filtroDepto){
+  visibles = visibles.filter(t => 
+    (t.department || "").trim().toLowerCase() === 
+    (filtroDepto || "").trim().toLowerCase()
+  );
 }
 // 🔥 PMS UX: Reportes solo muestra resultados al consultar
 
