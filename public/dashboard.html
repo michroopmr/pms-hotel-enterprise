@@ -1307,38 +1307,43 @@ function render(){
 
  // KPI solo aplica en dashboard
 
+// KPI solo aplica en dashboard
 if(vistaActual === "dashboard" && filtroEstado){
 
  visibles = visibles.filter(t=>{
 
    const est = estado(t);
 
+   // 🔥 ABIERTAS
+   if(filtroEstado === "abierto"){
+     return est === "abierto";
+   }
+
+   // 🔥 EN PROCESO
+   if(filtroEstado === "proceso"){
+     return est === "proceso";
+   }
+
+   // 🔥 VENCIDAS ABIERTAS (no cerradas)
+   if(filtroEstado === "vencido"){
+     return estadoTiempo(t) === "vencido" && t.status !== "terminado";
+   }
+
+   // 🔥 VENCIDAS CERRADAS
+   if(filtroEstado === "vencido_cerrado"){
+     return est === "vencido_cerrado";
+   }
+
+   // 🔥 CERRADAS (incluye vencidas cerradas)
    if(filtroEstado === "cerrado"){
      return est === "cerrado" || est === "vencido_cerrado";
    }
 
-   return est === filtroEstado;
+   return true;
 
  });
 
 }
-
- // ================= FILTRO HISTORIAL =================
-
- if(vistaActual === "reportes" && filtroFecha){
-
-   visibles = visibles.filter(t=>{
-
-     if(!t.created_at) return false;
-
-     const d = new Date(t.created_at.replace(" ","T"));
-
-     return d >= filtroFecha.from && d <= filtroFecha.to;
-
-   });
-
- }
-
  // ================= SIN RESULTADOS =================
 
  if(!visibles.length){
