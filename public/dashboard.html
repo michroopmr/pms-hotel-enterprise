@@ -1419,6 +1419,7 @@ ${t.status !== "terminado" ? `
 
 <button onclick="cambiarEstado(${t.id},'proceso')">Proceso</button>
 <button onclick="cambiarEstado(${t.id},'terminado')">Cerrar</button>
+<button onclick="postergarTarea(${t.id})">📅 Postergar</button>
 <button onclick="mostrarComentario(${t.id})">Comentario</button>
 
 </div>
@@ -3010,6 +3011,46 @@ async function subirEvidencia(task_id){
   alert("Error conexión");
  }
 }
+function postergarTarea(taskId){
+
+  const input = document.getElementById("fechaPostergar");
+
+  input.value = "";
+
+  input.onchange = async function(){
+
+    const fecha = this.value;
+
+    if(!fecha) return;
+
+    // 🔥 👉 AQUÍ VA TU VALIDACIÓN
+    const hoy = new Date().toISOString().split("T")[0];
+
+    if(fecha < hoy){
+      alert("No puedes seleccionar una fecha pasada");
+      return;
+    }
+
+    // 🔥 FETCH
+    await fetch("https://mollyhelpers.com/tasks/" + taskId,{
+      method:"PUT",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer " + localStorage.getItem("token")
+      },
+      body: JSON.stringify({
+        due_date: fecha
+      })
+    });
+
+    await cargar(); // 🔥 recargar dashboard
+
+    alert("✅ Tarea postergada");
+
+  };
+
+  input.click();
+}
 function verImagen(url){
 
  const modal = document.createElement("div");
@@ -3039,5 +3080,6 @@ function verImagen(url){
 }
 </script>
 </div>
+<input type="date" id="fechaPostergar" style="display:none;">
 </body>
 </html>

@@ -351,11 +351,6 @@ console.log("🌐 LANG:", guestLang);
 console.log("🤖 RESPUESTA ORIGINAL:", ai.texto);
 console.log("🌍 RESPUESTA FINAL:", textoFinal);
 
-// 🔥 traducir con IA SOLO si no es español
-if(guestLang !== "es" && process.env.OPENAI_API_KEY){
-  textoFinal = await traducirIA(ai.texto, guestLang);
-}
-
 await db.query(
   "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
   [guest_id, textoFinal]
@@ -1543,7 +1538,7 @@ app.put("/tasks/:id", authMiddleware, async (req,res)=>{
  try{
 
    const id = req.params.id;
-   const { status, comments } = req.body;
+   const { status, comments, due_date } = req.body;
 
    if(status !== undefined){
 
@@ -1573,6 +1568,14 @@ values.push(id, req.user.company_id);
        [JSON.stringify(comments), id]
      );
    }
+
+   // 🔥 POSTERGAR TAREA
+if(due_date !== undefined){
+  await db.query(
+    "UPDATE tasks SET due_date=$1 WHERE id=$2 AND company_id=$3",
+    [due_date, id, req.user.company_id]
+  );
+}
 
    const result = await db.query(
  "SELECT * FROM tasks WHERE id=$1 AND company_id=$2",
