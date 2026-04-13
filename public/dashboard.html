@@ -667,7 +667,7 @@ footer{
 <div class="appHeader">
 
   <div class="appTitle">
-    Smart Hotel Assistant
+    MollyKelpers Smart Hotel Assistant
   </div>
 
   <div class="appUser">
@@ -766,45 +766,56 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
 
 <!-- ================= REPORTES ================= -->
-<div id="vista-reportes" class="vista" style="display:none">
-
-  <div id="lista-reportes"></div>
+<div id="vista-reportes" class="vista" style="display:none"> 
 
   <div class="form-box">
 
     <h4>📅 Historial de tareas</h4>
 
+    <!-- 🔥 DEPARTAMENTO PRIMERO -->
+    <select id="filtroDeptoPDF" style="margin-bottom:10px;">
+      <option value="">Todos los departamentos</option>
+      <option value="Recepción">Recepción</option>
+      <option value="Mantenimiento">Mantenimiento</option>
+      <option value="Housekeeping">Housekeeping</option>
+      <option value="Operaciones">Operaciones</option>
+      <option value="Alimentos y Bebidas">Alimentos y Bebidas</option>
+      <option value="Spa">Spa</option>
+      <option value="Cocina">Cocina</option>
+      <option value="Gerencia General">Gerencia General</option>
+    </select>
+
+    <!-- 🔥 FECHAS -->
+    <input type="date" id="from">
+    <input type="date" id="to">
+
+    <!-- 🔥 BOTONES -->
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <button onclick="filtrarPorFecha()">Consultar</button>
+      <button onclick="exportarPDF()">Exportar PDF</button>
+    </div>
+
+    <!-- 🔥 (OPCIONAL) MENSAJE FILTRO -->
     <div id="filtroActivo" style="
       display:none;
       background:#fff3cd;
       padding:8px;
       border-radius:8px;
-      margin-bottom:10px;
+      margin-top:10px;
       font-size:13px;
     ">
-
       🔎 Filtro activo
-
       <button onclick="limpiarFiltros()" style="margin-left:10px;">
         Limpiar
       </button>
-<select id="filtroDeptoPDF" style="margin-bottom:10px;">
-  <option value="">Todos</option>
-  <option>Recepción</option>
-  <option>Mantenimiento</option>
-  <option>Housekeeping</option>
-</select>
     </div>
 
-    <input type="date" id="from">
-    <input type="date" id="to">
+  </div>
 
-    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+  <!-- 🔥 RESULTADOS ABAJO -->
+  <div id="lista-reportes" style="margin-top:15px;"></div>
 
-      <button onclick="filtrarPorFecha()">Consultar</button>
-      <button onclick="exportarPDF()">Exportar PDF</button>
-
-    </div>
+</div>
 
   </div>
 
@@ -1233,26 +1244,34 @@ function render(){
 
  contenedor.innerHTML="";
 
- // dataset base limpio
  let visibles = [...tareas];
 
- // 🔍 DEBUG
-console.log("Filtro seleccionado:", filtroDepto);
-console.log("Departamentos en tareas:", tareas.map(t => t.department));
+ console.log("Filtro seleccionado:", filtroDepto);
+ console.log("Departamentos en tareas:", tareas.map(t => t.department));
 
-if(filtroDepto){
+ if(filtroDepto){
   visibles = visibles.filter(t => 
     (t.department || "").trim().toLowerCase() === 
     (filtroDepto || "").trim().toLowerCase()
   );
-}
-// 🔥 PMS UX: Reportes solo muestra resultados al consultar
+ }
 
-if(vistaActual === "reportes" && !filtroFecha){
+ // 🔥 PMS UX: Reportes solo muestra resultados al consultar
+ if(vistaActual === "reportes" && !filtroFecha){
 
- contenedor.innerHTML = "<small>Selecciona fechas y presiona Consultar</small>";
+   contenedor.innerHTML = "<small>Selecciona fechas y presiona Consultar</small>";
+   return;
 
- return;
+ }
+
+ // 🔥 ✅ AQUÍ VA TU NUEVO BLOQUE
+ if(vistaActual === "reportes" && filtroFecha){
+
+  contenedor.insertAdjacentHTML("afterbegin", `
+    <h4 style="margin-bottom:10px;">
+      📊 ${visibles.length} resultados encontrados
+    </h4>
+  `);
 
 }
  // ================= DASHBOARD = SOLO HOY =================
