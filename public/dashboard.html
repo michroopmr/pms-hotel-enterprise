@@ -2168,18 +2168,20 @@ function exportarPDF(){
     pdf.setFont(undefined,"normal");
     pdf.text("Reporte Ejecutivo Operativo",50,18);
 
+    // 🔥 NUEVA LÍNEA (más abajo)
     pdf.setDrawColor(200);
-    pdf.line(14,38,pageWidth-14,38);
+    pdf.line(14,45,pageWidth-14,45);
 
     pdf.setFontSize(10);
     pdf.text(`Usuario: ${user.username}`,50,24);
     pdf.text(`Generado: ${new Date().toLocaleString()}`,50,30);
 
+    // 🔥 KPIs (más abajo)
     pdf.setFontSize(11);
-    pdf.text(`Total tareas: ${total}`,14,45);
-    pdf.text(`Cumplimiento SLA: ${cumplimiento}%`,60,45);
-    pdf.text(`Fuera de tiempo: ${fueraTiempo}`,120,45);
-    pdf.text(`Tiempo promedio resolución: ${promedio} min`,170,45);
+    pdf.text(`Total tareas: ${total}`,14,55);
+    pdf.text(`Cumplimiento SLA: ${cumplimiento}%`,60,55);
+    pdf.text(`Fuera de tiempo: ${fueraTiempo}`,120,55);
+    pdf.text(`Tiempo promedio resolución: ${promedio} min`,170,55);
 
     // ===== FILTROS =====
     let filtroTexto = `Departamento: ${filtroDepto || "Todos"}`;
@@ -2194,14 +2196,15 @@ function exportarPDF(){
 
     pdf.setFontSize(10);
 
+    // 🔥 FILTROS MÁS ABAJO
     pdf.setFont(undefined,"bold");
-    pdf.text("Filtros:", 14, 40);
+    pdf.text("Filtros:", 14, 50);
 
     pdf.setFont(undefined,"normal");
-    pdf.text(filtroTexto, 30, 40);
+    pdf.text(filtroTexto, 30, 50);
 
     // ===== TABLA =====
-    y = 65;
+    y = 75;
 
     pdf.setFontSize(9);
 
