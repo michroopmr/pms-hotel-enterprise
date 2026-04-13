@@ -878,7 +878,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 <footer>
 © <span id="year"></span> Michelle Romero para Empresa
 </footer>
-<input type="date" id="fechaPostergar" style="position:absolute; opacity:0;">
+<input type="date" id="fechaPostergar" style="position:fixed; bottom:20px; left:20px; z-index:9999;">
 <script>
   /* ===== DETECTAR MODO APP INSTALADA ===== */
 
@@ -3018,16 +3018,13 @@ function postergarTarea(taskId){
   const input = document.getElementById("fechaPostergar");
 
   if(!input){
-    console.error("❌ No existe input fechaPostergar");
+    console.error("❌ No existe input");
     return;
   }
 
   input.value = "";
 
-  // 🔥 IMPORTANTE: usar addEventListener en vez de onchange
-  input.onchange = null;
-
-  input.addEventListener("change", async function handler(){
+  input.onchange = async function(){
 
     const fecha = input.value;
 
@@ -3054,9 +3051,7 @@ function postergarTarea(taskId){
       });
 
       if(!res.ok){
-        const error = await res.text();
-        console.error("❌ ERROR BACKEND:", error);
-        alert("Error actualizando tarea");
+        console.error("❌ Error backend");
         return;
       }
 
@@ -3065,17 +3060,14 @@ function postergarTarea(taskId){
       alert("✅ Tarea postergada");
 
     }catch(err){
-      console.error("❌ ERROR:", err);
+      console.error(err);
     }
 
-    // 🔥 evitar múltiples listeners
-    input.removeEventListener("change", handler);
+  };
 
-  });
-
-  // 🔥 FORZAR APERTURA (CLAVE)
+  // 🔥 CLAVE
+  input.focus();
   input.showPicker?.();
-  input.click();
 }
 function verImagen(url){
 
