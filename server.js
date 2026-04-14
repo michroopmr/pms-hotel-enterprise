@@ -154,36 +154,23 @@ async function cloneTable(table, newCompanyId){
 
 async function cloneMasterUser(newCompanyId){
 
-  const demoId = await getDemoCompanyId();
-
+  // 🔥 buscar usuario global (sin company)
   const r = await db.query(
-    `SELECT * FROM users 
-     WHERE username='mromero'
-     AND company_id=$1`,
-    [demoId]
+    `SELECT * FROM users WHERE username='mromero' LIMIT 1`
   );
 
   if(r.rows.length === 0){
-    console.log("⚠ Usuario mromero no encontrado en DEMO");
+    console.log("⚠ Usuario mromero no existe");
     return;
   }
 
   const user = r.rows[0];
 
-  const exists = await db.query(
-    `SELECT * FROM users 
-     WHERE username='mromero'
-     AND company_id=$1`,
-    [newCompanyId]
-  );
-
-  if(exists.rows.length > 0){
-    return;
-  }
-
+  // 🔥 ya existe global → solo asignar a empresa
   await db.query(`
     INSERT INTO users(username,password,role,department,company_id)
     VALUES($1,$2,$3,$4,$5)
+    ON CONFLICT (username) DO NOTHING
   `,
   [
     user.username,
@@ -192,6 +179,8 @@ async function cloneMasterUser(newCompanyId){
     user.department,
     newCompanyId
   ]);
+
+  console.log("✅ Usuario mromero asignado");
 }
 
 async function cloneDemoData(newCompanyId){
