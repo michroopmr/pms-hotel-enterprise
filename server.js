@@ -108,44 +108,151 @@ async function getCompanyId(code){
 
  return result.rows[0].id;
 }
+// ================= ONBOARDING DEMO =================
 
+const DEMO_CODE = "DEMO01";
+
+async function getDemoCompanyId(){
+  const r = await db.query(
+    "SELECT id FROM companies WHERE code=$1",
+    [DEMO_CODE]
+  );
+
+  if(r.rows.length === 0){
+    throw new Error("DEMO01 no existe");
+  }
+
+  return r.rows[0].id;
+}
+
+async function cloneTable(table, newCompanyId){
+
+  const demoId = await getDemoCompanyId();
+
+  const rows = await db.query(
+    `SELECT * FROM ${table} WHERE company_id=$1`,
+    [demoId]
+  );
+
+  for(const row of rows.rows){
+
+    delete row.id;
+    row.company_id = newCompanyId;
+
+    const fields = Object.keys(row);
+    const values = Object.values(row);
+
+    const placeholders = fields.map((_,i)=>`$${i+1}`).join(",");
+
+    await db.query(
+      `INSERT INTO ${table}(${fields.join(",")})
+       VALUES(${placeholders})`,
+      values
+    );
+  }
+}
+
+async function cloneMasterUser(newCompanyId){
+
+  const demoId = await getDemoCompanyId();
+
+  const r = await db.query(
+    `SELECT * FROM users 
+     WHERE username='mromero'
+     AND company_id=$1`,
+    [demoId]
+  );
+
+  if(r.rows.length === 0){
+    console.log("⚠ Usuario mromero no encontrado en DEMO");
+    return;
+  }
+
+  const user = r.rows[0];
+
+  const exists = await db.query(
+    `SELECT * FROM users 
+     WHERE username='mromero'
+     AND company_id=$1`,
+    [newCompanyId]
+  );
+
+  if(exists.rows.length > 0){
+    return;
+  }
+
+  await db.query(`
+    INSERT INTO users(username,password,role,department,company_id)
+    VALUES($1,$2,$3,$4,$5)
+  `,
+  [
+    user.username,
+    user.password,
+    user.role,
+    user.department,
+    newCompanyId
+  ]);
+}
+
+async function cloneDemoData(newCompanyId){
+
+  await cloneTable("service_catalog", newCompanyId);
+  await cloneTable("bot_flows", newCompanyId);
+  await cloneTable("settings", newCompanyId);
+
+  await cloneMasterUser(newCompanyId);
+
+  console.log("✅ Onboarding automático completado");
+}
 app.post("/guest/task", async (req,res)=>{
  try{
 
   const {title, description, department, guest_name, room, company_code } = req.body;
 
-  if(!company_code){
-  return res.status(400).json({error:"Empresa requerida"});
-}
-  const company_id = await getCompanyId(company_code); // 🔥 AQUÍ
+  // 🔥 VALIDACIÓN
+  if(!title || !description || !department || !guest_name || !room || !company_code){
+    return res.status(400).json({error:"Datos incompletos"});
+  }
+
+  const company_id = await getCompanyId(company_code);
+
+  // 🔥 SLA
+  const minutos = 15; // 🔥 SLA BASE GLOBAL
+
+  const dueDate = new Date();
+  dueDate.setMinutes(dueDate.getMinutes() + minutos);
+
+  console.log("📅 SLA MIN:", minutos);
+  console.log("📅 DUE DATE:", dueDate);
 
   const result = await db.query(
-   `INSERT INTO tasks
-    (title, description, department, status, created_by, company_id)
-    VALUES($1,$2,$3,$4,$5,$6)
-    RETURNING *`,
-   [
-    title,
-    description,
-    department,
-    "abierto",
-    guest_name + " - Hab " + room,
-    company_id
-   ]
+    `INSERT INTO tasks
+     (title, description, department, status, created_by, company_id, due_date)
+     VALUES($1,$2,$3,$4,$5,$6,$7)
+     RETURNING *`,
+    [
+      title,
+      description,
+      department,
+      "abierto",
+      guest_name + " - Hab " + room,
+      company_id,
+      dueDate
+    ]
   );
 
   const io = req.app.get("io");
 
-if(!io){
-  console.error("❌ IO NO DEFINIDO");
-}
+  if(!io){
+    console.error("❌ IO NO DEFINIDO");
+  }
 
-io.to("admin_" + company_code).emit("task_update", result.rows[0]);
+  io.to("admin_" + company_code).emit("task_update", result.rows[0]);
 
   res.json(result.rows[0]);
 
  }catch(err){
-  console.error(err);
+  console.error("❌ ERROR CREANDO TASK:", err);
   res.status(500).json({error:"Error creando tarea"});
  }
 });
@@ -1920,26 +2027,41 @@ app.post("/admin/companies", authMiddleware, async (req,res)=>{
    return res.status(403).send("No autorizado");
  }
 
+ const client = await db.connect();
+
  try{
 
    const { name, code } = req.body;
 
-   const result = await db.query(
-   `
-   INSERT INTO companies(name,code)
-   VALUES($1,$2)
-   RETURNING *
-   `,
-   [name,code]
+   await client.query("BEGIN");
+
+   const result = await client.query(
+     `
+     INSERT INTO companies(name,code)
+     VALUES($1,$2)
+     RETURNING *
+     `,
+     [name,code]
    );
 
-   res.json(result.rows[0]);
+   const newCompany = result.rows[0];
+
+   // 🔥 ONBOARDING AUTOMÁTICO
+   await cloneDemoData(newCompany.id);
+
+   await client.query("COMMIT");
+
+   res.json(newCompany);
 
  }catch(err){
 
-   console.log(err);
+   await client.query("ROLLBACK");
+
+   console.error(err);
    res.status(500).send("Error creando empresa");
 
+ }finally{
+   client.release();
  }
 
 });
