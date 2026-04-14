@@ -32,7 +32,8 @@ process.on("uncaughtException", err => {
 });
 
 process.on("unhandledRejection", err => {
-  logger.error("💥 PROMISE ERROR:", err);
+  console.error("💥 PROMISE ERROR DETALLE:");
+  console.error(err);
 });
 
 // 🔥 SERVER + SOCKET
@@ -128,27 +129,35 @@ async function getDemoCompanyId(){
 async function cloneTable(table, newCompanyId){
 
   const demoId = await getDemoCompanyId();
+  if(!demoId) return;
 
-  const rows = await db.query(
+  const result = await db.query(
     `SELECT * FROM ${table} WHERE company_id=$1`,
     [demoId]
   );
 
-  for(const row of rows.rows){
+  for(const row of result.rows){
 
-    delete row.id;
-    row.company_id = newCompanyId;
+    try{
 
-    const fields = Object.keys(row);
-    const values = Object.values(row);
+      delete row.id;
+      row.company_id = newCompanyId;
 
-    const placeholders = fields.map((_,i)=>`$${i+1}`).join(",");
+      const fields = Object.keys(row);
+      const values = Object.values(row);
 
-    await db.query(
-      `INSERT INTO ${table}(${fields.join(",")})
-       VALUES(${placeholders})`,
-      values
-    );
+      const placeholders = fields.map((_,i)=>`$${i+1}`).join(",");
+
+      await db.query(
+        `INSERT INTO ${table}(${fields.join(",")})
+         VALUES(${placeholders})`,
+        values
+      );
+
+    }catch(err){
+      console.error(`❌ Error insert en ${table}:`, err.message);
+    }
+
   }
 }
 
@@ -185,13 +194,37 @@ async function cloneMasterUser(newCompanyId){
 
 async function cloneDemoData(newCompanyId){
 
-  await cloneTable("service_catalog", newCompanyId);
-  await cloneTable("bot_flows", newCompanyId);
-  await cloneTable("settings", newCompanyId);
+  console.log("🚀 Iniciando onboarding para empresa:", newCompanyId);
 
-  await cloneMasterUser(newCompanyId);
+  try{
+    console.log("👉 Clonando service_catalog");
+    await cloneTable("service_catalog", newCompanyId);
+  }catch(e){
+    console.error("❌ service_catalog:", e);
+  }
 
-  console.log("✅ Onboarding automático completado");
+  try{
+    console.log("👉 Clonando bot_flows");
+    await cloneTable("bot_flows", newCompanyId);
+  }catch(e){
+    console.error("❌ bot_flows:", e);
+  }
+
+  try{
+    console.log("👉 Clonando settings");
+    await cloneTable("settings", newCompanyId);
+  }catch(e){
+    console.error("❌ settings:", e);
+  }
+
+  try{
+    console.log("👉 Clonando usuario mromero");
+    await cloneMasterUser(newCompanyId);
+  }catch(e){
+    console.error("❌ user:", e);
+  }
+
+  console.log("✅ Onboarding terminado");
 }
 app.post("/guest/task", async (req,res)=>{
  try{
