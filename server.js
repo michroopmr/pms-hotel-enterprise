@@ -987,8 +987,17 @@ CREATE TABLE IF NOT EXISTS settings(
 )
 `);
 await db.query(`
-ALTER TABLE settings
-ADD CONSTRAINT IF NOT EXISTS unique_settings UNIQUE (key, company_id)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint 
+    WHERE conname = 'unique_settings'
+  ) THEN
+    ALTER TABLE settings
+    ADD CONSTRAINT unique_settings UNIQUE (key, company_id);
+  END IF;
+END
+$$;
 `);
 await db.query(`
 CREATE TABLE IF NOT EXISTS tickets(
