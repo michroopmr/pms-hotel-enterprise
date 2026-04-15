@@ -650,6 +650,26 @@ footer{
       <span class="text">Sistemas</span>
     </div> 
 
+    <div style="margin-top:20px;">
+
+  <h3>⚙️ Administración</h3>
+
+  <button onclick="resetDemo()" style="
+    background:#ef4444;
+    color:white;
+    border:none;
+    padding:12px 16px;
+    border-radius:10px;
+    cursor:pointer;
+    margin-top:10px;
+    width:100%;
+    font-weight:bold;
+  ">
+    🧹 Reset DEMO (borrar datos)
+  </button>
+
+</div>
+
     <div class="menu-item" id="menuLogout" onclick="logout()">
       <span class="icon">🚪</span>
       <span class="text">Logout</span>
@@ -3105,6 +3125,38 @@ function verImagen(url){
  modal.onclick = ()=> modal.remove();
 
  document.body.appendChild(modal);
+}
+async function resetDemo(){
+
+  if(!confirm("⚠️ Esto eliminará TODAS las tareas, chats y huéspedes del DEMO.\n\n¿Deseas continuar?")){
+    return;
+  }
+
+  const token = localStorage.getItem("token");
+
+  try{
+
+    const res = await fetch("https://pms-hotel-enterprise.onrender.com/admin/reset-demo",{
+      method:"POST",
+      headers:{
+        "Authorization":"Bearer " + token
+      }
+    });
+
+    const data = await res.json();
+
+    if(data.ok){
+      alert("✅ DEMO reiniciado correctamente");
+      location.reload();
+    }else{
+      alert("❌ Error: " + (data.error || "Error desconocido"));
+    }
+
+  }catch(err){
+    console.error(err);
+    alert("❌ Error de conexión");
+  }
+
 }
 
 </script>

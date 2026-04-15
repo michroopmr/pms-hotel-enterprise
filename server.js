@@ -2098,6 +2098,82 @@ app.post("/admin/companies", authMiddleware, async (req,res)=>{
  }
 
 });
+/* ================= RESET DEMO ================= */
+
+app.post("/admin/reset-demo", authMiddleware, async (req,res)=>{
+
+  if(req.user.role !== "sistemas"){
+    return res.status(403).send("No autorizado");
+  }
+
+  const client = await db.connect();
+
+  try{
+
+    await client.query("BEGIN");
+
+    const demo = await client.query(
+      "SELECT id FROM companies WHERE code=$1",
+      ["DEMO01"]
+    );
+
+    if(demo.rows.length === 0){
+      throw new Error("DEMO01 no existe");
+    }
+
+    const demoId = demo.rows[0].id;
+
+    console.log("🧹 Limpiando DEMO:", demoId);
+
+    await client.query(`
+      DELETE FROM task_evidences
+      WHERE task_id IN (
+        SELECT id FROM tasks WHERE company_id=$1
+      )
+    `,[demoId]);
+
+    await client.query(
+      "DELETE FROM tasks WHERE company_id=$1",
+      [demoId]
+    );
+
+    await client.query(`
+      DELETE FROM messages
+      WHERE guest_id IN (
+        SELECT id FROM guests WHERE company_id=$1
+      )
+    `,[demoId]);
+
+    await client.query(
+      "DELETE FROM guests WHERE company_id=$1",
+      [demoId]
+    );
+
+    await client.query(
+      "DELETE FROM tickets WHERE company_id=$1",
+      [demoId]
+    );
+
+    await client.query("COMMIT");
+
+    res.json({ ok:true, message:"DEMO reiniciado correctamente" });
+
+  }catch(err){
+
+    await client.query("ROLLBACK");
+
+    console.error("❌ ERROR RESET DEMO:", err);
+
+    res.status(500).json({
+      error:"Error limpiando DEMO",
+      detalle: err.message
+    });
+
+  }finally{
+    client.release();
+  }
+
+});
 /* ================= CREATE COMPANY ADMIN ================= */
 
 app.post("/admin/company-admin", authMiddleware, async (req,res)=>{
