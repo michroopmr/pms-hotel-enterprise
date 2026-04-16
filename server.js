@@ -5,12 +5,25 @@ const cors = require("cors");
 
 const app = express();
 
-// 🔥 CONFIGURACIÓN CORS CORRECTA
+// 🔥 CONFIGURACIÓN CORS
 app.use(cors({
   origin: "https://mollyhelpers.com",
   methods: ["GET","POST","PUT","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"]
 }));
+
+// 🔥 ⬇️ AGREGA ESTO AQUÍ ⬇️
+app.use((req,res,next)=>{
+  res.header("Access-Control-Allow-Origin","https://mollyhelpers.com");
+  res.header("Access-Control-Allow-Headers","Origin, X-Requested-With, Content-Type, Accept, Authorization");
+  res.header("Access-Control-Allow-Methods","GET,POST,PUT,DELETE,OPTIONS");
+  next();
+});
+
+// 🔥 PREFLIGHT (IMPORTANTE)
+app.options("*",(req,res)=>{
+  res.sendStatus(200);
+});
 
 app.set('trust proxy', true);
 
