@@ -789,12 +789,6 @@ app.use((req,res,next)=>{
 
 app.use(express.static(path.join(__dirname, "public")));
 
-app.use(cors({
-  origin: ["https://mollyhelpers.com"],
-  credentials: false,
-  methods: ["GET","POST","PUT","DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"]
-}));
 
 const DEPARTMENTS = [
   "Recepción",
@@ -1932,6 +1926,44 @@ ORDER BY uploaded_at DESC
 
   }
 
+});
+// ================= TASK TEMPLATES =================
+
+// 🔹 Obtener templates
+app.get("/task-templates", authMiddleware, async (req,res)=>{
+  try{
+
+    const result = await db.query(
+      "SELECT * FROM task_templates WHERE company_id=$1 ORDER BY id DESC",
+      [req.user.company_id]
+    );
+
+    res.json(result.rows);
+
+  }catch(err){
+    console.error("❌ ERROR templates:", err);
+    res.status(500).json({error:"Error obteniendo templates"});
+  }
+});
+
+// 🔹 Crear template
+app.post("/task-templates", authMiddleware, async (req,res)=>{
+  try{
+
+    const { title, description, department } = req.body;
+
+    await db.query(
+      `INSERT INTO task_templates(title,description,department,company_id)
+       VALUES($1,$2,$3,$4)`,
+      [title, description, department, req.user.company_id]
+    );
+
+    res.json({ok:true});
+
+  }catch(err){
+    console.error(err);
+    res.status(500).json({error:"Error creando template"});
+  }
 });
 /* ================= GET ALL TASKS ================= */
 
