@@ -881,7 +881,59 @@ function authMiddleware(req, res, next){
 app.get("/departments", authMiddleware, (req,res)=>{
   res.json(DEPARTMENTS);
 });
+// ================= TEMPLATES =================
 
+app.get("/task-templates", authMiddleware, async (req,res)=>{
+  try{
+
+    const result = await db.query(
+      "SELECT * FROM task_templates WHERE company_id=$1 ORDER BY id DESC",
+      [req.user.company_id]
+    );
+
+    res.json(result.rows);
+
+  }catch(err){
+    console.error("❌ ERROR templates:", err);
+    res.status(500).json({error:"Error obteniendo templates"});
+  }
+});
+
+app.post("/task-templates", authMiddleware, async (req,res)=>{
+  try{
+
+    const { title, description, department } = req.body;
+
+    const result = await db.query(
+      `INSERT INTO task_templates(title,description,department,company_id)
+       VALUES($1,$2,$3,$4)
+       RETURNING *`,
+      [title, description, department, req.user.company_id]
+    );
+
+    res.json(result.rows[0]);
+
+  }catch(err){
+    console.error("❌ ERROR creando template:", err);
+    res.status(500).json({error:"Error creando template"});
+  }
+});
+
+app.delete("/task-templates/:id", authMiddleware, async (req,res)=>{
+  try{
+
+    await db.query(
+      "DELETE FROM task_templates WHERE id=$1 AND company_id=$2",
+      [req.params.id, req.user.company_id]
+    );
+
+    res.json({ok:true});
+
+  }catch(err){
+    console.error("❌ ERROR eliminando template:", err);
+    res.status(500).json({error:"Error eliminando"});
+  }
+});
 
 /* ================= DATABASE (POSTGRESQL) ================= */
 
