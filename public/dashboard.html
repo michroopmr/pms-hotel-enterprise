@@ -611,6 +611,9 @@ footer{
  box-shadow:0 10px 25px rgba(0,0,0,0.15);
  border:2px solid #2563eb;
 }
+#vista-sistemas{
+  align-items: flex-start !important;
+}
 </style>
 
 
@@ -842,7 +845,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 </div>
 
 <!-- ================= SISTEMAS ================= -->
-<div id="vista-sistemas" class="vista" style="display:none">
+<div id="vista-sistemas" class="vista" style="display:none; align-items:flex-start;">
       <input type="file" id="logoInput" accept="image/*">
 
       <div id="panelSistemas">
@@ -2590,7 +2593,7 @@ function mostrarVista(nombre){
 }
 
 if(nombre === "crear"){
-  // tu código actual...
+  cargarPlantillasSelect();
 }
 
 if(nombre === "sistemas"){   // 👈 AQUÍ
@@ -2661,6 +2664,52 @@ if("serviceWorker" in navigator){
  console.log("✅ Push suscrito enterprise");
 
 });
+
+}
+async function cargarPlantillasSelect(){
+
+  const token = localStorage.getItem("token");
+
+  const res = await fetch("https://pms-hotel-enterprise.onrender.com/task-templates",{
+    headers:{
+      "Authorization":"Bearer " + token
+    }
+  });
+
+  const data = await res.json();
+
+  const select = document.getElementById("plantilla");
+
+  // limpiar
+  select.innerHTML = `<option value="">Seleccionar tarea rápida</option>`;
+
+  data.forEach(t => {
+    select.innerHTML += `
+      <option value="${t.id}">
+        ${t.title} (${t.department})
+      </option>
+    `;
+  });
+
+  // guardar en memoria global (IMPORTANTE)
+  window.templates = data;
+
+}
+function aplicarPlantilla(){
+
+  const id = document.getElementById("plantilla").value;
+
+  if(!id) return;
+
+  const tpl = window.templates.find(t => t.id == id);
+
+  if(!tpl) return;
+
+  // 🔥 LLENAR CAMPOS
+  document.getElementById("d").value = tpl.description;
+
+  // opcional: si quieres mapear departamento después
+  // document.getElementById("nr").value = tpl.department;
 
 }
 function urlBase64ToUint8Array(base64String) {
