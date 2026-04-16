@@ -2,12 +2,22 @@
 
 const express = require("express");
 const cors = require("cors");
+
 const app = express();
+
+// 🔥 CONFIGURACIÓN CORS CORRECTA
 app.use(cors({
-  origin: "https://mollyhelpers.com"
+  origin: "https://mollyhelpers.com",
+  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
+  allowedHeaders: ["Content-Type","Authorization"]
 }));
 
+// 🔥 PERMITIR PREFLIGHT (CLAVE)
+app.options("*", cors());
+
 app.set('trust proxy', true);
+
+app.use(express.json());
 
 const http = require("http");
 const { Server } = require("socket.io");
