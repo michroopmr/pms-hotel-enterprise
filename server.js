@@ -12,9 +12,6 @@ app.use(cors({
   allowedHeaders: ["Content-Type","Authorization"]
 }));
 
-// 🔥 PERMITIR PREFLIGHT (CLAVE)
-app.options("*", cors());
-
 app.set('trust proxy', true);
 
 app.use(express.json());
