@@ -12,7 +12,6 @@ app.use(cors({
   allowedHeaders: ["Content-Type","Authorization"]
 }));
 
-// 🔥 ⬇️ AGREGA ESTO AQUÍ ⬇️
 app.use((req,res,next)=>{
   res.header("Access-Control-Allow-Origin","https://mollyhelpers.com");
   res.header("Access-Control-Allow-Headers","Origin, X-Requested-With, Content-Type, Accept, Authorization");
@@ -20,10 +19,6 @@ app.use((req,res,next)=>{
   next();
 });
 
-// 🔥 PREFLIGHT (IMPORTANTE)
-app.options("*",(req,res)=>{
-  res.sendStatus(200);
-});
 
 app.set('trust proxy', true);
 
