@@ -1,7 +1,11 @@
 /* ================= IMPORTS ================= */
 
 const express = require("express");
+const cors = require("cors");
 const app = express();
+app.use(cors({
+  origin: "https://mollyhelpers.com"
+}));
 
 app.set('trust proxy', true);
 
@@ -9,7 +13,6 @@ const http = require("http");
 const { Server } = require("socket.io");
 
 const webpush = require("web-push");
-const cors = require("cors");
 const { Pool } = require("pg");
 const jwt = require("jsonwebtoken");
 const path = require("path");
