@@ -2092,17 +2092,21 @@ async function crearTemplate(){
 
   cargarTemplates();
 }
+let templatesGlobal = [];
+
 async function cargarTemplates(){
 
-  const token = localStorage.getItem("token");
+  const res = await secureFetch(
+    "https://pms-hotel-enterprise.onrender.com/task-templates"
+  );
 
-  const res = await fetch("https://pms-hotel-enterprise.onrender.com/task-templates",{
-    headers:{
-      "Authorization":"Bearer " + token
-    }
-  });
+  if(!res) return;
 
   const data = await res.json();
+
+  templatesGlobal = data; // 🔥 CLAVE
+
+  console.log("📋 Templates:", data);
 
   const cont = document.getElementById("listaTemplates");
 
@@ -2114,6 +2118,27 @@ async function cargarTemplates(){
       <button onclick="eliminarTemplate(${t.id})" style="color:red;">Eliminar</button>
     </div>
   `).join("");
+
+  const select = document.getElementById("plantilla");
+
+  select.innerHTML = `<option value="">Seleccionar tarea rápida</option>` +
+  data.map(t => `
+    <option value="${t.id}">
+      ${t.title} (${t.department})
+    </option>
+  `).join("");
+}
+function aplicarPlantilla(){
+
+  const id = document.getElementById("plantilla").value;
+
+  const t = templatesGlobal.find(x => x.id == id);
+
+  if(!t) return;
+
+  document.getElementById("d").value = t.description;
+  document.getElementById("nr").value = t.department;
+
 }
 async function eliminarTemplate(id){
 

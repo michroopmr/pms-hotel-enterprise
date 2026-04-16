@@ -75,10 +75,13 @@ app.use((req,res,next)=>{
   host &&
   host.includes("onrender.com") &&
   req.method === "GET" &&
-  !req.url.includes("socket.io")
- ){
-   return res.redirect(301,"https://mollyhelpers.com");
- }
+  (
+    req.url === "/" ||
+    req.url.endsWith(".html")
+  )
+){
+  return res.redirect(301,"https://mollyhelpers.com");
+}
 
  next(); // 🔥 ESTO ES CLAVE
 
