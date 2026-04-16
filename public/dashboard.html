@@ -907,6 +907,40 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
     </div>
 
   </div>
+<!-- ================= PLANTILLAS ================= -->
+
+  <hr style="margin:30px 0">
+
+  <h3>📋 Plantillas de tareas</h3>
+
+  <div style="display:flex; gap:20px; align-items:flex-start;">
+
+    <!-- FORM -->
+    <div style="flex:1;">
+      <input id="tplTitle" placeholder="Título"><br><br>
+      <input id="tplDesc" placeholder="Descripción"><br><br>
+
+      <select id="tplDept">
+        <option value="Recepción">Recepción</option>
+        <option value="Mantenimiento">Mantenimiento</option>
+        <option value="Spa">Spa</option>
+        <option value="Operaciones">Operaciones</option>
+        <option value="Gerencia General">Gerencia General</option>
+        <option value="Cocina">Cocina</option>
+        <option value="Alimentos Bebidas">Alimentos Bebidas</option>
+      </select><br><br>
+
+      <button onclick="crearTemplate()">Guardar plantilla</button>
+    </div>
+
+    <!-- LISTA -->
+    <div style="flex:1;">
+      <h4>Plantillas existentes</h4>
+      <div id="listaTemplates"></div>
+    </div>
+
+  </div>
+
 
 </div>
 
@@ -2036,7 +2070,63 @@ async function crearUsuario(){
 
 }
 
+async function crearTemplate(){
 
+  const token = localStorage.getItem("token");
+
+  await fetch("https://pms-hotel-enterprise.onrender.com/admin/task-templates",{
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json",
+      "Authorization":"Bearer " + token
+    },
+    body: JSON.stringify({
+      title: document.getElementById("tplTitle").value,
+      description: document.getElementById("tplDesc").value,
+      department: document.getElementById("tplDept").value
+    })
+  });
+
+  cargarTemplates();
+}
+async function cargarTemplates(){
+
+  const token = localStorage.getItem("token");
+
+  const res = await fetch("https://pms-hotel-enterprise.onrender.com/task-templates",{
+    headers:{
+      "Authorization":"Bearer " + token
+    }
+  });
+
+  const data = await res.json();
+
+  const cont = document.getElementById("listaTemplates");
+
+  cont.innerHTML = data.map(t => `
+    <div style="border:1px solid #ddd; padding:10px; margin:5px; border-radius:8px;">
+      <b>${t.title}</b><br>
+      <small>${t.department}</small><br>
+      <button onclick="usarTemplate(${t.id})">Usar</button>
+      <button onclick="eliminarTemplate(${t.id})" style="color:red;">Eliminar</button>
+    </div>
+  `).join("");
+}
+async function eliminarTemplate(id){
+
+  const token = localStorage.getItem("token");
+
+  if(!confirm("¿Eliminar plantilla?")) return;
+
+  await fetch(`https://pms-hotel-enterprise.onrender.com/admin/task-templates/${id}`,{
+    method:"DELETE",
+    headers:{
+      "Authorization":"Bearer " + token
+    }
+  });
+
+  cargarTemplates();
+}
 function cambiarPassword(){
 
  secureFetch("https://mollyhelpers.com/change-password",{
@@ -2491,33 +2581,22 @@ async function guardarComentario(id){
 
 function mostrarVista(nombre){
 
- // guardar vista anterior
  const vistaAnterior = vistaActual;
-
- // cambiar vista
  vistaActual = nombre;
+
  if(nombre === "dashboard"){
- const badge = document.getElementById("badgeNotif");
-if(badge) badge.style.display = "none";
+  const badge = document.getElementById("badgeNotif");
+  if(badge) badge.style.display = "none";
 }
-// 🔥 PMS UX — autocompletar fecha y hora al crear tarea
+
 if(nombre === "crear"){
-
- const ahora = new Date();
-const vence = new Date(ahora.getTime() + (15 * 60000));
-
-const yyyy = vence.getFullYear();
-const mm = String(vence.getMonth()+1).padStart(2,'0');
-const dd = String(vence.getDate()).padStart(2,'0');
-const hh = String(vence.getHours()).padStart(2,'0');
-const min = String(vence.getMinutes()).padStart(2,'0');
-
-document.getElementById("due").value =
-`${yyyy}-${mm}-${dd}T${hh}:${min}`;
-
+  // tu código actual...
 }
 
- // limpiar filtro SOLO si salimos de reportes
+if(nombre === "sistemas"){   // 👈 AQUÍ
+  cargarTemplates();
+}
+
  if(vistaAnterior === "reportes" && nombre !== "reportes"){
    filtroFecha = null;
  }

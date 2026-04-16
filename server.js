@@ -974,6 +974,16 @@ CREATE TABLE IF NOT EXISTS service_catalog (
 )
 `);
 await db.query(`
+CREATE TABLE IF NOT EXISTS task_templates (
+  id SERIAL PRIMARY KEY,
+  title TEXT,
+  description TEXT,
+  department TEXT,
+  priority TEXT DEFAULT 'normal',
+  company_id INTEGER
+)
+`);
+await db.query(`
 CREATE TABLE IF NOT EXISTS bot_flows (
   id SERIAL PRIMARY KEY,
   trigger TEXT,
