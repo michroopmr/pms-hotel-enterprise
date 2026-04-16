@@ -84,8 +84,12 @@ app.use((req,res,next)=>{
   host.includes("onrender.com") &&
   req.method === "GET" &&
   (
-    req.url === "/" ||
-    req.url.endsWith(".html")
+    (req.url === "/" || req.url.endsWith(".html")) &&
+    !req.url.startsWith("/task-templates") &&
+    !req.url.startsWith("/tasks") &&
+    !req.url.startsWith("/login") &&
+    !req.url.startsWith("/chat") &&
+    !req.url.startsWith("/guest")
   )
 ){
   return res.redirect(301,"https://mollyhelpers.com");
