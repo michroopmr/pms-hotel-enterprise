@@ -5,21 +5,28 @@ const cors = require("cors");
 
 const app = express();
 
-// 🔥 CONFIGURACIÓN CORS
+const allowedOrigins = [
+  "https://mollyhelpers.com",
+  "https://www.mollyhelpers.com",
+  "http://localhost:3000"
+];
+
 app.use(cors({
-  origin: "https://mollyhelpers.com",
+  origin: function(origin, callback) {
+    // Permitir requests sin origin (Postman, server-to-server)
+    if (!origin) return callback(null, true);
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    } else {
+      return callback(new Error("CORS bloqueado: " + origin));
+    }
+  },
   methods: ["GET","POST","PUT","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"]
 }));
-app.options(/.*/, cors());
 
-app.use((req,res,next)=>{
-  res.header("Access-Control-Allow-Origin","https://mollyhelpers.com");
-  res.header("Access-Control-Allow-Headers","Origin, X-Requested-With, Content-Type, Accept, Authorization");
-  res.header("Access-Control-Allow-Methods","GET,POST,PUT,DELETE,OPTIONS");
-  next();
-});
-
+app.options("*", cors());
 
 app.set('trust proxy', true);
 
