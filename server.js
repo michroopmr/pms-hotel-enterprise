@@ -98,15 +98,16 @@ const esAPI =
   pathname.startsWith("/guest") ||
   pathname.startsWith("/socket.io");
 
-  if(
-    host &&
-    host.includes("onrender.com") &&
-    req.method === "GET" &&
-    esHTML &&
-    !esAPI
-  ){
-    return res.redirect(301,"https://mollyhelpers.com");
-  }
+// 🔥 SOLO REDIRIGIR HTML REAL
+if(
+  host &&
+  host.includes("onrender.com") &&
+  req.method === "GET" &&
+  (pathname === "/" || pathname.endsWith(".html")) &&
+  !esAPI
+){
+  return res.redirect(301,"https://mollyhelpers.com");
+}
 
   next();
 });
