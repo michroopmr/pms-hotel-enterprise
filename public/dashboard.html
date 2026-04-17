@@ -2096,17 +2096,13 @@ let templatesGlobal = [];
 
 async function cargarTemplates(){
 
-  const res = await secureFetch(
-    "https://pms-hotel-enterprise.onrender.com/task-templates"
-  );
+  const res = await secureFetch("/task-templates");
 
   if(!res) return;
 
   const data = await res.json();
 
-  templatesGlobal = data; // 🔥 CLAVE
-
-  console.log("📋 Templates:", data);
+  templatesGlobal = data;
 
   const cont = document.getElementById("listaTemplates");
 
@@ -2128,6 +2124,7 @@ async function cargarTemplates(){
     </option>
   `).join("");
 }
+
 function aplicarPlantilla(){
 
   const id = document.getElementById("plantilla").value;
