@@ -2085,51 +2085,8 @@ async function crearTemplate(){
 
   cargarTemplates();
 }
-let templatesGlobal = [];
 
-async function cargarTemplates(){
 
-  const res = await secureFetch("/task-templates");
-
-  if(!res) return;
-
-  const data = await res.json();
-
-  templatesGlobal = data;
-
-  const cont = document.getElementById("listaTemplates");
-
-  cont.innerHTML = data.map(t => `
-    <div style="border:1px solid #ddd; padding:10px; margin:5px; border-radius:8px;">
-      <b>${t.title}</b><br>
-      <small>${t.department}</small><br>
-      <button onclick="usarTemplate(${t.id})">Usar</button>
-      <button onclick="eliminarTemplate(${t.id})" style="color:red;">Eliminar</button>
-    </div>
-  `).join("");
-
-  const select = document.getElementById("plantilla");
-
-  select.innerHTML = `<option value="">Seleccionar tarea rápida</option>` +
-  data.map(t => `
-    <option value="${t.id}">
-      ${t.title} (${t.department})
-    </option>
-  `).join("");
-}
-
-function aplicarPlantilla(){
-
-  const id = document.getElementById("plantilla").value;
-
-  const t = templatesGlobal.find(x => x.id == id);
-
-  if(!t) return;
-
-  document.getElementById("d").value = t.description;
-  document.getElementById("nr").value = t.department;
-
-}
 async function eliminarTemplate(id){
 
   const token = localStorage.getItem("token");
@@ -2681,21 +2638,16 @@ if("serviceWorker" in navigator){
 });
 
 }
-async function cargarPlantillasSelect(){
+async function cargarPlantillasSelect(){ 
 
-  const token = localStorage.getItem("token");
+  const res = await secureFetch("/task-templates");
 
-  const res = await fetch("https://pms-hotel-enterprise.onrender.com/task-templates",{
-    headers:{
-      "Authorization":"Bearer " + token
-    }
-  });
+  if(!res) return;
 
   const data = await res.json();
 
   const select = document.getElementById("plantilla");
 
-  // limpiar
   select.innerHTML = `<option value="">Seleccionar tarea rápida</option>`;
 
   data.forEach(t => {
@@ -2706,26 +2658,22 @@ async function cargarPlantillasSelect(){
     `;
   });
 
-  // guardar en memoria global (IMPORTANTE)
-  window.templates = data;
+  // 🔥 IMPORTANTE
+  window.templatesGlobal = data;
 
 }
 function aplicarPlantilla(){
 
   const id = document.getElementById("plantilla").value;
 
-  if(!id) return;
+  if(!id || !window.templatesGlobal?.length) return;
 
-  const tpl = window.templates.find(t => t.id == id);
+  const t = window.templatesGlobal.find(x => x.id == id);
 
-  if(!tpl) return;
+  if(!t) return;
 
-  // 🔥 LLENAR CAMPOS
-  document.getElementById("d").value = tpl.description;
-
-  // opcional: si quieres mapear departamento después
-  // document.getElementById("nr").value = tpl.department;
-
+  document.getElementById("d").value = t.description;
+  document.getElementById("nr").value = t.department;
 }
 function urlBase64ToUint8Array(base64String) {
 
