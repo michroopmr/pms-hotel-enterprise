@@ -1005,16 +1005,18 @@ async function secureFetch(url, options = {}) {
 
   const token = localStorage.getItem("token");
 
+  console.log("TOKEN EN FETCH:", token);
+
   const response = await fetch(url, {
     ...options,
     headers: {
       "Content-Type": "application/json",
-      "Authorization": "Bearer " + token,
-      ...(options.headers || {})
+      "Authorization": `Bearer ${token}`
     }
   });
 
   if (response.status === 401) {
+    console.log("⚠️ Token inválido o expirado");
     logoutAuto("Sesión expirada por seguridad.");
     return null;
   }
