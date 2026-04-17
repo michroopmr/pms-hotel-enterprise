@@ -11,6 +11,7 @@ app.use(cors({
   methods: ["GET","POST","PUT","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"]
 }));
+app.options(/.*/, cors());
 
 app.use((req,res,next)=>{
   res.header("Access-Control-Allow-Origin","https://mollyhelpers.com");
@@ -872,21 +873,24 @@ async function traducirIA(texto, idioma){
 }
 function authMiddleware(req, res, next){
 
- const authHeader = req.headers.authorization;
+  const authHeader = req.headers.authorization;
 
- if(!authHeader){
-   return res.status(401).json({ error:"Token requerido" });
- }
+  if(!authHeader){
+    return res.status(401).set({
+      "Access-Control-Allow-Origin":"https://mollyhelpers.com"
+    }).json({ error:"Token requerido" });
+  }
 
- const token = authHeader.split(" ")[1];
+  const token = authHeader.split(" ")[1];
 
- try{
-   req.user = jwt.verify(token, SECRET);
-   next();
- }catch(err){
-   return res.status(401).json({ error:"Token expirado o inválido" });
- }
-
+  try{
+    req.user = jwt.verify(token, SECRET);
+    next();
+  }catch(err){
+    return res.status(401).set({
+      "Access-Control-Allow-Origin":"https://mollyhelpers.com"
+    }).json({ error:"Token inválido o expirado" });
+  }
 }
 app.get("/departments", authMiddleware, (req,res)=>{
   res.json(DEPARTMENTS);

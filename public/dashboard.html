@@ -999,6 +999,8 @@ if(user.role === "sistemas"){
    cargarUsuarios();
 }
 }
+const API = "https://pms-hotel-enterprise.onrender.com";
+
 async function secureFetch(url, options = {}) {
 
   const token = localStorage.getItem("token");
@@ -1048,7 +1050,7 @@ let logoCloudData = null;
 
 async function cargarTemplates(){
 
-  const res = await secureFetch("https://pms-hotel-enterprise.onrender.com/task-templates")
+  const res = await secureFetch(`${API}/task-templates`)
   if(!res) return;
 
   const data = await res.json();
@@ -1069,7 +1071,7 @@ async function cargarDepartamentos(){
   try{
 
     const r = await secureFetch(
-      "https://mollyhelpers.com/departments",
+      `${API}/departments`,
       {
         headers:{
           "Authorization":"Bearer "+localStorage.getItem("token")
@@ -1239,7 +1241,7 @@ function fechaPMS(fecha){
 /* ================= CARGA ================= */
 async function cargar(){
 
- const r = await secureFetch("https://mollyhelpers.com/tasks");
+ const r = await secureFetch(`${API}/tasks`);;
  if(!r) return;
 
  if(!r.ok){
@@ -1773,9 +1775,7 @@ function actividadDepartamento(){
 
 async function cargarKPIs(){
 
- const r = await secureFetch(
-   "https://mollyhelpers.com/kpis"
- );
+ const r = await secureFetch(`${API}/kpis`);
 
  if(!r) return;
 
@@ -2038,7 +2038,7 @@ async function crearUsuario(){
 async function crearTemplate(){
 
   const res = await secureFetch(
-    "https://pms-hotel-enterprise.onrender.com/task-templates",
+`${API}/task-templates`,
     {
       method: "POST",
       body: JSON.stringify({
@@ -2070,7 +2070,7 @@ async function eliminarTemplate(id){
   if(!confirm("¿Eliminar plantilla?")) return;
 
   const res = await secureFetch(
-    `https://pms-hotel-enterprise.onrender.com/task-templates/${id}`,
+    `${API}/task-templates/${id}`,
     {
       method: "DELETE"
     }
@@ -2624,7 +2624,7 @@ if("serviceWorker" in navigator){
 }
 async function cargarPlantillasSelect(){ 
 
-  const res = await secureFetch("https://pms-hotel-enterprise.onrender.com/task-templates")
+  const res = await secureFetch(`${API}/task-templates`);
 
   if(!res) return;
 
@@ -2678,7 +2678,7 @@ function urlBase64ToUint8Array(base64String) {
 // refresh inteligente cada 5 segundos
 let ultimaNotificacion = 0;
 
-const socket = io("https://mollyhelpers.com",{
+const socket = io(API,{
 
  auth:{
    token: localStorage.getItem("token")
