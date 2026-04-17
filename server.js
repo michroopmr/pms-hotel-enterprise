@@ -77,26 +77,32 @@ if(!SECRET){
 
 app.use((req,res,next)=>{
 
- const host = req.headers.host;
+  const host = req.headers.host;
+  const url = req.originalUrl; // 🔥 usar originalUrl
 
- if(
-  host &&
-  host.includes("onrender.com") &&
-  req.method === "GET" &&
-  (
-    (req.url === "/" || req.url.endsWith(".html")) &&
-    !req.url.startsWith("/task-templates") &&
-    !req.url.startsWith("/tasks") &&
-    !req.url.startsWith("/login") &&
-    !req.url.startsWith("/chat") &&
-    !req.url.startsWith("/guest")
-  )
-){
-  return res.redirect(301,"https://mollyhelpers.com");
-}
+  const esHTML =
+    url === "/" ||
+    url.endsWith(".html");
 
- next(); // 🔥 ESTO ES CLAVE
+  const esAPI =
+    url.startsWith("/task-templates") ||
+    url.startsWith("/tasks") ||
+    url.startsWith("/login") ||
+    url.startsWith("/chat") ||
+    url.startsWith("/guest") ||
+    url.startsWith("/socket.io");
 
+  if(
+    host &&
+    host.includes("onrender.com") &&
+    req.method === "GET" &&
+    esHTML &&
+    !esAPI
+  ){
+    return res.redirect(301,"https://mollyhelpers.com");
+  }
+
+  next();
 });
 
 console.log("Cloudinary:", process.env.CLOUDINARY_CLOUD_NAME);
