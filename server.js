@@ -5,28 +5,11 @@ const cors = require("cors");
 
 const app = express();
 
-const allowedOrigins = [
-  "https://mollyhelpers.com",
-  "https://www.mollyhelpers.com",
-  "http://localhost:3000"
-];
-
 app.use(cors({
-  origin: function(origin, callback) {
-    // Permitir requests sin origin (Postman, server-to-server)
-    if (!origin) return callback(null, true);
-
-    if (allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    } else {
-      return callback(new Error("CORS bloqueado: " + origin));
-    }
-  },
+  origin: true,
   methods: ["GET","POST","PUT","DELETE","OPTIONS"],
   allowedHeaders: ["Content-Type","Authorization"]
 }));
-
-app.options(/.*/, cors());
 
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
@@ -40,9 +23,10 @@ app.use((req, res, next) => {
   next();
 });
 
+app.use(express.json());
+
 app.set('trust proxy', true);
 
-app.use(express.json());
 
 const http = require("http");
 const { Server } = require("socket.io");
