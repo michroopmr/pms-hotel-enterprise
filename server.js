@@ -928,6 +928,9 @@ app.get("/task-templates", authMiddleware, async (req,res)=>{
 
   }catch(err){
     console.error("❌ ERROR templates:", err);
+
+    res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com");
+
     res.status(500).json({error:"Error obteniendo templates"});
   }
 });
@@ -947,9 +950,12 @@ app.post("/task-templates", authMiddleware, async (req,res)=>{
     res.json(result.rows[0]);
 
   }catch(err){
-    console.error("❌ ERROR creando template:", err);
-    res.status(500).json({error:"Error creando template"});
-  }
+  console.error("❌ ERROR creando template:", err);
+
+  res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com");
+
+  res.status(500).json({error:"Error creando template"});
+}
 });
 
 app.delete("/task-templates/:id", authMiddleware, async (req,res)=>{
@@ -963,9 +969,12 @@ app.delete("/task-templates/:id", authMiddleware, async (req,res)=>{
     res.json({ok:true});
 
   }catch(err){
-    console.error("❌ ERROR eliminando template:", err);
-    res.status(500).json({error:"Error eliminando"});
-  }
+  console.error("❌ ERROR eliminando template:", err);
+
+  res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com");
+
+  res.status(500).json({error:"Error eliminando"});
+}
 });
 
 /* ================= DATABASE (POSTGRESQL) ================= */
@@ -2559,4 +2568,8 @@ if(taskCheck.rows.length === 0){
     console.error(err);
     res.status(500).json({error:"Error subiendo evidencia"});
   }
+});
+app.use((err, req, res, next) => {
+  res.header("Access-Control-Allow-Origin","https://mollyhelpers.com");
+  res.status(500).json({ error: err.message });
 });
