@@ -88,13 +88,15 @@ app.use((req,res,next)=>{
     url === "/" ||
     url.endsWith(".html");
 
-  const esAPI =
-    url.startsWith("/task-templates") ||
-    url.startsWith("/tasks") ||
-    url.startsWith("/login") ||
-    url.startsWith("/chat") ||
-    url.startsWith("/guest") ||
-    url.startsWith("/socket.io");
+ const pathname = req.path;
+
+const esAPI =
+  pathname.startsWith("/task-templates") ||
+  pathname.startsWith("/tasks") ||
+  pathname.startsWith("/login") ||
+  pathname.startsWith("/chat") ||
+  pathname.startsWith("/guest") ||
+  pathname.startsWith("/socket.io");
 
   if(
     host &&
