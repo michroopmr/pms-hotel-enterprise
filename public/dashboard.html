@@ -1001,21 +1001,23 @@ if(user.role === "sistemas"){
 }
 async function secureFetch(url, options = {}) {
 
-const token = localStorage.getItem("token");
- const response = await fetch(url, {
-   ...options,
-   headers: {
-     ...options.headers,
-     "Authorization": "Bearer " + token
-   }
- });
+  const token = localStorage.getItem("token");
 
- if (response.status === 401) {
-   logoutAuto("Sesión expirada por seguridad.");
-   return null;
- }
+  const response = await fetch(url, {
+    ...options,
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + token,
+      ...(options.headers || {})
+    }
+  });
 
- return response;
+  if (response.status === 401) {
+    logoutAuto("Sesión expirada por seguridad.");
+    return null;
+  }
+
+  return response;
 }
 
 info.innerText=`Usuario: ${user.username}`;
@@ -1046,8 +1048,7 @@ let logoCloudData = null;
 
 async function cargarTemplates(){
 
-  const res = await secureFetch("/task-templates");
-
+  const res = await secureFetch("https://pms-hotel-enterprise.onrender.com/task-templates")
   if(!res) return;
 
   const data = await res.json();
@@ -2036,20 +2037,30 @@ async function crearUsuario(){
 
 async function crearTemplate(){
 
-  const token = localStorage.getItem("token");
+  const res = await secureFetch(
+    "https://pms-hotel-enterprise.onrender.com/task-templates",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        title: document.getElementById("tplTitle").value,
+        description: document.getElementById("tplDesc").value,
+        department: document.getElementById("tplDept").value
+      })
+    }
+  );
 
- await secureFetch("/admin/task-templates",{
-  method:"POST",
-  headers:{
-    "Content-Type":"application/json"
-  },
-  body: JSON.stringify({
-    title: document.getElementById("tplTitle").value,
-    description: document.getElementById("tplDesc").value,
-    department: document.getElementById("tplDept").value
-  })
-});
+  if(!res) return;
 
+  if(!res.ok){
+    alert("Error al crear plantilla");
+    return;
+  }
+
+  // 🔥 limpiar inputs
+  document.getElementById("tplTitle").value = "";
+  document.getElementById("tplDesc").value = "";
+
+  // 🔥 recargar lista
   cargarTemplates();
 }
 
@@ -2058,9 +2069,12 @@ async function eliminarTemplate(id){
 
   if(!confirm("¿Eliminar plantilla?")) return;
 
-  const res = await secureFetch(`/admin/task-templates/${id}`,{
-    method:"DELETE"
-  });
+  const res = await secureFetch(
+    `https://pms-hotel-enterprise.onrender.com/task-templates/${id}`,
+    {
+      method: "DELETE"
+    }
+  );
 
   if(!res) return;
 
@@ -2070,7 +2084,6 @@ async function eliminarTemplate(id){
   }
 
   cargarTemplates();
-
 }
 
 function cambiarPassword(){
@@ -2611,7 +2624,7 @@ if("serviceWorker" in navigator){
 }
 async function cargarPlantillasSelect(){ 
 
-  const res = await secureFetch("/task-templates");
+  const res = await secureFetch("https://pms-hotel-enterprise.onrender.com/task-templates")
 
   if(!res) return;
 

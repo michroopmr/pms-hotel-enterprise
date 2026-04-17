@@ -1994,6 +1994,7 @@ ORDER BY uploaded_at DESC
   }
 
 });
+
 // ================= TASK TEMPLATES =================
 
 // 🔹 Obtener templates
