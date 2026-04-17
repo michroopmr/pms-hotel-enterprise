@@ -1044,55 +1044,23 @@ let vistaActual = "dashboard"; // 🔥 saber qué vista está activa
 let modoFecha = "today"; // 🔥 AQUÍ
 let logoCloudData = null;
 
-/* ===== PLANTILLAS DE TAREAS ===== */
+async function cargarTemplates(){
 
-const plantillas = [
+  const res = await secureFetch("/task-templates");
 
- {nombre:"Tarea Abierta", departamento:"Otros"},
- {nombre:"Cambio de habitación", departamento:"Recepción"},
- {nombre:"WC tapado", departamento:"Mantenimiento"},
- {nombre:"Falla aire acondicionado", departamento:"Mantenimiento"},
- {nombre:"Falla TV", departamento:"Mantenimiento"},
- {nombre:"Falla WiFi", departamento:"Operaciones"},
- {nombre:"Agua caliente", departamento:"Mantenimiento"},
- {nombre:"Limpieza de habitación", departamento:"Housekeeping"},
- {nombre:"Recolección de servicios", departamento:"Alimentos y Bebidas"},
- {nombre:"Foco fundido", departamento:"Mantenimiento"},
+  if(!res) return;
 
-];
-function cargarPlantillas(){
+  const data = await res.json();
 
- const select = document.getElementById("plantilla");
+  const cont = document.getElementById("listaTemplates");
 
- plantillas.forEach(p=>{
-   select.innerHTML += `<option value="${p.nombre}">${p.nombre}</option>`;
- });
-
-}
-function aplicarPlantilla(){
-
- const nombre = document.getElementById("plantilla").value;
- const textarea = document.getElementById("d"); // 🔥 este es el textarea real
- const selectDep = document.getElementById("nr"); // 🔥 este es el select
-
- if(!textarea) return;
-
- if(!nombre){
-   textarea.style.display="none";
-   textarea.value="";
-   return;
- }
-
- const p = plantillas.find(x=>x.nombre===nombre);
-
- if(!p) return;
-
- textarea.style.display="block";
- textarea.value = nombre; // o p.descripcion si existe
-
- if(selectDep){
-   selectDep.value = p.departamento;
- }
+  cont.innerHTML = data.map(t => `
+    <div style="border:1px solid #ddd; padding:10px; margin:5px; border-radius:8px;">
+      <b>${t.title}</b><br>
+      <small>${t.department}</small><br>
+      <button onclick="eliminarTemplate(${t.id})" style="color:red;">Eliminar</button>
+    </div>
+  `).join("");
 
 }
 async function cargarDepartamentos(){
@@ -2070,18 +2038,17 @@ async function crearTemplate(){
 
   const token = localStorage.getItem("token");
 
-  await fetch("https://pms-hotel-enterprise.onrender.com/admin/task-templates",{
-    method:"POST",
-    headers:{
-      "Content-Type":"application/json",
-      "Authorization":"Bearer " + token
-    },
-    body: JSON.stringify({
-      title: document.getElementById("tplTitle").value,
-      description: document.getElementById("tplDesc").value,
-      department: document.getElementById("tplDept").value
-    })
-  });
+ await secureFetch("/admin/task-templates",{
+  method:"POST",
+  headers:{
+    "Content-Type":"application/json"
+  },
+  body: JSON.stringify({
+    title: document.getElementById("tplTitle").value,
+    description: document.getElementById("tplDesc").value,
+    department: document.getElementById("tplDept").value
+  })
+});
 
   cargarTemplates();
 }
@@ -2089,19 +2056,23 @@ async function crearTemplate(){
 
 async function eliminarTemplate(id){
 
-  const token = localStorage.getItem("token");
-
   if(!confirm("¿Eliminar plantilla?")) return;
 
-  await fetch(`https://pms-hotel-enterprise.onrender.com/admin/task-templates/${id}`,{
-    method:"DELETE",
-    headers:{
-      "Authorization":"Bearer " + token
-    }
+  const res = await secureFetch(`/admin/task-templates/${id}`,{
+    method:"DELETE"
   });
 
+  if(!res) return;
+
+  if(!res.ok){
+    alert("Error al eliminar");
+    return;
+  }
+
   cargarTemplates();
+
 }
+
 function cambiarPassword(){
 
  secureFetch("https://mollyhelpers.com/change-password",{
@@ -2591,7 +2562,7 @@ if(nombre === "sistemas"){   // 👈 AQUÍ
 
 
 cargar();
-cargarPlantillas();
+cargarPlantillasSelect();
 cargarDepartamentos();
 // ================= PUSH SUBSCRIPTION ENTERPRISE =================
 
