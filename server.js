@@ -903,6 +903,8 @@ app.get("/departments", authMiddleware, (req,res)=>{
 app.get("/task-templates", authMiddleware, async (req,res)=>{
   try{
 
+    console.log("USER:", req.user); // 👈 DEBUG
+
     const result = await db.query(
       "SELECT * FROM task_templates WHERE company_id=$1 ORDER BY id DESC",
       [req.user.company_id]
@@ -911,11 +913,14 @@ app.get("/task-templates", authMiddleware, async (req,res)=>{
     res.json(result.rows);
 
   }catch(err){
-    console.error("❌ ERROR templates:", err);
+    console.error("🔥 ERROR REAL:", err.message);
+    console.error(err.stack);
 
-    res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com");
+    res.setHeader("Access-Control-Allow-Origin","*");
 
-    res.status(500).json({error:"Error obteniendo templates"});
+    res.status(500).json({
+      error: err.message
+    });
   }
 });
 
