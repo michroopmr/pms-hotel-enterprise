@@ -614,6 +614,32 @@ footer{
 #vista-sistemas{
   align-items: flex-start !important;
 }
+#vista-sistemas{
+  display:block;            /* 🔥 CLAVE */
+  padding:20px;
+}
+.main{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;   /* 🔥 CLAVE */
+}
+#panelSistemas{
+  width:100%;
+  max-width:1200px;
+}
+.layout{
+  display:grid;
+  grid-template-columns: auto 1fr;
+  height:100vh;            /* 🔥 CLAVE */
+}
+.main{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  justify-content:flex-start;   /* 🔥 CLAVE */
+  height:100vh;                 /* 🔥 CLAVE */
+  overflow-y:auto;              /* 🔥 CLAVE */
+}
 </style>
 
 
@@ -852,10 +878,10 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
   <h3>⚙ Sistemas</h3>
 
-  <div style="display:flex; gap:30px; align-items:flex-start;">
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px; align-items:flex-start;">
 
-    <!-- 🔹 IZQUIERDA: Formularios -->
-    <div style="flex:1;">
+    <!-- 🔹 IZQUIERDA -->
+    <div>
 
       <h4>Crear usuario</h4>
 
@@ -888,10 +914,30 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
       <input id="cp" placeholder="Nueva password">
       <button onclick="cambiarPassword()">Cambiar</button>
 
+      <hr style="margin:30px 0">
+
+      <!-- 🔥 PLANTILLAS -->
+      <h3>📋 Plantillas de tareas</h3>
+
+      <input id="tplTitle" placeholder="Título"><br><br>
+      <input id="tplDesc" placeholder="Descripción"><br><br>
+
+      <select id="tplDept">
+        <option value="Recepción">Recepción</option>
+        <option value="Mantenimiento">Mantenimiento</option>
+        <option value="Spa">Spa</option>
+        <option value="Operaciones">Operaciones</option>
+        <option value="Gerencia General">Gerencia General</option>
+        <option value="Cocina">Cocina</option>
+        <option value="Alimentos Bebidas">Alimentos Bebidas</option>
+      </select><br><br>
+
+      <button onclick="crearTemplate()">Guardar plantilla</button>
+
     </div>
 
-    <!-- 🔹 DERECHA: Lista de usuarios -->
-    <div style="flex:1; min-width:320px;">
+    <!-- 🔹 DERECHA -->
+    <div>
 
       <h4>Usuarios creados</h4>
 
@@ -907,47 +953,16 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
         <tbody id="listaUsuarios"></tbody>
       </table>
 
-    </div>
+      <hr style="margin:30px 0">
 
-  </div>
-<!-- ================= PLANTILLAS ================= -->
-
-  <hr style="margin:30px 0">
-
-  <h3>📋 Plantillas de tareas</h3>
-
-  <div style="display:flex; gap:20px; align-items:flex-start;">
-
-    <!-- FORM -->
-    <div style="flex:1;">
-      <input id="tplTitle" placeholder="Título"><br><br>
-      <input id="tplDesc" placeholder="Descripción"><br><br>
-
-      <select id="tplDept">
-        <option value="Recepción">Recepción</option>
-        <option value="Mantenimiento">Mantenimiento</option>
-        <option value="Spa">Spa</option>
-        <option value="Operaciones">Operaciones</option>
-        <option value="Gerencia General">Gerencia General</option>
-        <option value="Cocina">Cocina</option>
-        <option value="Alimentos Bebidas">Alimentos Bebidas</option>
-      </select><br><br>
-
-      <button onclick="crearTemplate()">Guardar plantilla</button>
-    </div>
-
-    <!-- LISTA -->
-    <div style="flex:1;">
       <h4>Plantillas existentes</h4>
       <div id="listaTemplates"></div>
+
     </div>
 
   </div>
 
-
 </div>
-
-  </div>
 
 <footer>
 © <span id="year"></span> Michelle Romero para Empresa
