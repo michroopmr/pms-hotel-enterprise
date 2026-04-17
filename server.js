@@ -903,7 +903,9 @@ app.get("/departments", authMiddleware, (req,res)=>{
 app.get("/task-templates", authMiddleware, async (req,res)=>{
   try{
 
-    console.log("USER:", req.user); // 👈 DEBUG
+    if(!req.user){
+      return res.status(500).json({ error: "req.user undefined" });
+    }
 
     const result = await db.query(
       "SELECT * FROM task_templates WHERE company_id=$1 ORDER BY id DESC",
@@ -913,10 +915,7 @@ app.get("/task-templates", authMiddleware, async (req,res)=>{
     res.json(result.rows);
 
   }catch(err){
-    console.error("🔥 ERROR REAL:", err.message);
-    console.error(err.stack);
-
-    res.setHeader("Access-Control-Allow-Origin","*");
+    console.error("🔥 ERROR REAL:", err);
 
     res.status(500).json({
       error: err.message
@@ -2023,23 +2022,6 @@ ORDER BY uploaded_at DESC
 });
 
 // ================= TASK TEMPLATES =================
-
-// 🔹 Obtener templates
-app.get("/task-templates", authMiddleware, async (req,res)=>{
-  try{
-
-    const result = await db.query(
-      "SELECT * FROM task_templates WHERE company_id=$1 ORDER BY id DESC",
-      [req.user.company_id]
-    );
-
-    res.json(result.rows);
-
-  }catch(err){
-    console.error("❌ ERROR templates:", err);
-    res.status(500).json({error:"Error obteniendo templates"});
-  }
-});
 
 // 🔹 Crear template
 app.post("/task-templates", authMiddleware, async (req,res)=>{
