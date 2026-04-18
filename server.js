@@ -7,9 +7,30 @@ const app = express();
 
 
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "https://mollyhelpers.com");
-  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
-  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+
+  const origin = req.headers.origin;
+
+  const allowedOrigins = [
+    "https://mollyhelpers.com",
+    "https://www.mollyhelpers.com"
+  ];
+
+  if (allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin); // 🔥 EXACT MATCH
+    res.header("Access-Control-Allow-Credentials", "true");
+  }
+
+  res.header("Vary", "Origin");
+
+  res.header(
+    "Access-Control-Allow-Headers",
+    req.headers["access-control-request-headers"] || "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+
+  res.header(
+    "Access-Control-Allow-Methods",
+    "GET,POST,PUT,DELETE,OPTIONS"
+  );
 
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
