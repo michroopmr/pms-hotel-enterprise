@@ -1016,7 +1016,6 @@ async function secureFetch(url, options = {}) {
   });
 
   if (response.status === 401) {
-    console.log("⚠️ Token inválido o expirado");
     logoutAuto("Sesión expirada por seguridad.");
     return null;
   }
