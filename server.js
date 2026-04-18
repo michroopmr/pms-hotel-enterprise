@@ -103,10 +103,15 @@ if(
   host &&
   host.includes("onrender.com") &&
   req.method === "GET" &&
-  (pathname === "/" || pathname.endsWith(".html")) &&
-  !esAPI
+  !req.path.startsWith("/api") &&
+  !req.path.startsWith("/task-templates") &&
+  !req.path.startsWith("/tasks") &&
+  !req.path.startsWith("/login") &&
+  !req.path.startsWith("/chat") &&
+  !req.path.startsWith("/guest") &&
+  !req.path.startsWith("/socket.io") &&
+  (req.path === "/" || req.path.endsWith(".html"))
 ){
-  return res.redirect(301,"https://mollyhelpers.com");
 }
 
   next();
