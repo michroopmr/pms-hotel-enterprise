@@ -1003,24 +1003,35 @@ const API = "https://pms-hotel-enterprise.onrender.com";
 
 async function secureFetch(url, options = {}) {
 
-  const token = localStorage.getItem("token");
+  try{
 
-  console.log("TOKEN EN FETCH:", token);
+    const token = localStorage.getItem("token");
 
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": `Bearer ${token}`
+    console.log("🌐 URL:", url);
+    console.log("🔑 TOKEN:", token);
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      }
+    });
+
+    console.log("📡 STATUS:", response.status);
+
+    if (response.status === 401) {
+      logoutAuto("Sesión expirada por seguridad.");
+      return null;
     }
-  });
 
-  if (response.status === 401) {
-    logoutAuto("Sesión expirada por seguridad.");
+    return response;
+
+  }catch(err){
+
+    console.error("💥 FETCH ERROR:", err);
     return null;
   }
-
-  return response;
 }
 
 info.innerText=`Usuario: ${user.username}`;
@@ -1051,10 +1062,20 @@ let logoCloudData = null;
 
 async function cargarTemplates(){
 
-  const res = await secureFetch(`${API}/task-templates`)
-  if(!res) return;
+  console.log("🔥 INICIANDO cargarTemplates");
+
+  const res = await secureFetch(`${API}/task-templates`);
+
+  console.log("📡 RESPONSE:", res);
+
+  if(!res){
+    console.log("❌ NO HAY RESPONSE");
+    return;
+  }
 
   const data = await res.json();
+
+  console.log("📦 DATA:", data);
 
   const cont = document.getElementById("listaTemplates");
 
@@ -1065,7 +1086,6 @@ async function cargarTemplates(){
       <button onclick="eliminarTemplate(${t.id})" style="color:red;">Eliminar</button>
     </div>
   `).join("");
-
 }
 async function cargarDepartamentos(){
 
