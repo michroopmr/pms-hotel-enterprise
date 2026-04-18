@@ -5,17 +5,12 @@ const cors = require("cors");
 
 const app = express();
 
-app.use(cors({
-  origin: true,
-  methods: ["GET","POST","PUT","DELETE","OPTIONS"],
-  allowedHeaders: ["Content-Type","Authorization"]
-}));
 
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Origin", "https://mollyhelpers.com");
   res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept, Authorization");
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-  
+
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
   }
@@ -921,6 +916,8 @@ app.get("/departments", authMiddleware, (req,res)=>{
 // ================= TEMPLATES =================
 
 app.get("/task-templates", authMiddleware, async (req,res)=>{
+  console.log("🔥 HIT /task-templates");
+
   try{
 
     const result = await db.query(
@@ -2041,27 +2038,6 @@ ORDER BY uploaded_at DESC
 
 });
 
-// ================= TASK TEMPLATES =================
-
-// 🔹 Crear template
-app.post("/task-templates", authMiddleware, async (req,res)=>{
-  try{
-
-    const { title, description, department } = req.body;
-
-    await db.query(
-      `INSERT INTO task_templates(title,description,department,company_id)
-       VALUES($1,$2,$3,$4)`,
-      [title, description, department, req.user.company_id]
-    );
-
-    res.json({ok:true});
-
-  }catch(err){
-    console.error(err);
-    res.status(500).json({error:"Error creando template"});
-  }
-});
 /* ================= GET ALL TASKS ================= */
 
 app.get("/tasks", authMiddleware, async (req,res)=>{
