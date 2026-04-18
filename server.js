@@ -933,7 +933,6 @@ function authMiddleware(req, res, next){
   }
 }
 // ================= TEMPLATES =================
-
 app.get("/task-templates", authMiddleware, async (req,res)=>{
   console.log("🔥 ENTRÓ A /task-templates");
 
@@ -946,63 +945,16 @@ app.get("/task-templates", authMiddleware, async (req,res)=>{
       [req.user.company_id]
     );
 
-    res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com");
-
     res.json(result.rows);
 
   }catch(err){
-    console.error("💥 ERROR REAL:", err); // 🔥 ESTE ES EL IMPORTANTE
-
-    res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com");
+    console.error("💥 ERROR REAL:", err);
 
     res.status(500).json({
       error: err.message
     });
   }
 });
-
-app.post("/task-templates", authMiddleware, async (req,res)=>{
-  try{
-
-    const { title, description, department } = req.body;
-
-    const result = await db.query(
-      `INSERT INTO task_templates(title,description,department,company_id)
-       VALUES($1,$2,$3,$4)
-       RETURNING *`,
-      [title, description, department, req.user.company_id]
-    );
-
-    res.json(result.rows[0]);
-
-  }catch(err){
-  console.error("❌ ERROR creando template:", err);
-
-  res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com");
-
-  res.status(500).json({error:"Error creando template"});
-}
-});
-
-app.delete("/task-templates/:id", authMiddleware, async (req,res)=>{
-  try{
-
-    await db.query(
-      "DELETE FROM task_templates WHERE id=$1 AND company_id=$2",
-      [req.params.id, req.user.company_id]
-    );
-
-    res.json({ok:true});
-
-  }catch(err){
-  console.error("❌ ERROR eliminando template:", err);
-
-  res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com");
-
-  res.status(500).json({error:"Error eliminando"});
-}
-});
-
 /* ================= DATABASE (POSTGRESQL) ================= */
 
 console.log("DATABASE_URL =", process.env.DATABASE_URL);
