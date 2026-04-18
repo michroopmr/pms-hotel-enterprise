@@ -66,7 +66,8 @@ const logger = pino();
 
 // 🔥 PROTECCIÓN GLOBAL DE ERRORES
 process.on("uncaughtException", err => {
-  logger.error("💥 UNCAUGHT:", err);
+  console.error("💥 UNCAUGHT ERROR REAL:");
+  console.error(err);
 });
 
 process.on("unhandledRejection", err => {
