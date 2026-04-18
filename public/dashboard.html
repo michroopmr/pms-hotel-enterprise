@@ -2573,7 +2573,8 @@ if(nombre === "crear"){
   cargarPlantillasSelect();
 }
 
-if(nombre === "sistemas"){   // 👈 AQUÍ
+if(nombre === "sistemas"){
+  console.log("🔥 ENTRANDO A SISTEMAS");
   cargarTemplates();
 }
 
@@ -2598,6 +2599,7 @@ if(nombre === "sistemas"){   // 👈 AQUÍ
 cargar();
 cargarPlantillasSelect();
 cargarDepartamentos();
+cargarTemplates();
 // ================= PUSH SUBSCRIPTION ENTERPRISE =================
 
 if("serviceWorker" in navigator){
