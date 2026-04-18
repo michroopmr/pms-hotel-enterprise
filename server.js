@@ -900,40 +900,38 @@ async function traducirIA(texto, idioma){
 }
 function authMiddleware(req, res, next){
 
+  // 🔥 PERMITIR PREFLIGHT
+  if (req.method === "OPTIONS") {
+    return next();
+  }
+
   const authHeader = req.headers.authorization;
 
   console.log("🔐 SECRET:", SECRET);
   console.log("📩 AUTH HEADER:", authHeader);
 
   if(!authHeader){
-    return res.status(401).set({
-      "Access-Control-Allow-Origin":"https://mollyhelpers.com"
-    }).json({ error:"Token requerido" });
+    return res.status(401).json({ error:"Token requerido" });
   }
 
   const token = authHeader.split(" ")[1];
 
-  console.log("🎫 TOKEN RECIBIDO:", token); // 🔥 AGREGA ESTE
+  console.log("🎫 TOKEN RECIBIDO:", token);
 
   try{
     req.user = jwt.verify(token, SECRET);
 
-    console.log("✅ TOKEN OK:", req.user); // 🔥 AGREGA ESTE
+    console.log("✅ TOKEN OK:", req.user);
 
     next();
 
   }catch(err){
 
-    console.error("❌ JWT ERROR:", err.message); // 🔥 ESTE ES EL CLAVE
+    console.error("❌ JWT ERROR:", err.message);
 
-    return res.status(401).set({
-      "Access-Control-Allow-Origin":"https://mollyhelpers.com"
-    }).json({ error:"Token inválido o expirado" });
+    return res.status(401).json({ error:"Token inválido o expirado" });
   }
 }
-app.get("/departments", authMiddleware, (req,res)=>{
-  res.json(DEPARTMENTS);
-});
 // ================= TEMPLATES =================
 
 app.get("/task-templates", authMiddleware, async (req,res)=>{
