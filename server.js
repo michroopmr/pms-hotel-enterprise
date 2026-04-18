@@ -2475,26 +2475,6 @@ app.post("/login", async (req,res)=>{
  }
 
 });
-/* ================= START ================= */
-
-const PORT = process.env.PORT || 3000;
-
-(async () => {
-  try{
-    console.log("⏳ Inicializando DB...");
-
-    await initDB();
-
-    console.log("✅ DB lista");
-
-    server.listen(PORT,()=>{
-      console.log("🚀 Server running on port",PORT);
-    });
-
-  }catch(err){
-    console.error("💥 ERROR INIT DB:", err);
-  }
-})();
 
 // ================= UPLOAD CONFIG =================
 app.post("/tasks/:id/evidence", authMiddleware, upload.single("image"), async (req,res)=>{
