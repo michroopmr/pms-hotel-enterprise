@@ -1132,7 +1132,7 @@ await db.query(`CREATE INDEX IF NOT EXISTS idx_messages_guest ON messages(guest_
 await db.query(`CREATE INDEX IF NOT EXISTS idx_guests_company ON guests(company_id)`);
   }
 
-initDB();
+initDB()
 
 // 🔥 MIGRACIÓN DE PASSWORDS (TEMPORAL)
 (async ()=>{
@@ -2460,10 +2460,23 @@ app.post("/login", async (req,res)=>{
 /* ================= START ================= */
 
 const PORT = process.env.PORT || 3000;
-console.log("Starting server...");
-server.listen(PORT,()=>{
- console.log("🚀 Server running on port",PORT);
-});
+
+(async () => {
+  try{
+    console.log("⏳ Inicializando DB...");
+
+    await initDB();
+
+    console.log("✅ DB lista");
+
+    server.listen(PORT,()=>{
+      console.log("🚀 Server running on port",PORT);
+    });
+
+  }catch(err){
+    console.error("💥 ERROR INIT DB:", err);
+  }
+})();
 
 // ================= UPLOAD CONFIG =================
 app.post("/tasks/:id/evidence", authMiddleware, upload.single("image"), async (req,res)=>{
