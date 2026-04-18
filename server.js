@@ -39,8 +39,6 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
-
 app.set('trust proxy', true);
 
 
@@ -1133,7 +1131,26 @@ await db.query(`CREATE INDEX IF NOT EXISTS idx_messages_guest ON messages(guest_
 await db.query(`CREATE INDEX IF NOT EXISTS idx_guests_company ON guests(company_id)`);
   }
 
-initDB()
+const PORT = process.env.PORT || 3000;
+
+(async () => {
+  try{
+    console.log("⏳ Inicializando DB...");
+
+    await initDB();
+
+    console.log("✅ DB lista");
+
+    server.listen(PORT,()=>{
+      console.log("🚀 Server running on port",PORT);
+    });
+
+    console.log("🔥 DB INIT COMPLETADO");
+
+  }catch(err){
+    console.error("💥 ERROR INIT DB:", err);
+  }
+})();
 
 // 🔥 MIGRACIÓN DE PASSWORDS (TEMPORAL)
 (async ()=>{
