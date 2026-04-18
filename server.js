@@ -916,23 +916,25 @@ app.get("/departments", authMiddleware, (req,res)=>{
 // ================= TEMPLATES =================
 
 app.get("/task-templates", authMiddleware, async (req,res)=>{
-  console.log("🔥 HIT /task-templates");
+  console.log("🔥 ENTRÓ A /task-templates");
 
   try{
+
+    console.log("👤 USER:", req.user);
 
     const result = await db.query(
       "SELECT * FROM task_templates WHERE company_id=$1 ORDER BY id DESC",
       [req.user.company_id]
     );
 
-    res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com"); // 🔥
+    res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com");
 
     res.json(result.rows);
 
   }catch(err){
-    console.error("❌ ERROR templates:", err);
+    console.error("💥 ERROR REAL:", err); // 🔥 ESTE ES EL IMPORTANTE
 
-    res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com"); // 🔥
+    res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com");
 
     res.status(500).json({
       error: err.message
