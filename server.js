@@ -923,19 +923,19 @@ app.get("/departments", authMiddleware, (req,res)=>{
 app.get("/task-templates", authMiddleware, async (req,res)=>{
   try{
 
-    if(!req.user){
-      return res.status(500).json({ error: "req.user undefined" });
-    }
-
     const result = await db.query(
       "SELECT * FROM task_templates WHERE company_id=$1 ORDER BY id DESC",
       [req.user.company_id]
     );
 
+    res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com"); // 🔥
+
     res.json(result.rows);
 
   }catch(err){
-    console.error("🔥 ERROR REAL:", err);
+    console.error("❌ ERROR templates:", err);
+
+    res.setHeader("Access-Control-Allow-Origin","https://mollyhelpers.com"); // 🔥
 
     res.status(500).json({
       error: err.message
