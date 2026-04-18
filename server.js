@@ -6,6 +6,7 @@ const cors = require("cors");
 const app = express();
 
 
+// 🔥 1. CORS (PEGAR AQUÍ)
 app.use((req, res, next) => {
 
   const origin = req.headers.origin;
@@ -16,21 +17,19 @@ app.use((req, res, next) => {
   ];
 
   if (allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin); // 🔥 EXACT MATCH
-    res.header("Access-Control-Allow-Credentials", "true");
+    res.header("Access-Control-Allow-Origin", origin);
   }
 
-  res.header("Vary", "Origin");
+  res.header("Access-Control-Allow-Credentials", "true");
+  res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
 
   res.header(
     "Access-Control-Allow-Headers",
-    req.headers["access-control-request-headers"] || "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+    req.headers["access-control-request-headers"] ||
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
   );
 
-  res.header(
-    "Access-Control-Allow-Methods",
-    "GET,POST,PUT,DELETE,OPTIONS"
-  );
+  res.header("Access-Control-Expose-Headers", "Content-Length,Content-Type");
 
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
@@ -39,6 +38,16 @@ app.use((req, res, next) => {
   next();
 });
 
+
+// 🔥 2. LOG (INMEDIATAMENTE DESPUÉS)
+app.use((req,res,next)=>{
+  console.log("🌐 REQUEST:", req.method, req.path);
+  next();
+});
+
+
+// 🔥 3. BODY PARSER (DESPUÉS)
+app.use(express.json({ limit: "10mb" }));
 app.set('trust proxy', true);
 
 
