@@ -121,6 +121,7 @@ if(
   !req.path.startsWith("/api") &&
   !req.path.startsWith("/task-templates") &&
   !req.path.startsWith("/tasks") &&
+  !req.path.startsWith("/departments") && // 👈 AGREGAR
   !req.path.startsWith("/login") &&
   !req.path.startsWith("/chat") &&
   !req.path.startsWith("/guest") &&
