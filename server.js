@@ -953,25 +953,6 @@ app.get("/departments", authMiddleware, (req,res)=>{
     "Gerencia General"
   ]);
 });
-
-// 🔥 YA EXISTENTE
-app.get("/task-templates", authMiddleware, async (req,res)=>{
-
-  // 🔥 FORZAR CORS SOLO AQUÍ
-  res.setHeader("Access-Control-Allow-Origin", "https://mollyhelpers.com");
-
-  try{
-    const result = await db.query(
-      "SELECT * FROM task_templates WHERE company_id=$1 ORDER BY id DESC",
-      [req.user.company_id]
-    );
-
-    res.json(result.rows);
-
-  }catch(err){
-    res.status(500).json({ error: err.message });
-  }
-});
 /* ================= DATABASE (POSTGRESQL) ================= */
 
 console.log("DATABASE_URL =", process.env.DATABASE_URL);

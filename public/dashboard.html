@@ -894,26 +894,6 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
       <hr style="margin:30px 0">
 
-      <!-- 🔥 PLANTILLAS -->
-      <h3>📋 Plantillas de tareas</h3>
-
-      <input id="tplTitle" placeholder="Título"><br><br>
-      <input id="tplDesc" placeholder="Descripción"><br><br>
-
-      <select id="tplDept">
-        <option value="Recepción">Recepción</option>
-        <option value="Mantenimiento">Mantenimiento</option>
-        <option value="Spa">Spa</option>
-        <option value="Operaciones">Operaciones</option>
-        <option value="Gerencia General">Gerencia General</option>
-        <option value="Cocina">Cocina</option>
-        <option value="Alimentos Bebidas">Alimentos Bebidas</option>
-      </select><br><br>
-
-      <button onclick="crearTemplate()">Guardar plantilla</button>
-
-    </div>
-
     <!-- 🔹 DERECHA -->
     <div>
 
@@ -1060,33 +1040,6 @@ let vistaActual = "dashboard"; // 🔥 saber qué vista está activa
 let modoFecha = "today"; // 🔥 AQUÍ
 let logoCloudData = null;
 
-async function cargarTemplates(){
-
-  console.log("🔥 INICIANDO cargarTemplates");
-
-  const res = await secureFetch(`${API}/task-templates`);
-
-  console.log("📡 RESPONSE:", res);
-
-  if(!res){
-    console.log("❌ NO HAY RESPONSE");
-    return;
-  }
-
-  const data = await res.json();
-
-  console.log("📦 DATA:", data);
-
-  const cont = document.getElementById("listaTemplates");
-
-  cont.innerHTML = data.map(t => `
-    <div style="border:1px solid #ddd; padding:10px; margin:5px; border-radius:8px;">
-      <b>${t.title}</b><br>
-      <small>${t.department}</small><br>
-      <button onclick="eliminarTemplate(${t.id})" style="color:red;">Eliminar</button>
-    </div>
-  `).join("");
-}
 async function cargarDepartamentos(){
 
   try{
@@ -2056,57 +2009,6 @@ async function crearUsuario(){
 
 }
 
-async function crearTemplate(){
-
-  const res = await secureFetch(
-`${API}/task-templates`,
-    {
-      method: "POST",
-      body: JSON.stringify({
-        title: document.getElementById("tplTitle").value,
-        description: document.getElementById("tplDesc").value,
-        department: document.getElementById("tplDept").value
-      })
-    }
-  );
-
-  if(!res) return;
-
-  if(!res.ok){
-    alert("Error al crear plantilla");
-    return;
-  }
-
-  // 🔥 limpiar inputs
-  document.getElementById("tplTitle").value = "";
-  document.getElementById("tplDesc").value = "";
-
-  // 🔥 recargar lista
-  cargarTemplates();
-}
-
-
-async function eliminarTemplate(id){
-
-  if(!confirm("¿Eliminar plantilla?")) return;
-
-  const res = await secureFetch(
-    `${API}/task-templates/${id}`,
-    {
-      method: "DELETE"
-    }
-  );
-
-  if(!res) return;
-
-  if(!res.ok){
-    alert("Error al eliminar");
-    return;
-  }
-
-  cargarTemplates();
-}
-
 function cambiarPassword(){
 
  secureFetch("https://mollyhelpers.com/change-password",{
@@ -2599,7 +2501,7 @@ if(nombre === "sistemas"){
 cargar();
 cargarPlantillasSelect();
 cargarDepartamentos();
-cargarTemplates();
+
 // ================= PUSH SUBSCRIPTION ENTERPRISE =================
 
 if("serviceWorker" in navigator){
