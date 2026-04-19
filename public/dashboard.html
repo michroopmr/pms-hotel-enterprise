@@ -770,38 +770,51 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
     </div>
 
     <!-- ================= CREAR TAREA ================= -->
-    <<div id="vista-crear" class="vista" style="display:none">
+   <div id="vista-crear" class="vista" style="display:none">
 
   <div class="form-box">
 
     <h4>➕ Crear tarea</h4>
 
+    <!-- 🔥 SELECT TAREA RÁPIDA -->
+    <select id="tareaRapida" onchange="aplicarTareaRapida()">
+      <option value="">Seleccionar tarea rápida</option>
+
+      <option value="wc">WC tapado</option>
+      <option value="tv">Falla de TV</option>
+      <option value="tina">Tina tapada</option>
+      <option value="ac">Falla de Aire acondicionado</option>
+      <option value="limpieza">Limpieza de habitación</option>
+      <option value="foco">Foco fundido</option>
+      <option value="toallas">Toallas extras</option>
+      <option value="jabon">Jabón extra</option>
+      <option value="shampoo">Shampoo extra</option>
+      <option value="libre">Tarea libre</option>
+      <option value="internet">Falla de internet</option>
+      <option value="tarja">Tarja tapada</option>
+      <option value="objeto">Objeto olvidado</option>
+      <option value="cambio">Cambio de habitación</option>
+      <option value="olor">Mal olor</option>
+      <option value="agua">Agua caliente</option>
+      <option value="coladera">Coladera tapada</option>
+    </select>
+
     <input id="titulo" placeholder="Título de la tarea">
 
     <textarea id="d" placeholder="Descripción"></textarea>
 
+    <!-- 🔥 ESTE ES EL DEPARTAMENTO (NO LO TOQUES) -->
     <select id="nr">
-      <option value="">Seleccionar tarea rápida</option>
+      <option value="">Seleccionar departamento</option>
+    </select>
 
-  <option value="wc">WC tapado</option>
-  <option value="tv">Falla de TV</option>
-  <option value="tina">Tina tapada</option>
-  <option value="ac">Falla de Aire acondicionado</option>
-  <option value="limpieza">Limpieza de habitación</option>
-  <option value="foco">Foco fundido</option>
-  <option value="toallas">Toallas extras</option>
-  <option value="jabon">Jabón extra</option>
-  <option value="shampoo">Shampoo extra</option>
-  <option value="libre">Tarea libre</option>
-  <option value="internet">Falla de internet</option>
-  <option value="tarja">Tarja tapada</option>
-  <option value="objeto">Objeto olvidado</option>
-  <option value="cambio">Cambio de habitación</option>
-  <option value="olor">Mal olor</option>
-  <option value="agua">Agua caliente</option>
-  <option value="coladera">Coladera tapada</option>
+    <input type="datetime-local" id="due">
 
-</select>
+    <button onclick="crearTarea()">Crear</button>
+
+  </div>
+
+</div>
 
     <input type="datetime-local" id="due">
 
