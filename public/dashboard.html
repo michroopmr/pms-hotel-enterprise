@@ -776,10 +776,9 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
     <h4>➕ Crear tarea</h4>
 
-    <!-- 🔥 SELECT TAREA RÁPIDA -->
+    <!-- 1. TAREA -->
     <select id="tareaRapida" onchange="aplicarTareaRapida()">
-      <option value="">Seleccionar tarea rápida</option>
-
+      <option value="">Seleccionar tarea</option>
       <option value="wc">WC tapado</option>
       <option value="tv">Falla de TV</option>
       <option value="tina">Tina tapada</option>
@@ -799,31 +798,23 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
       <option value="coladera">Coladera tapada</option>
     </select>
 
-    <input id="titulo" placeholder="Título de la tarea">
+    <!-- 2. COMENTARIOS -->
+    <textarea id="d" placeholder="Comentarios"></textarea>
 
-    <textarea id="d" placeholder="Descripción"></textarea>
-
-    <!-- 🔥 ESTE ES EL DEPARTAMENTO (NO LO TOQUES) -->
+    <!-- 3. DEPARTAMENTO -->
     <select id="nr">
       <option value="">Seleccionar departamento</option>
     </select>
 
+    <!-- 4. FECHA -->
     <input type="datetime-local" id="due">
 
+    <!-- 5. BOTÓN -->
     <button onclick="crearTarea()">Crear</button>
 
   </div>
 
 </div>
-
-    <input type="datetime-local" id="due">
-
-    <button onclick="crearTarea()">Crear</button>
-
-  </div>
-
-</div>
-
 
 <!-- ================= REPORTES ================= -->
 <div id="vista-reportes" class="vista" style="display:none"> 
@@ -1231,6 +1222,13 @@ function aplicarTareaRapida(){
   const titulo = document.getElementById("titulo");
   const descripcion = document.getElementById("d");
   const depto = document.getElementById("nr");
+  const due = document.getElementById("due");
+
+  function sumarMinutos(min){
+    const fecha = new Date();
+    fecha.setMinutes(fecha.getMinutes() + min);
+    return fecha.toISOString().slice(0,16);
+  }
 
   switch(tipo){
 
@@ -1337,6 +1335,9 @@ function aplicarTareaRapida(){
     break;
 
   }
+
+  // 🔥 UNA SOLA VEZ (CLAVE)
+  due.value = sumarMinutos(15);
 }
  // 🔥 normalizar formato
 function fechaPMS(fecha){
@@ -2029,12 +2030,19 @@ async function crearTarea(){
 
  try{
 
-   const plantilla = document.getElementById("plantilla");
+   const tarea = document.getElementById("tareaRapida");
    const descripcion = document.getElementById("d");
    const due = document.getElementById("due");
    const dep = document.getElementById("nr");
 
    const currentUser = JSON.parse(localStorage.getItem("user"));
+
+   const title = tarea.options[tarea.selectedIndex].text;
+
+   if(!title || title === "Seleccionar tarea"){
+     alert("Selecciona una tarea");
+     return;
+   }
 
    if(!descripcion.value || !dep.value){
      alert("Completa los campos");
@@ -2048,7 +2056,7 @@ async function crearTarea(){
        "Authorization":"Bearer "+localStorage.getItem("token")
      },
      body:JSON.stringify({
-       title: plantilla.value || descripcion.value,
+       title,
        description: descripcion.value,
        department: dep.value,
        due_date: due.value ? new Date(due.value).toISOString() : null,
@@ -2056,25 +2064,23 @@ async function crearTarea(){
      })
    });
 
-  
    if(!res) return;
    
    if(!res.ok){
-  const text = await res.text();
-  console.error("ERROR:", text);
-  return;
-}
+     const text = await res.text();
+     console.error("ERROR:", text);
+     return;
+   }
 
-const data = await res.json();
+   await res.json();
 
    await recargarTareas();
 
    mostrarVista("dashboard");
 
-   // limpiar formulario
-   plantilla.value="";
+   // 🔥 limpiar formulario
+   tarea.value="";
    descripcion.value="";
-   descripcion.style.display="none";
    due.value="";
    dep.selectedIndex=0;
 
@@ -2084,9 +2090,7 @@ const data = await res.json();
    alert("No se pudo crear la tarea: " + e.message);
 
  }
-
 }
-
 async function cambiarEstado(id,s){
 
  await secureFetch(`https://mollyhelpers.com/tasks/${id}`,{
