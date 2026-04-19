@@ -770,26 +770,46 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
     </div>
 
     <!-- ================= CREAR TAREA ================= -->
-    <div id="vista-crear" class="vista" style="display:none">
+    <<div id="vista-crear" class="vista" style="display:none">
 
-      <div class="form-box">
+  <div class="form-box">
 
-        <h4>➕ Crear tarea</h4>
-        <select id="plantilla" onchange="aplicarPlantilla()">
-            <option value="">Seleccionar tarea rápida</option>
-          </select>
-          
-          <textarea id="d" placeholder="Descripción"></textarea>
+    <h4>➕ Crear tarea</h4>
 
-        <input type="datetime-local" id="due">
+    <input id="titulo" placeholder="Título de la tarea">
 
-        <select id="nr"></select>
+    <textarea id="d" placeholder="Descripción"></textarea>
 
-        <button onclick="crearTarea()">Crear</button>
+    <select id="nr">
+      <option value="">Seleccionar tarea rápida</option>
 
-      </div>
+  <option value="wc">WC tapado</option>
+  <option value="tv">Falla de TV</option>
+  <option value="tina">Tina tapada</option>
+  <option value="ac">Falla de Aire acondicionado</option>
+  <option value="limpieza">Limpieza de habitación</option>
+  <option value="foco">Foco fundido</option>
+  <option value="toallas">Toallas extras</option>
+  <option value="jabon">Jabón extra</option>
+  <option value="shampoo">Shampoo extra</option>
+  <option value="libre">Tarea libre</option>
+  <option value="internet">Falla de internet</option>
+  <option value="tarja">Tarja tapada</option>
+  <option value="objeto">Objeto olvidado</option>
+  <option value="cambio">Cambio de habitación</option>
+  <option value="olor">Mal olor</option>
+  <option value="agua">Agua caliente</option>
+  <option value="coladera">Coladera tapada</option>
 
-    </div>
+</select>
+
+    <input type="datetime-local" id="due">
+
+    <button onclick="crearTarea()">Crear</button>
+
+  </div>
+
+</div>
 
 
 <!-- ================= REPORTES ================= -->
@@ -1189,7 +1209,122 @@ function estadoTiempo(t){
 
  return "";
 }
+function aplicarTareaRapida(){
 
+  const tipo = document.getElementById("tareaRapida").value;
+
+  if(!tipo) return;
+
+  const titulo = document.getElementById("titulo");
+  const descripcion = document.getElementById("d");
+  const depto = document.getElementById("nr");
+
+  switch(tipo){
+
+    case "wc":
+      titulo.value = "WC tapado";
+      descripcion.value = "El sanitario presenta obstrucción";
+      depto.value = "Mantenimiento";
+    break;
+
+    case "tv":
+      titulo.value = "Falla de TV";
+      descripcion.value = "La televisión no funciona correctamente";
+      depto.value = "Mantenimiento";
+    break;
+
+    case "tina":
+      titulo.value = "Tina tapada";
+      descripcion.value = "La tina no drena correctamente";
+      depto.value = "Mantenimiento";
+    break;
+
+    case "ac":
+      titulo.value = "Falla de Aire acondicionado";
+      descripcion.value = "El aire no enfría correctamente";
+      depto.value = "Mantenimiento";
+    break;
+
+    case "limpieza":
+      titulo.value = "Limpieza de habitación";
+      descripcion.value = "Se solicita limpieza de la habitación";
+      depto.value = "Housekeeping";
+    break;
+
+    case "foco":
+      titulo.value = "Foco fundido";
+      descripcion.value = "Un foco no funciona";
+      depto.value = "Mantenimiento";
+    break;
+
+    case "toallas":
+      titulo.value = "Toallas extras";
+      descripcion.value = "El huésped solicita toallas adicionales";
+      depto.value = "Housekeeping";
+    break;
+
+    case "jabon":
+      titulo.value = "Jabón extra";
+      descripcion.value = "El huésped solicita jabón adicional";
+      depto.value = "Housekeeping";
+    break;
+
+    case "shampoo":
+      titulo.value = "Shampoo extra";
+      descripcion.value = "El huésped solicita shampoo adicional";
+      depto.value = "Housekeeping";
+    break;
+
+    case "internet":
+      titulo.value = "Falla de internet";
+      descripcion.value = "El internet no funciona correctamente";
+      depto.value = "Sistemas";
+    break;
+
+    case "tarja":
+      titulo.value = "Tarja tapada";
+      descripcion.value = "La tarja no drena correctamente";
+      depto.value = "Mantenimiento";
+    break;
+
+    case "objeto":
+      titulo.value = "Objeto olvidado";
+      descripcion.value = "Se encontró un objeto olvidado por el huésped";
+      depto.value = "Recepción";
+    break;
+
+    case "cambio":
+      titulo.value = "Cambio de habitación";
+      descripcion.value = "El huésped solicita cambio de habitación";
+      depto.value = "Recepción";
+    break;
+
+    case "olor":
+      titulo.value = "Mal olor";
+      descripcion.value = "Se detecta mal olor en la habitación";
+      depto.value = "Housekeeping";
+    break;
+
+    case "agua":
+      titulo.value = "Agua caliente";
+      descripcion.value = "No hay agua caliente disponible";
+      depto.value = "Mantenimiento";
+    break;
+
+    case "coladera":
+      titulo.value = "Coladera tapada";
+      descripcion.value = "La coladera no drena correctamente";
+      depto.value = "Mantenimiento";
+    break;
+
+    case "libre":
+      titulo.value = "";
+      descripcion.value = "";
+      depto.value = "";
+    break;
+
+  }
+}
  // 🔥 normalizar formato
 function fechaPMS(fecha){
 
