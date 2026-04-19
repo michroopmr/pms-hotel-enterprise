@@ -31,8 +31,8 @@ if (origin && allowedOrigins.includes(origin)) {
   );
 
   if (req.method === "OPTIONS") {
-    return res.sendStatus(200);
-  }
+  return res.status(200).end(); // 🔥 FIX
+}
 
   next();
 });
