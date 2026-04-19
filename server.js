@@ -958,7 +958,9 @@ app.get("/departments", authMiddleware, (req,res)=>{
 
 // 🔥 YA EXISTENTE
 app.get("/task-templates", authMiddleware, async (req,res)=>{
-  console.log("🔥 ENTRÓ A /task-templates");
+
+  // 🔥 FORZAR CORS SOLO AQUÍ
+  res.setHeader("Access-Control-Allow-Origin", "https://mollyhelpers.com");
 
   try{
     const result = await db.query(
@@ -969,7 +971,6 @@ app.get("/task-templates", authMiddleware, async (req,res)=>{
     res.json(result.rows);
 
   }catch(err){
-    console.error("💥 ERROR REAL:", err);
     res.status(500).json({ error: err.message });
   }
 });
