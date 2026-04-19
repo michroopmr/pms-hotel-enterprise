@@ -779,6 +779,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
     <!-- 1. TAREA -->
     <select id="tareaRapida" onchange="aplicarTareaRapida()">
       <option value="">Seleccionar tarea</option>
+
       <option value="wc">WC tapado</option>
       <option value="tv">Falla de TV</option>
       <option value="tina">Tina tapada</option>
@@ -788,7 +789,6 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
       <option value="toallas">Toallas extras</option>
       <option value="jabon">Jabón extra</option>
       <option value="shampoo">Shampoo extra</option>
-      <option value="libre">Tarea libre</option>
       <option value="internet">Falla de internet</option>
       <option value="tarja">Tarja tapada</option>
       <option value="objeto">Objeto olvidado</option>
@@ -796,6 +796,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
       <option value="olor">Mal olor</option>
       <option value="agua">Agua caliente</option>
       <option value="coladera">Coladera tapada</option>
+      <option value="libre">Tarea libre</option>
     </select>
 
     <!-- 2. COMENTARIOS -->
@@ -1216,10 +1217,8 @@ function estadoTiempo(t){
 function aplicarTareaRapida(){
 
   const tipo = document.getElementById("tareaRapida").value;
-
   if(!tipo) return;
 
-  const titulo = document.getElementById("titulo");
   const descripcion = document.getElementById("d");
   const depto = document.getElementById("nr");
   const due = document.getElementById("due");
@@ -1233,110 +1232,92 @@ function aplicarTareaRapida(){
   switch(tipo){
 
     case "wc":
-      titulo.value = "WC tapado";
-      descripcion.value = "El sanitario presenta obstrucción";
+      descripcion.value = "WC tapado - El sanitario presenta obstrucción";
       depto.value = "Mantenimiento";
     break;
 
     case "tv":
-      titulo.value = "Falla de TV";
-      descripcion.value = "La televisión no funciona correctamente";
+      descripcion.value = "Falla de TV - No funciona correctamente";
       depto.value = "Mantenimiento";
     break;
 
     case "tina":
-      titulo.value = "Tina tapada";
-      descripcion.value = "La tina no drena correctamente";
+      descripcion.value = "Tina tapada - No drena correctamente";
       depto.value = "Mantenimiento";
     break;
 
     case "ac":
-      titulo.value = "Falla de Aire acondicionado";
-      descripcion.value = "El aire no enfría correctamente";
+      descripcion.value = "Falla de Aire acondicionado";
       depto.value = "Mantenimiento";
     break;
 
     case "limpieza":
-      titulo.value = "Limpieza de habitación";
-      descripcion.value = "Se solicita limpieza de la habitación";
+      descripcion.value = "Limpieza de habitación";
       depto.value = "Housekeeping";
     break;
 
     case "foco":
-      titulo.value = "Foco fundido";
-      descripcion.value = "Un foco no funciona";
+      descripcion.value = "Foco fundido";
       depto.value = "Mantenimiento";
     break;
 
     case "toallas":
-      titulo.value = "Toallas extras";
-      descripcion.value = "El huésped solicita toallas adicionales";
+      descripcion.value = "Solicitud de toallas extras";
       depto.value = "Housekeeping";
     break;
 
     case "jabon":
-      titulo.value = "Jabón extra";
-      descripcion.value = "El huésped solicita jabón adicional";
+      descripcion.value = "Solicitud de jabón extra";
       depto.value = "Housekeeping";
     break;
 
     case "shampoo":
-      titulo.value = "Shampoo extra";
-      descripcion.value = "El huésped solicita shampoo adicional";
+      descripcion.value = "Solicitud de shampoo extra";
       depto.value = "Housekeeping";
     break;
 
     case "internet":
-      titulo.value = "Falla de internet";
-      descripcion.value = "El internet no funciona correctamente";
+      descripcion.value = "Falla de internet";
       depto.value = "Sistemas";
     break;
 
     case "tarja":
-      titulo.value = "Tarja tapada";
-      descripcion.value = "La tarja no drena correctamente";
+      descripcion.value = "Tarja tapada";
       depto.value = "Mantenimiento";
     break;
 
     case "objeto":
-      titulo.value = "Objeto olvidado";
-      descripcion.value = "Se encontró un objeto olvidado por el huésped";
+      descripcion.value = "Objeto olvidado";
       depto.value = "Recepción";
     break;
 
     case "cambio":
-      titulo.value = "Cambio de habitación";
-      descripcion.value = "El huésped solicita cambio de habitación";
+      descripcion.value = "Cambio de habitación";
       depto.value = "Recepción";
     break;
 
     case "olor":
-      titulo.value = "Mal olor";
-      descripcion.value = "Se detecta mal olor en la habitación";
+      descripcion.value = "Mal olor en habitación";
       depto.value = "Housekeeping";
     break;
 
     case "agua":
-      titulo.value = "Agua caliente";
-      descripcion.value = "No hay agua caliente disponible";
+      descripcion.value = "Falla de agua caliente";
       depto.value = "Mantenimiento";
     break;
 
     case "coladera":
-      titulo.value = "Coladera tapada";
-      descripcion.value = "La coladera no drena correctamente";
+      descripcion.value = "Coladera tapada";
       depto.value = "Mantenimiento";
     break;
 
     case "libre":
-      titulo.value = "";
       descripcion.value = "";
       depto.value = "";
     break;
-
   }
 
-  // 🔥 UNA SOLA VEZ (CLAVE)
+  // 🔥 SLA AUTOMÁTICO 15 MIN
   due.value = sumarMinutos(15);
 }
  // 🔥 normalizar formato
@@ -2037,7 +2018,9 @@ async function crearTarea(){
 
    const currentUser = JSON.parse(localStorage.getItem("user"));
 
-   const title = tarea.options[tarea.selectedIndex].text;
+   const title = tarea.value === "libre"
+     ? descripcion.value
+     : tarea.options[tarea.selectedIndex].text;
 
    if(!title || title === "Seleccionar tarea"){
      alert("Selecciona una tarea");
@@ -2049,12 +2032,8 @@ async function crearTarea(){
      return;
    }
 
-   const res = await secureFetch("https://mollyhelpers.com/tasks",{
+   const res = await secureFetch(`${API}/tasks`,{
      method:"POST",
-     headers:{
-       "Content-Type":"application/json",
-       "Authorization":"Bearer "+localStorage.getItem("token")
-     },
      body:JSON.stringify({
        title,
        description: descripcion.value,
@@ -2075,10 +2054,9 @@ async function crearTarea(){
    await res.json();
 
    await recargarTareas();
-
    mostrarVista("dashboard");
 
-   // 🔥 limpiar formulario
+   // limpiar
    tarea.value="";
    descripcion.value="";
    due.value="";
@@ -2087,11 +2065,10 @@ async function crearTarea(){
  }catch(e){
 
    console.error("Error creando tarea:", e);
-   alert("No se pudo crear la tarea: " + e.message);
+   alert("No se pudo crear la tarea");
 
  }
-}
-async function cambiarEstado(id,s){
+}async function cambiarEstado(id,s){
 
  await secureFetch(`https://mollyhelpers.com/tasks/${id}`,{
    method:"PUT",
@@ -2641,6 +2618,7 @@ if(nombre === "sistemas"){
  document.getElementById("vista-"+nombre).style.display="block";
 
  render();
+ cargarDepartamentos();
 
 }
 
