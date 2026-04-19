@@ -12,16 +12,15 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
 
   const allowedOrigins = [
-    "https://mollyhelpers.com",
-    "https://www.mollyhelpers.com"
-  ];
+  "https://mollyhelpers.com",
+  "https://www.mollyhelpers.com"
+];
 
-  // 🔥 SIEMPRE RESPONDER (CLAVE)
-  if (origin && allowedOrigins.includes(origin)) {
-    res.header("Access-Control-Allow-Origin", origin);
-  } else {
-    res.header("Access-Control-Allow-Origin", "*");
-  }
+if (origin && allowedOrigins.includes(origin)) {
+  res.header("Access-Control-Allow-Origin", origin);
+} else {
+  res.header("Access-Control-Allow-Origin", allowedOrigins[0]); // fallback seguro
+}
 
   res.header("Access-Control-Allow-Credentials", "true");
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
