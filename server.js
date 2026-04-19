@@ -16,22 +16,20 @@ app.use((req, res, next) => {
     "https://www.mollyhelpers.com"
   ];
 
-  if (allowedOrigins.includes(origin)) {
-  res.header("Access-Control-Allow-Origin", origin);
-} else {
-  res.header("Access-Control-Allow-Origin", "*"); // 🔥 FIX CLAVE
-}
+  // 🔥 SIEMPRE RESPONDER (CLAVE)
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+  } else {
+    res.header("Access-Control-Allow-Origin", "*");
+  }
 
   res.header("Access-Control-Allow-Credentials", "true");
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
 
   res.header(
     "Access-Control-Allow-Headers",
-    req.headers["access-control-request-headers"] ||
     "Origin, X-Requested-With, Content-Type, Accept, Authorization"
   );
-
-  res.header("Access-Control-Expose-Headers", "Content-Length,Content-Type");
 
   if (req.method === "OPTIONS") {
     return res.sendStatus(200);
@@ -943,13 +941,27 @@ function authMiddleware(req, res, next){
   }
 }
 // ================= TEMPLATES =================
+
+// 🔥 👉 PEGA AQUÍ
+app.get("/departments", authMiddleware, (req,res)=>{
+  res.json([
+    "Recepción",
+    "Mantenimiento",
+    "Operaciones",
+    "Spa",
+    "Housekeeping",
+    "Alimentos Bebidas",
+    "Cocina",
+    "Tabaqueria",
+    "Gerencia General"
+  ]);
+});
+
+// 🔥 YA EXISTENTE
 app.get("/task-templates", authMiddleware, async (req,res)=>{
   console.log("🔥 ENTRÓ A /task-templates");
 
   try{
-
-    console.log("👤 USER:", req.user);
-
     const result = await db.query(
       "SELECT * FROM task_templates WHERE company_id=$1 ORDER BY id DESC",
       [req.user.company_id]
@@ -959,10 +971,7 @@ app.get("/task-templates", authMiddleware, async (req,res)=>{
 
   }catch(err){
     console.error("💥 ERROR REAL:", err);
-
-    res.status(500).json({
-      error: err.message
-    });
+    res.status(500).json({ error: err.message });
   }
 });
 /* ================= DATABASE (POSTGRESQL) ================= */
