@@ -12,27 +12,25 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
 
   const allowedOrigins = [
-  "https://mollyhelpers.com",
-  "https://www.mollyhelpers.com"
-];
+    "https://mollyhelpers.com",
+    "https://www.mollyhelpers.com"
+  ];
 
-if (origin && allowedOrigins.includes(origin)) {
-  res.header("Access-Control-Allow-Origin", origin);
-} else {
-  res.header("Access-Control-Allow-Origin", allowedOrigins[0]); // fallback seguro
-}
+  // 🔥 SOLO permitir si coincide
+  if (origin && allowedOrigins.includes(origin)) {
+    res.header("Access-Control-Allow-Origin", origin);
+    res.header("Access-Control-Allow-Credentials", "true");
+  }
 
-  res.header("Access-Control-Allow-Credentials", "true");
   res.header("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-
   res.header(
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept, Authorization"
   );
 
   if (req.method === "OPTIONS") {
-  return res.status(200).end(); // 🔥 FIX
-}
+    return res.status(200).end();
+  }
 
   next();
 });
