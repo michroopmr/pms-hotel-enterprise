@@ -583,9 +583,6 @@ footer{
   }
 
 }
-#d{
- display:none;
-}
 .badgeNotif{
  background:#ef4444;
  color:white;
@@ -1217,17 +1214,33 @@ function estadoTiempo(t){
 function aplicarTareaRapida(){
 
   const tipo = document.getElementById("tareaRapida").value;
-  if(!tipo) return;
 
   const descripcion = document.getElementById("d");
   const depto = document.getElementById("nr");
   const due = document.getElementById("due");
 
-  function sumarMinutos(min){
-    const fecha = new Date();
-    fecha.setMinutes(fecha.getMinutes() + min);
-    return fecha.toISOString().slice(0,16);
+  // 🔥 SI NO HAY SELECCIÓN → LIMPIAR
+  if(!tipo){
+    descripcion.value = "";
+    depto.value = "";
+    due.value = "";
+    return;
   }
+
+  function sumarMinutos(min){
+
+  const fecha = new Date();
+  fecha.setMinutes(fecha.getMinutes() + min);
+
+  const year = fecha.getFullYear();
+  const month = String(fecha.getMonth() + 1).padStart(2, "0");
+  const day = String(fecha.getDate()).padStart(2, "0");
+
+  const hours = String(fecha.getHours()).padStart(2, "0");
+  const minutes = String(fecha.getMinutes()).padStart(2, "0");
+
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+}
 
   switch(tipo){
 
@@ -1319,6 +1332,7 @@ function aplicarTareaRapida(){
 
   // 🔥 SLA AUTOMÁTICO 15 MIN
   due.value = sumarMinutos(15);
+  descripcion.focus();
 }
  // 🔥 normalizar formato
 function fechaPMS(fecha){
