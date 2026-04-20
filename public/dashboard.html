@@ -1243,9 +1243,9 @@ function calcularScore(t){
 
   const minutos = (cierre - inicio) / 60000;
 
-  if(minutos <= 15) return "🟢 En Tiempo";
-  if(minutos <= 20) return "🟡 Fuera de Tiempo";
-  return "🔴 Vencida";
+  if(minutos <= 15) return "En tiempo";
+  if(minutos <= 20) return "Fuera de tiempo";
+  return "Vencida";
 }
 
 function aplicarTareaRapida(){
@@ -2495,14 +2495,33 @@ function exportarPDF(){
 
       splitRow.forEach((col,i)=>{
 
-        if(i === 6){
-          if(String(col).includes("En tiempo")){
-            pdf.setTextColor(0,150,0);
-          }
-          else if(String(col).includes("Fuera")){
-            pdf.setTextColor(200,0,0);
-          }
-        }
+        // 🎨 SLA (columna 6)
+if(i === 6){
+
+  if(String(col).includes("En tiempo")){
+    pdf.setTextColor(0,150,0); // verde
+  }
+  else if(String(col).includes("Fuera")){
+    pdf.setTextColor(255,165,0); // naranja
+  }
+  else if(String(col).includes("Vencida")){
+    pdf.setTextColor(200,0,0); // rojo
+  }
+}
+
+// 🎨 SCORE (columna 7)
+if(i === 7){
+
+  if(String(col).includes("En tiempo")){
+    pdf.setTextColor(0,150,0);
+  }
+  else if(String(col).includes("Fuera")){
+    pdf.setTextColor(255,165,0);
+  }
+  else if(String(col).includes("Vencida")){
+    pdf.setTextColor(200,0,0);
+  }
+}
 
         pdf.text(col,x,y);
         pdf.setTextColor(0,0,0);
