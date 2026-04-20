@@ -2455,16 +2455,22 @@ function exportarPDF(){
       const fecha = fechaPMS(t.created_at);
 
       const row = [
-        t.title || "",
-        t.department || "",
-        estado(t).replace("_"," ").toUpperCase(),
-        t.created_by || "",
-        `${fecha.fecha} ${fecha.hora}`,
-        calcularTiempoTotal(t),
-        calcularSLA(t),
-        calcularScore(t),
-        comentariosTexto
-      ];
+  t.title || "",
+  t.department || "",
+  (() => {
+    const e = estado(t)
+      .replace("_"," / ")
+      .toLowerCase()
+      .replace(/\b\w/g, l => l.toUpperCase());
+    return e;
+  })(),
+  t.created_by || "",
+  `${fecha.fecha} ${fecha.hora}`,
+  calcularTiempoTotal(t),
+  calcularSLA(t),
+  calcularScore(t),
+  comentariosTexto
+];
 
       const splitRow = row.map((col,i)=>
         pdf.splitTextToSize(String(col),colWidth[i]-8)
