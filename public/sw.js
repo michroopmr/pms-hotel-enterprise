@@ -1,9 +1,28 @@
 /* ================= MOLLYHELPERS SERVICE WORKER ================= */
 
+/* ===== CACHE CONFIG ===== */
+
+const CACHE_NAME = "molly-v1";
+
+const urlsToCache = [
+  "/",
+  "/dashboard.html",
+  "/icon-192.png"
+];
+
 /* ===== INSTALL ===== */
 
 self.addEventListener("install", event => {
   console.log("🔥 Service Worker instalado");
+
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then(cache => {
+        console.log("📦 Cacheando app");
+        return cache.addAll(urlsToCache);
+      })
+  );
+
   self.skipWaiting();
 });
 
@@ -11,7 +30,40 @@ self.addEventListener("install", event => {
 
 self.addEventListener("activate", event => {
   console.log("🔥 Service Worker activo");
-  event.waitUntil(self.clients.claim());
+
+  event.waitUntil(
+    caches.keys().then(keys => {
+      return Promise.all(
+        keys.map(key => {
+          if (key !== CACHE_NAME) {
+            console.log("🧹 Borrando cache viejo:", key);
+            return caches.delete(key);
+          }
+        })
+      );
+    })
+  );
+
+  self.clients.claim();
+});
+
+/* ===== FETCH (PWA OFFLINE) ===== */
+
+self.addEventListener("fetch", event => {
+
+  event.respondWith(
+    caches.match(event.request)
+      .then(response => {
+        return response || fetch(event.request);
+      })
+      .catch(() => {
+        // fallback básico
+        if (event.request.mode === "navigate") {
+          return caches.match("/dashboard.html");
+        }
+      })
+  );
+
 });
 
 /* ================= PUSH EVENT ================= */
