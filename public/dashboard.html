@@ -2459,7 +2459,7 @@ function exportarPDF(){
   t.department || "",
   (() => {
     const e = estado(t)
-      .replace("_"," / ")
+      .replace("_","  ")
       .toLowerCase()
       .replace(/\b\w/g, l => l.toUpperCase());
     return e;
