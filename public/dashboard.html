@@ -1677,10 +1677,11 @@ ${t.status !== "terminado" ? `
 </div>
 
 <!-- 🔥 BOX POSTERGAR -->
-<div id="postergar-${t.id}" style="display:none;margin-top:8px;gap:6px;flex-wrap:wrap">
+<div id="postergar-${t.id}" 
+     style="display:none;margin-top:8px;flex-direction:column;gap:6px">
 
-  <input type="date" id="fecha-${t.id}">
-  <input type="time" id="hora-${t.id}">
+  <input type="date" id="fecha-${t.id}" style="padding:6px;">
+  <input type="time" id="hora-${t.id}" style="padding:6px;">
 
   <button onclick="confirmarPostergar(${t.id})">Guardar</button>
 
@@ -3249,30 +3250,27 @@ async function subirEvidencia(task_id){
 }
 function postergarTarea(taskId){
 
-  console.log("📅 Postergar click:", taskId);
+  console.log("📅 Postergar:", taskId);
 
   const box = document.getElementById(`postergar-${taskId}`);
 
   if(!box){
-    console.error("❌ No existe contenedor");
+    console.error("❌ No existe el contenedor");
     return;
   }
 
-  // 🔥 toggle mostrar/ocultar
+  // 🔥 mostrar / ocultar
   box.style.display = box.style.display === "none" ? "flex" : "none";
 
-  // 🔥 autollenar fecha/hora (+15 min)
+  // 🔥 poner fecha y hora automática (+15 min)
   const now = new Date();
   now.setMinutes(now.getMinutes() + 15);
 
   const fecha = now.toISOString().split("T")[0];
   const hora = now.toTimeString().slice(0,5);
 
-  const inputFecha = document.getElementById(`fecha-${taskId}`);
-  const inputHora = document.getElementById(`hora-${taskId}`);
-
-  if(inputFecha) inputFecha.value = fecha;
-  if(inputHora) inputHora.value = hora;
+  document.getElementById(`fecha-${taskId}`).value = fecha;
+  document.getElementById(`hora-${taskId}`).value = hora;
 
 }
 async function confirmarPostergar(taskId){
@@ -3282,13 +3280,6 @@ async function confirmarPostergar(taskId){
 
   if(!fecha || !hora){
     alert("Selecciona fecha y hora");
-    return;
-  }
-
-  const hoy = new Date().toISOString().split("T")[0];
-
-  if(fecha < hoy){
-    alert("No puedes seleccionar una fecha pasada");
     return;
   }
 
@@ -3308,7 +3299,7 @@ async function confirmarPostergar(taskId){
     });
 
     if(!res.ok){
-      console.error("❌ Error backend");
+      alert("Error al guardar");
       return;
     }
 
