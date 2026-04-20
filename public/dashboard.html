@@ -3410,9 +3410,12 @@ document.addEventListener("click", async () => {
 
   try {
 
-    const reg = await navigator.serviceWorker.ready;
+ const user = JSON.parse(localStorage.getItem("user") || "{}");
 
-    let sub = await reg.pushManager.getSubscription();
+// 🔥 ESTA LÍNEA FALTABA
+const reg = await navigator.serviceWorker.ready;
+
+let sub = await reg.pushManager.getSubscription();
 
 // 🔥 LOG ÚTIL
 if (!sub) {
@@ -3430,18 +3433,19 @@ if (!sub) {
 
   console.log("📩 Suscripción creada:", sub);
 
-  // 🔥 AQUÍ VA EL CAMBIO
   await secureFetch(`${API}/subscribe`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": "Bearer " + localStorage.getItem("token")
     },
-    body: JSON.stringify(sub)
+    body: JSON.stringify({
+      subscription: sub,
+      department: user.department || "general"
+    })
   });
 
 }
-
   } catch (err) {
     console.error("Error push:", err);
   }

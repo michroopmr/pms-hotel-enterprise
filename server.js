@@ -1607,12 +1607,12 @@ async function crearTicket({guest_id, room, tipo, prioridad="normal", company_id
 
 /* ================= PUSH HELPER ================= */
 
-async function sendPushByDepartment(department,title,message,taskId){
+async function sendPushByDepartment(department,title,message,taskId,companyId){
 
 const lastSeen = onlineDepartments[department];
 
-// si estuvo activo en los últimos 30 segundos → NO push
-if(lastSeen && (Date.now() - lastSeen < 30000)){
+// 🔥 reducir tiempo (debug)
+if(lastSeen && (Date.now() - lastSeen < 5000)){
   console.log(`⚡ ${department} activo recientemente → solo socket`);
   return;
 }
@@ -1624,9 +1624,12 @@ if(lastSeen && (Date.now() - lastSeen < 30000)){
  });
 
  const result = await db.query(
-   "SELECT subscription FROM push_subscriptions WHERE department=$1",
-   [department]
+   `SELECT subscription FROM push_subscriptions 
+    WHERE department=$1 AND company_id=$2`,
+   [department, companyId]
  );
+
+ console.log("📦 Subs encontradas:", result.rows.length);
 
  for(const row of result.rows){
 
@@ -1635,13 +1638,12 @@ if(lastSeen && (Date.now() - lastSeen < 30000)){
  try{
    sub = JSON.parse(row.subscription);
  }catch(e){
-   console.log("⚠ Suscripción inválida (JSON corrupto)");
+   console.log("⚠ Suscripción inválida");
    continue;
  }
 
- // 🔒 validar endpoint
  if(!sub || !sub.endpoint){
-   console.log("⚠ Suscripción sin endpoint, ignorada");
+   console.log("⚠ Sin endpoint");
    continue;
  }
 
@@ -1663,8 +1665,8 @@ if(lastSeen && (Date.now() - lastSeen < 30000)){
 
  });
 
+ }
 }
-} 
 
 
 /* ================= SUBSCRIBE ================= */
@@ -1673,33 +1675,35 @@ app.post("/subscribe", authMiddleware, async (req,res)=>{
 
  try{
 
-   const { subscription, department, username, device } = req.body;
+   const { subscription, department } = req.body;
 
    if(!subscription?.endpoint){
      return res.status(400).json({error:"Invalid subscription"});
    }
 
+   const dept = department || "general";
+
    await db.query(`
- INSERT INTO push_subscriptions
- (endpoint, subscription, department)
- VALUES ($1,$2,$3)
- ON CONFLICT (endpoint)
- DO UPDATE SET
-   department = EXCLUDED.department
-`,
-[
- subscription.endpoint,
- JSON.stringify(subscription),
- department
-]);
+     INSERT INTO push_subscriptions
+     (endpoint, subscription, department, company_id)
+     VALUES ($1,$2,$3,$4)
+     ON CONFLICT (endpoint)
+     DO UPDATE SET
+       department = EXCLUDED.department,
+       company_id = EXCLUDED.company_id
+   `,
+   [
+     subscription.endpoint,
+     JSON.stringify(subscription),
+     dept,
+     req.user.company_id
+   ]);
 
    res.json({ok:true});
 
  }catch(err){
-
-   console.error("Subscribe error:",err);
-   res.status(500).json({error:"subscribe failed"});
-
+   console.error(err);
+   res.status(500).json({error:"Error saving subscription"});
  }
 
 });
