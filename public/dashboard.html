@@ -1232,20 +1232,33 @@ function estadoTiempo(t){
 }
 function calcularScore(t){
 
-  if(!t.created_at || !t.closed_at){
+  if(!t.created_at || !t.closed_at || !t.due_date){
     return "-";
   }
 
-  const inicio = new Date(t.created_at);
-  const fin = new Date(t.closed_at);
+  const cierre = new Date(String(t.closed_at).replace(" ","T"));
+  const limite = new Date(String(t.due_date).replace(" ","T"));
 
-  const minutos = Math.floor((fin - inicio)/60000);
+  if(isNaN(cierre) || isNaN(limite)){
+    return "-";
+  }
 
-  // 🔥 SCORE HOTEL
-  if(minutos <= 15) return "🟢 En Tiempo";
-if(minutos <= 30) return "🟡 Fuera de Tiempo";
-return "🔴 Vencida";
+  // 🔥 EN TIEMPO
+  if(cierre <= limite){
+    return "🟢 En Tiempo";
+  }
+
+  // 🔥 FUERA DE TIEMPO (ligero)
+  const diff = (cierre - limite) / 60000;
+
+  if(diff <= 15){
+    return "🟡 Fuera de Tiempo";
+  }
+
+  // 🔥 VENCIDA
+  return "🔴 Vencida";
 }
+
 function aplicarTareaRapida(){
 
   const tipo = document.getElementById("tareaRapida").value;
