@@ -980,11 +980,17 @@ if(isAppMode){
 /* ================= SESIÓN ================= */
 let user=null;
 let audioEnabled = false;
+
+// 🔥 AGREGA AQUÍ
+const API = "https://pms-hotel-enterprise.onrender.com";
+
 const saved=localStorage.getItem("user");
 if(saved) user=JSON.parse(saved);
+
 if(!localStorage.getItem("token")){
  location.href="login.html";
 }
+
 const token = localStorage.getItem("token");
 
 function aplicarPermisos(){
