@@ -1179,83 +1179,72 @@ function calcularTiempoTotal(t){
 
 function calcularSLA(t){
 
- if(!t.created_at || !t.closed_at || !t.due_date){
-   return "-";
- }
+  if(!t.created_at || !t.closed_at){
+    return "-";
+  }
 
- const cierre = new Date(t.closed_at.replace(" ","T"));
- const limite = new Date(t.due_date.replace(" ","T"));
+  const inicio = new Date(t.created_at);
+  const cierre = new Date(t.closed_at);
 
- if(cierre <= limite){
-   return "En tiempo";
- }
+  const minutos = (cierre - inicio) / 60000;
 
- return  "Fuera de tiempo"
+  // ✅ EN TIEMPO
+  if(minutos <= 15){
+    return "En tiempo";
+  }
+
+  // 🟡 FUERA DE TIEMPO
+  if(minutos <= 20){
+    return "Fuera de tiempo";
+  }
+
+  // 🔴 VENCIDA
+  return "Vencida";
 }
 
 function estadoTiempo(t){
 
- if(t.status === "terminado") return "";
+  if(t.status === "terminado") return "";
 
- if(!t.created_at) return "";
+  if(!t.created_at) return "";
 
- const inicio = new Date(t.created_at);
- const ahora = new Date();
+  const inicio = new Date(t.created_at);
+  const ahora = new Date();
 
- const minutos = (ahora - inicio) / 60000;
+  const minutos = (ahora - inicio) / 60000;
 
- const restante = 30 - minutos; // 🔥 tiempo restante
+  // 🟠 PRÓXIMO (10–15 min)
+  if(minutos >= 10 && minutos <= 15){
 
- // 🔥 ALERTA 5 MIN
- if(restante <= 5 && restante > 0){
+    if(!alertasDisparadas[t.id]){
+      const audio = document.getElementById("alert5min");
+      if(audio) audio.play().catch(()=>{});
+      alertasDisparadas[t.id] = true;
+    }
 
-   if(!alertasDisparadas[t.id]){
-     const audio = document.getElementById("alert5min");
-     if(audio) audio.play().catch(()=>{});
-     alertasDisparadas[t.id] = true;
-   }
+    return "proximo";
+  }
 
-   return "proximo";
- }
+  // 🔴 VENCIDO (15+)
+  if(minutos > 15){
+    return "vencido";
+  }
 
- // 🔴 VENCIDO
- if(minutos > 30){
-   return "vencido";
- }
-
- // 🟡 NORMAL
- if(minutos > 15){
-   return "proximo";
- }
-
- return "";
+  return "";
 }
 function calcularScore(t){
 
-  if(!t.created_at || !t.closed_at || !t.due_date){
+  if(!t.created_at || !t.closed_at){
     return "-";
   }
 
-  const cierre = new Date(String(t.closed_at).replace(" ","T"));
-  const limite = new Date(String(t.due_date).replace(" ","T"));
+  const inicio = new Date(t.created_at);
+  const cierre = new Date(t.closed_at);
 
-  if(isNaN(cierre) || isNaN(limite)){
-    return "-";
-  }
+  const minutos = (cierre - inicio) / 60000;
 
-  // 🔥 EN TIEMPO
-  if(cierre <= limite){
-    return "🟢 En Tiempo";
-  }
-
-  // 🔥 FUERA DE TIEMPO (ligero)
-  const diff = (cierre - limite) / 60000;
-
-  if(diff <= 15){
-    return "🟡 Fuera de Tiempo";
-  }
-
-  // 🔥 VENCIDA
+  if(minutos <= 15) return "🟢 En Tiempo";
+  if(minutos <= 20) return "🟡 Fuera de Tiempo";
   return "🔴 Vencida";
 }
 
@@ -1522,8 +1511,17 @@ if(vistaActual === "dashboard" && filtroEstado){
 
    // 🔥 VENCIDAS ABIERTAS (no cerradas)
    if(filtroEstado === "vencido"){
-     return estadoTiempo(t) === "vencido" && t.status !== "terminado";
-   }
+
+  if(!t.created_at || t.status === "terminado") return false;
+
+  const inicio = new Date(String(t.created_at).replace(" ","T"));
+  const ahora = new Date();
+
+  const minutos = (ahora - inicio) / 60000;
+
+  return minutos > 15; // 🔥 SLA base
+
+}
 
    // 🔥 VENCIDAS CERRADAS
    if(filtroEstado === "vencido_cerrado"){

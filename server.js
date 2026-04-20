@@ -12,9 +12,10 @@ app.use((req, res, next) => {
   const origin = req.headers.origin;
 
   const allowedOrigins = [
-    "https://mollyhelpers.com",
-    "https://www.mollyhelpers.com"
-  ];
+  "https://mollyhelpers.com",
+  "https://www.mollyhelpers.com",
+  "https://pms-hotel-enterprise.onrender.com"
+];
 
   // 🔥 SOLO permitir si coincide
   if (origin && allowedOrigins.includes(origin)) {
@@ -1754,6 +1755,16 @@ app.post("/tasks", authMiddleware, async (req,res)=>{
    return res.status(400).send("Departamento inválido");
  }
 
+ // 🔥 SLA AUTOMÁTICO
+ let dueDateFinal;
+
+ if(due_date){
+   dueDateFinal = new Date(due_date);
+ }else{
+   dueDateFinal = new Date();
+   dueDateFinal.setMinutes(dueDateFinal.getMinutes() + 15);
+ }
+
  const result = await db.query(
   `INSERT INTO tasks
   (title,description,department,status,created_by,due_date,company_id)
@@ -1765,32 +1776,30 @@ app.post("/tasks", authMiddleware, async (req,res)=>{
     department,
     "abierto",
     user,
-    due_date,
+    dueDateFinal, // 🔥 AQUÍ
     req.user.company_id
   ]
 );
 
  const nuevaTarea = result.rows[0];
- // 🔥 obtener empresa
-const companyRes = await db.query(
+
+ const companyRes = await db.query(
   "SELECT code FROM companies WHERE id=$1",
   [req.user.company_id]
 );
 
 const company_code = companyRes.rows[0].code;
 
+ io.to("admin_" + company_code).emit("task_update", nuevaTarea);
 
-  // 🔥 ESTA LÍNEA ES LA CLAVE
-  io.to("admin_" + company_code).emit("task_update", nuevaTarea);
-
-  await sendPushByDepartment(
+ await sendPushByDepartment(
   department,
   "Nueva tarea",
   `${title} - ${department}`,
   nuevaTarea.id
 );
 
-  res.json(nuevaTarea);
+ res.json(nuevaTarea);
 });
 app.put("/admin/services/:id", authMiddleware, async (req,res)=>{
 
@@ -2098,10 +2107,13 @@ app.get("/kpis", authMiddleware, async (req,res)=>{
     COUNT(*) FILTER (WHERE status='abierto') AS abiertas,
     COUNT(*) FILTER (WHERE status='proceso') AS proceso,
     COUNT(*) FILTER (
-    WHERE status!='terminado'
-    AND due_date IS NOT NULL
-    AND due_date < NOW()
-    ) AS vencidas,
+WHERE status!='terminado'
+AND (
+  (due_date IS NOT NULL AND due_date < NOW())
+  OR
+  (due_date IS NULL AND NOW() - created_at > interval '15 minutes')
+)
+) AS vencidas,
     COUNT(*) FILTER (WHERE status='terminado') AS cerradas
     FROM tasks
     WHERE company_id = $1
