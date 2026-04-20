@@ -3391,6 +3391,62 @@ async function cargarEmpresa(){
 
 // 🔥 Ejecutar
 cargarEmpresa();
+// ================= PUSH PERMISSION + SUBSCRIPTION =================
+
+// 🔥 pedir permiso SOLO después de interacción
+document.addEventListener("click", async () => {
+
+  if (!("Notification" in window)) return;
+
+  if (Notification.permission === "default") {
+
+    const permission = await Notification.requestPermission();
+
+    console.log("Permiso notificaciones:", permission);
+
+    if (permission !== "granted") return;
+
+  }
+
+  try {
+
+    const reg = await navigator.serviceWorker.ready;
+
+    let sub = await reg.pushManager.getSubscription();
+
+// 🔥 LOG ÚTIL
+if (!sub) {
+  console.log("🆕 Creando suscripción...");
+} else {
+  console.log("✅ Ya existe suscripción");
+}
+
+if (!sub) {
+
+  sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array("BFCjuIrtlaAGysbjuC1YpFH3YZfEL9KNGNMsmqyVdQRHdmYG6g8QcD8qcziJNiPk2ETcC66Esa-K5y_eVqhQ-D4")
+  });
+
+  console.log("📩 Suscripción creada:", sub);
+
+  // 🔥 AQUÍ VA EL CAMBIO
+  await secureFetch(`${API}/subscribe`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + localStorage.getItem("token")
+    },
+    body: JSON.stringify(sub)
+  });
+
+}
+
+  } catch (err) {
+    console.error("Error push:", err);
+  }
+
+}, { once: true });
 
 </script>
 </div>
