@@ -1800,7 +1800,8 @@ const company_code = companyRes.rows[0].code;
   department,
   "Nueva tarea",
   `${title} - ${department}`,
-  nuevaTarea.id
+  nuevaTarea.id,
+  req.user.company_id // 🔥 ESTE FALTABA
 );
 
  res.json(nuevaTarea);
