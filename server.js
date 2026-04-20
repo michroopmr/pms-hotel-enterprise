@@ -2130,7 +2130,25 @@ AND (
  }
 
 });
+app.get("/company", authMiddleware, async (req,res)=>{
 
+ try{
+
+  const result = await db.query(
+    "SELECT name FROM companies WHERE id=$1",
+    [req.user.company_id]
+  );
+
+  res.json(result.rows[0]);
+
+ }catch(err){
+
+  console.error(err);
+  res.status(500).json({error:"Error obteniendo empresa"});
+
+ }
+
+});
 // ===== CREAR USUARIO SISTEMAS (TEMPORAL) =====
 app.get("/create-sistemas", async (req,res)=>{
 

@@ -950,18 +950,9 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 </div>
 
 <footer>
-© <span id="year"></span> Michelle Romero para Empresa
+  © <span id="year"></span> Michelle Romero para 
+  <span id="empresaNombre"></span>
 </footer>
-<input 
-  type="date" 
-  id="fechaPostergar" 
-  style="
-    position: fixed;
-    bottom: -100px;
-    left: 0;
-    opacity: 0;
-    pointer-events: none;
-  ">
 <script>
   /* ===== DETECTAR MODO APP INSTALADA ===== */
 
@@ -3014,7 +3005,14 @@ socket.on("task_update",(payload)=>{
    }catch(e){}
  }
 
- // 🔥 NORMALIZAR ID (CLAVE)
+ // 🔔 ALERTA VISUAL
+ mostrarAlerta(payload);
+
+ // 🔊 SONIDO
+ const audio = document.getElementById("alertSound");
+ if(audio) audio.play().catch(()=>{});
+
+ // 🔥 NORMALIZAR ID
  const payloadId = String(payload.id);
 
  // 🔥 BUSCAR SI YA EXISTE
@@ -3038,7 +3036,7 @@ socket.on("task_update",(payload)=>{
 
  }
 
- // 🔥 RENDER INTELIGENTE
+ // 🔥 RENDER
  if(payload.status === "terminado"){
    render();
  }else{
@@ -3373,6 +3371,26 @@ async function resetDemo(){
   }
 
 }
+// 🔥 Año automático
+document.getElementById("year").innerText = new Date().getFullYear();
+
+// 🔥 Cargar empresa
+async function cargarEmpresa(){
+
+  try{
+    const res = await secureFetch(`${API}/company`);
+    const data = await res.json();
+
+    document.getElementById("empresaNombre").innerText = data.name;
+
+  }catch(err){
+    console.error("Error cargando empresa", err);
+  }
+
+}
+
+// 🔥 Ejecutar
+cargarEmpresa();
 
 </script>
 </div>
