@@ -615,6 +615,10 @@ footer{
   display:block;            /* 🔥 CLAVE */
   padding:20px;
 }
+.proximo {
+  border-left:6px solid #f97316;
+  background:#fff7ed;
+}
 </style>
 
 
@@ -622,6 +626,7 @@ footer{
 
 <body>
 <audio id="alertSound" src="alert.mp3" preload="auto"></audio>
+<audio id="alert5min" src="alert-soft.mp3"></audio>
 <div id="overlay" class="overlay" onclick="toggleMenu()"></div>
 <div class="layout">
 
@@ -654,7 +659,7 @@ footer{
       <span class="text">Sistemas</span>
     </div> 
 
-    <div style="margin-top:20px;">
+    <div id="resetDemoBox" style="margin-top:20px;">
 
   <h3>⚙️ Administración</h3>
 
@@ -997,11 +1002,19 @@ function aplicarPermisos(){
    const btnGlobal = document.getElementById("btnVistaGlobal");
    if(btnGlobal) btnGlobal.style.display = "none";
  }
-if(user.role === "sistemas"){
+
+ if(user.role === "sistemas"){
    cargarUsuarios();
+ }
+
+ // 🔥 CONTROL RESET DEMO (AQUÍ VA)
+ const resetBox = document.getElementById("resetDemoBox");
+
+ if(user.username !== "mromero"){
+   if(resetBox) resetBox.style.display = "none";
+ }
+
 }
-}
-const API = "https://pms-hotel-enterprise.onrender.com";
 
 async function secureFetch(url, options = {}) {
 
@@ -1061,6 +1074,7 @@ let usuarioEditando = false;
 let vistaActual = "dashboard"; // 🔥 saber qué vista está activa
 let modoFecha = "today"; // 🔥 AQUÍ
 let logoCloudData = null;
+let alertasDisparadas = {};
 
 async function cargarDepartamentos(){
 
@@ -1199,17 +1213,47 @@ function estadoTiempo(t){
 
  const minutos = (ahora - inicio) / 60000;
 
- // 🔴 vencido >30 min
+ const restante = 30 - minutos; // 🔥 tiempo restante
+
+ // 🔥 ALERTA 5 MIN
+ if(restante <= 5 && restante > 0){
+
+   if(!alertasDisparadas[t.id]){
+     const audio = document.getElementById("alert5min");
+     if(audio) audio.play().catch(()=>{});
+     alertasDisparadas[t.id] = true;
+   }
+
+   return "proximo";
+ }
+
+ // 🔴 VENCIDO
  if(minutos > 30){
    return "vencido";
  }
 
- // 🟡 cerca de vencer (>15)
+ // 🟡 NORMAL
  if(minutos > 15){
    return "proximo";
  }
 
  return "";
+}
+function calcularScore(t){
+
+  if(!t.created_at || !t.closed_at){
+    return "-";
+  }
+
+  const inicio = new Date(t.created_at);
+  const fin = new Date(t.closed_at);
+
+  const minutos = Math.floor((fin - inicio)/60000);
+
+  // 🔥 SCORE HOTEL
+  if(minutos <= 15) return "🟢 En Tiempo";
+if(minutos <= 30) return "🟡 Fuera de Tiempo";
+return "🔴 Vencida";
 }
 function aplicarTareaRapida(){
 
@@ -1384,6 +1428,15 @@ function render(){
  contenedor.innerHTML="";
 
  let visibles = [...tareas];
+
+ const user = JSON.parse(localStorage.getItem("user"));
+
+if(user && user.role === "operador"){
+  visibles = visibles.filter(t => 
+    (t.department || "").trim().toLowerCase() === 
+    (user.department || "").trim().toLowerCase()
+  );
+}
 
  console.log("Filtro seleccionado:", filtroDepto);
  console.log("Departamentos en tareas:", tareas.map(t => t.department));
@@ -1796,15 +1849,28 @@ function kpis(){
   cerrado:0
  };
 
- tareas.forEach(t=>{
+ // 🔥 AGREGAR ESTO
+ const user = JSON.parse(localStorage.getItem("user"));
+
+ let tareasFiltradas = tareas;
+
+ if(user && user.role === "operador"){
+   tareasFiltradas = tareas.filter(t => 
+     (t.department || "").trim().toLowerCase() === 
+     (user.department || "").trim().toLowerCase()
+   );
+ }
+
+ // 🔥 SOLO CAMBIAR ESTA LÍNEA
+ tareasFiltradas.forEach(t=>{
 
    const e = estado(t);
 
    if(e === "vencido_cerrado"){
      c.cerrado++;
    }else if(c[e] !== undefined){
- c[e]++;
-}
+     c[e]++;
+   }
 
  });
 
