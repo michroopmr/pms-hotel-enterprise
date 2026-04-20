@@ -1676,6 +1676,16 @@ ${t.status !== "terminado" ? `
 
 </div>
 
+<!-- 🔥 BOX POSTERGAR -->
+<div id="postergar-${t.id}" style="display:none;margin-top:8px;gap:6px;flex-wrap:wrap">
+
+  <input type="date" id="fecha-${t.id}">
+  <input type="time" id="hora-${t.id}">
+
+  <button onclick="confirmarPostergar(${t.id})">Guardar</button>
+
+</div>
+
 <div style="margin-top:10px;">
 
 <input type="file"
@@ -3241,59 +3251,77 @@ function postergarTarea(taskId){
 
   console.log("📅 Postergar click:", taskId);
 
-  const input = document.getElementById("fechaPostergar");
+  const box = document.getElementById(`postergar-${taskId}`);
 
-  if(!input){
-    console.error("❌ No existe input");
+  if(!box){
+    console.error("❌ No existe contenedor");
     return;
   }
 
-  input.value = "";
+  // 🔥 toggle mostrar/ocultar
+  box.style.display = box.style.display === "none" ? "flex" : "none";
 
-  input.onchange = async function(){
+  // 🔥 autollenar fecha/hora (+15 min)
+  const now = new Date();
+  now.setMinutes(now.getMinutes() + 15);
 
-    const fecha = input.value;
+  const fecha = now.toISOString().split("T")[0];
+  const hora = now.toTimeString().slice(0,5);
 
-    if(!fecha) return;
+  const inputFecha = document.getElementById(`fecha-${taskId}`);
+  const inputHora = document.getElementById(`hora-${taskId}`);
 
-    const hoy = new Date().toISOString().split("T")[0];
+  if(inputFecha) inputFecha.value = fecha;
+  if(inputHora) inputHora.value = hora;
 
-    if(fecha < hoy){
-      alert("No puedes seleccionar una fecha pasada");
+}
+async function confirmarPostergar(taskId){
+
+  const fecha = document.getElementById(`fecha-${taskId}`).value;
+  const hora = document.getElementById(`hora-${taskId}`).value;
+
+  if(!fecha || !hora){
+    alert("Selecciona fecha y hora");
+    return;
+  }
+
+  const hoy = new Date().toISOString().split("T")[0];
+
+  if(fecha < hoy){
+    alert("No puedes seleccionar una fecha pasada");
+    return;
+  }
+
+  const nuevaFecha = `${fecha} ${hora}`;
+
+  try{
+
+    const res = await secureFetch(`${API}/tasks/${taskId}`,{
+      method:"PUT",
+      headers:{
+        "Content-Type":"application/json",
+        Authorization:"Bearer " + token
+      },
+      body: JSON.stringify({
+        due_date: nuevaFecha
+      })
+    });
+
+    if(!res.ok){
+      console.error("❌ Error backend");
       return;
     }
 
-    try{
+    document.getElementById(`postergar-${taskId}`).style.display = "none";
 
-      const res = await fetch("https://mollyhelpers.com/tasks/" + taskId,{
-        method:"PUT",
-        headers:{
-          "Content-Type":"application/json",
-          "Authorization":"Bearer " + localStorage.getItem("token")
-        },
-        body: JSON.stringify({
-          due_date: fecha
-        })
-      });
+    await cargar();
 
-      if(!res.ok){
-        console.error("❌ Error backend");
-        return;
-      }
+    alert("✅ Tarea postergada");
 
-      await cargar();
+  }catch(err){
+    console.error(err);
+  }
 
-      alert("✅ Tarea postergada");
-
-    }catch(err){
-      console.error(err);
-    }
-
-  };
-
-  // 🔥 CLAVE
-  input.focus();
-  input.showPicker?.();
 }
 function verImagen(url){
 
