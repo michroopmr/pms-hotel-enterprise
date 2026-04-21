@@ -661,6 +661,7 @@ footer{
   50% { transform: scale(1.2); }
   100% { transform: scale(1); }
 }
+
 </style>
 
 
@@ -1007,10 +1008,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
 </div>
 
-<footer>
-  © <span id="year"></span> Michelle Romero para 
-  <span id="empresaNombre"></span>
-</footer>
+
 <script>
   /* ===== DETECTAR MODO APP INSTALADA ===== */
 
@@ -1727,11 +1725,10 @@ ${t.status !== "terminado" ? `
 </div>
 
 <!-- 🔥 BOX POSTERGAR -->
-<div id="postergar-${t.id}" 
-     style="display:none;margin-top:8px;flex-direction:column;gap:6px">
+<div id="postergar-${t.id}" style="display:none;margin-top:8px;gap:6px;flex-wrap:wrap">
 
-  <input type="date" id="fecha-${t.id}" style="padding:6px;">
-  <input type="time" id="hora-${t.id}" style="padding:6px;">
+  <input type="date" id="fecha-${t.id}">
+  <input type="time" id="hora-${t.id}">
 
   <button onclick="confirmarPostergar(${t.id})">Guardar</button>
 
@@ -3450,7 +3447,13 @@ async function cargarEmpresa(){
     const res = await secureFetch(`${API}/company`);
     const data = await res.json();
 
-    document.getElementById("empresaNombre").innerText = data.name;
+    // 🔍 DEBUG AQUÍ
+    console.log("Empresa:", data);
+
+    const el = document.getElementById("empresaNombre");
+    if(!el) return;
+
+    el.innerText = data.name || "Empresa";
 
   }catch(err){
     console.error("Error cargando empresa", err);
@@ -3566,6 +3569,12 @@ document.addEventListener("visibilitychange", () => {
  }
 });
 </script>
+
+<footer>
+  © <span id="year"></span> Michelle Romero para 
+  <span id="empresaNombre"></span>
+</footer>
+
 </div>
 </body>
 </html>
