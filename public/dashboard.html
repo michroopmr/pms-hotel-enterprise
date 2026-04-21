@@ -3368,22 +3368,37 @@ function postergarTarea(taskId){
 }
 async function confirmarPostergar(taskId){
 
-  const fecha = document.getElementById(`fecha-${taskId}`)?.value;
-  const hora = document.getElementById(`hora-${taskId}`)?.value;
+  const fechaInput = document.getElementById(`fecha-${taskId}`);
+  const horaInput = document.getElementById(`hora-${taskId}`);
+
+  if(!fechaInput || !horaInput){
+    console.error("❌ Inputs no existen");
+    return;
+  }
+
+  const fecha = fechaInput.value;
+  const hora = horaInput.value;
 
   if(!fecha || !hora){
     alert("Selecciona fecha y hora");
     return;
   }
 
-  // 🔥 FIX TIMEZONE
-  const nuevaFecha = new Date(`${fecha}T${hora}`);
+  // 🔥 CORRECCIÓN TIMEZONE REAL (CLAVE)
+  const [year,month,day] = fecha.split("-");
+  const [h,m] = hora.split(":");
 
-  // 🔥 CERRAR UI ANTES DE RECARGAR
+  const nuevaFecha = new Date(
+    year,
+    month - 1,
+    day,
+    h,
+    m
+  );
+
+  // 🔥 cerrar UI ANTES
   const box = document.getElementById(`postergar-${taskId}`);
-  if(box){
-    box.style.display = "none";
-  }
+  if(box) box.style.display = "none";
 
   try{
 
@@ -3410,7 +3425,6 @@ async function confirmarPostergar(taskId){
   }catch(err){
     console.error(err);
   }
-
 }
 function verImagen(url){
 
@@ -3497,13 +3511,11 @@ async function cargarEmpresa(){
     const res = await secureFetch(`${API}/company`);
     const data = await res.json();
 
-    // 🔍 DEBUG AQUÍ
-    console.log("Empresa:", data);
-
     const el = document.getElementById("empresaNombre");
-    if(!el) return;
 
-    el.innerText = data.name || "Empresa";
+    if(el){
+      el.innerText = data.name || "Empresa";
+    }
 
   }catch(err){
     console.error("Error cargando empresa", err);
@@ -3511,6 +3523,17 @@ async function cargarEmpresa(){
 
 }
 
+// 🔥 EJECUTAR TODO CUANDO EL DOM YA EXISTE
+document.addEventListener("DOMContentLoaded", () => {
+
+  const yearEl = document.getElementById("year");
+  if(yearEl){
+    yearEl.innerText = new Date().getFullYear();
+  }
+
+  cargarEmpresa();
+
+});
 // 🔥 Ejecutar
 cargarEmpresa();
 // ================= PUSH PERMISSION + SUBSCRIPTION =================
@@ -3620,9 +3643,8 @@ document.addEventListener("visibilitychange", () => {
 });
 </script>
 
-</div> <!-- ← CIERRA TU CONTENEDOR PRINCIPAL (app) -->
-
-<!-- 🔥 FOOTER AQUÍ (FUERA DE TODAS LAS VISTAS) -->
+</div> 
+</div>  
 <footer>
   © <span id="year"></span> Michelle Romero para 
   <span id="empresaNombre"></span>
