@@ -661,7 +661,10 @@ footer{
   50% { transform: scale(1.2); }
   100% { transform: scale(1); }
 }
-
+.tarea{
+  overflow: visible !important;
+  position: relative;
+}
 </style>
 
 
@@ -1723,11 +1726,10 @@ ${t.status !== "terminado" ? `
 </div>
 
 <!-- 🔥 BOX POSTERGAR -->
-<div id="postergar-${t.id}" 
-     style="display:none;margin-top:8px;gap:6px;flex-wrap:wrap;width:100%">
+<div id="postergar-${t.id}" style="display:none; position:relative;">
 
-<input type="date" id="fecha-${t.id}" style="flex:1">
-<input type="time" id="hora-${t.id}" style="flex:1">
+<input type="date" id="fecha-${t.id}" style="width:100%">
+<input type="time" id="hora-${t.id}" style="width:100%">
 
   <button onclick="confirmarPostergar(${t.id})">Guardar</button>
 
@@ -3323,7 +3325,7 @@ function postergarTarea(taskId){
   }
 
   // 🔥 mostrar / ocultar
-  box.style.display = box.style.display === "none" ? "flex" : "none";
+  box.style.display = visible ? "none" : "block";
 
   // 🔥 poner fecha y hora automática (+15 min)
   const now = new Date();
