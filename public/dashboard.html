@@ -3376,7 +3376,7 @@ async function confirmarPostergar(taskId){
     return;
   }
 
-  const nuevaFecha = `${fecha}T${hora}`;
+  const nuevaFecha = new Date(`${fecha}T${hora}`);
 
   try{
 
@@ -3387,8 +3387,8 @@ async function confirmarPostergar(taskId){
         Authorization:"Bearer " + token
       },
       body: JSON.stringify({
-        due_date: nuevaFecha
-      })
+  due_date: nuevaFecha.toISOString()
+})
     });
 
     if(!res.ok){
@@ -3396,8 +3396,9 @@ async function confirmarPostergar(taskId){
       return;
     }
 
+    // 🔥 CERRAR ANTES DE RECARGAR
     const box = document.getElementById(`postergar-${taskId}`);
-if(box) box.style.display = "none";
+    if(box) box.style.display = "none";
 
     await cargar();
 
@@ -3614,11 +3615,6 @@ document.addEventListener("visibilitychange", () => {
    limpiarNotificaciones();
  }
 });
-const footer = document.querySelector("footer");
-
-if(footer){
-  document.body.appendChild(footer);
-}
 </script>
 
 </div> <!-- ← CIERRA TU CONTENEDOR PRINCIPAL (app) -->
