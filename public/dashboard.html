@@ -3046,6 +3046,27 @@ socket.on("task_update",(payload)=>{
  cargarKPIs();
 
 });
+function mostrarAlerta(tarea){
+
+  const alerta = document.createElement("div");
+
+  alerta.innerText = `Nueva tarea: ${tarea.title}`;
+  alerta.style.position = "fixed";
+  alerta.style.top = "20px";
+  alerta.style.right = "20px";
+  alerta.style.background = "#0b1c36";
+  alerta.style.color = "white";
+  alerta.style.padding = "10px 15px";
+  alerta.style.borderRadius = "8px";
+  alerta.style.zIndex = "9999";
+  alerta.style.boxShadow = "0 4px 10px rgba(0,0,0,0.3)";
+
+  document.body.appendChild(alerta);
+
+  setTimeout(()=>{
+    alerta.remove();
+  },3000);
+}
 function activarNotificacionVisual(){
 
  const badge = document.getElementById("badgeNotif");
