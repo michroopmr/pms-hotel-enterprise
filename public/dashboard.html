@@ -984,6 +984,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
       <button onclick="cambiarPassword()">Cambiar</button>
 
       <hr style="margin:30px 0">
+    </div>
 
     <!-- 🔹 DERECHA -->
     <div>
@@ -3342,23 +3343,24 @@ function postergarTarea(taskId){
     return;
   }
 
-  // 🔥 detectar si está visible
   const visible = box.style.display === "flex";
 
-  // 🔥 cerrar todos los abiertos
   document.querySelectorAll("[id^='postergar-']").forEach(el=>{
     el.style.display = "none";
   });
 
-  // 🔥 abrir este
   box.style.display = visible ? "none" : "flex";
 
-  // 🔥 poner fecha y hora automática (+15 min)
+  // 🔥 FECHA LOCAL (FIX)
   const now = new Date();
   now.setMinutes(now.getMinutes() + 15);
 
-  const fecha = now.toISOString().split("T")[0];
-  const hora = now.toTimeString().slice(0,5);
+  const fecha = now.getFullYear() + "-" +
+                String(now.getMonth()+1).padStart(2,"0") + "-" +
+                String(now.getDate()).padStart(2,"0");
+
+  const hora = String(now.getHours()).padStart(2,"0") + ":" +
+               String(now.getMinutes()).padStart(2,"0");
 
   document.getElementById(`fecha-${taskId}`).value = fecha;
   document.getElementById(`hora-${taskId}`).value = hora;
@@ -3432,6 +3434,22 @@ function verImagen(url){
  modal.onclick = ()=> modal.remove();
 
  document.body.appendChild(modal);
+}
+function formatearFechaLocal(fechaStr){
+
+  if(!fechaStr) return "-";
+
+  const fecha = new Date(fechaStr);
+
+  return fecha.toLocaleString("es-MX",{
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  });
+
 }
 async function resetDemo(){
 
