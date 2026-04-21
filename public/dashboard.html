@@ -1102,8 +1102,6 @@ async function secureFetch(url, options = {}) {
   }
 }
 
-year.innerText = new Date().getFullYear();
-
 if(user){
   info.innerText = `Usuario: ${user.username}`;
   userTop.innerText = user.username;
@@ -1725,10 +1723,11 @@ ${t.status !== "terminado" ? `
 </div>
 
 <!-- 🔥 BOX POSTERGAR -->
-<div id="postergar-${t.id}" style="display:none;margin-top:8px;gap:6px;flex-wrap:wrap">
+<div id="postergar-${t.id}" 
+     style="display:none;margin-top:8px;gap:6px;flex-wrap:wrap;width:100%">
 
-  <input type="date" id="fecha-${t.id}">
-  <input type="time" id="hora-${t.id}">
+<input type="date" id="fecha-${t.id}" style="flex:1">
+<input type="time" id="hora-${t.id}" style="flex:1">
 
   <button onclick="confirmarPostergar(${t.id})">Guardar</button>
 
@@ -3575,6 +3574,5 @@ document.addEventListener("visibilitychange", () => {
   <span id="empresaNombre"></span>
 </footer>
 
-</div>
 </body>
 </html>
