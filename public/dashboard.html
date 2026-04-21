@@ -652,6 +652,15 @@ footer{
   font-size: 13px;
   opacity: 0.8;
 }
+#badgeNotif.animate {
+  animation: pop 0.3s ease;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
 </style>
 
 
@@ -977,7 +986,23 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
       <div id="listaTemplates"></div>
 
     </div>
+<div style="position:relative;display:inline-block">
 
+  <span id="iconNotif">🔔</span>
+
+  <span id="badgeNotif" style="
+    position:absolute;
+    top:-5px;
+    right:-10px;
+    background:red;
+    color:white;
+    font-size:12px;
+    padding:2px 6px;
+    border-radius:50%;
+    display:none;
+  ">0</span>
+
+</div>
   </div>
 
 </div>
@@ -1108,6 +1133,7 @@ let vistaActual = "dashboard"; // 🔥 saber qué vista está activa
 let modoFecha = "today"; // 🔥 AQUÍ
 let logoCloudData = null;
 let alertasDisparadas = {};
+let contadorNotificaciones = 0;
 
 async function cargarDepartamentos(){
 
@@ -3038,12 +3064,18 @@ socket.on("task_update",(payload)=>{
    }catch(e){}
  }
 
- // 🔔 ALERTA VISUAL
- mostrarAlerta(payload);
+ const visible = document.visibilityState === "visible";
 
- // 🔊 SONIDO
+ // 🔔 ALERTA VISUAL SOLO SI APP ABIERTA
+ if (visible) {
+   mostrarAlerta(payload);
+ }
+
+ // 🔊 SONIDO SOLO SI APP ABIERTA
  const audio = document.getElementById("alertSound");
- if(audio) audio.play().catch(()=>{});
+ if (visible && audio) {
+   audio.play().catch(()=>{});
+ }
 
  // 🔥 NORMALIZAR ID
  const payloadId = String(payload.id);
@@ -3063,13 +3095,16 @@ socket.on("task_update",(payload)=>{
 
    tareas.unshift(payload);
 
-   reproducirAlerta();
-   activarNotificacionVisual();
-   mostrarNotificacionSistema(payload);
+   // 🔥 SOLO SI ESTÁ ABIERTA
+   if (visible) {
+     reproducirAlerta();
+     activarNotificacionVisual();
+     mostrarNotificacionSistema(payload);
+   }
 
  }
 
- // 🔥 RENDER
+ // 🔥 RENDER (DEBE IR AQUÍ)
  if(payload.status === "terminado"){
    render();
  }else{
@@ -3487,6 +3522,10 @@ if (!sub) {
 }, { once: true });
 function mostrarAlerta(tarea){
 
+  // 🔥 eliminar anterior si existe
+  const existente = document.querySelector(".toast-alert");
+  if (existente) existente.remove();
+
   const toast = document.createElement("div");
   toast.className = "toast-alert";
 
@@ -3497,12 +3536,10 @@ function mostrarAlerta(tarea){
 
   document.body.appendChild(toast);
 
-  // animación entrada
   setTimeout(() => {
     toast.classList.add("show");
   }, 50);
 
-  // auto eliminar
   setTimeout(() => {
     toast.classList.remove("show");
 
@@ -3512,7 +3549,22 @@ function mostrarAlerta(tarea){
 
   }, 4000);
 }
+function limpiarNotificaciones(){
 
+ contadorNotificaciones = 0;
+
+const badge = document.getElementById("badgeNotif");
+if (!badge) return;
+
+badge.innerText = "0";
+badge.style.display = "none";
+
+}
+document.addEventListener("visibilitychange", () => {
+ if (document.visibilityState === "visible") {
+   limpiarNotificaciones();
+ }
+});
 </script>
 </div>
 </body>
