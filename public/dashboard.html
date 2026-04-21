@@ -666,16 +666,22 @@ footer{
   position: relative;
 }
 footer{
+  display: block !important;
+  min-height: 40px;
+  padding: 10px;
+  background: #ffffff;
+  text-align: center;
+
   position: fixed;
   bottom: 0;
   left: 0;
   width: 100%;
-  background: #fff;
-  text-align: center;
-  padding: 8px;
-  font-size: 12px;
-  border-top: 1px solid #e5e7eb;
-  z-index: 999;
+
+  border-top: 1px solid #ddd;
+  z-index: 9999;
+}
+body{
+  padding-bottom: 60px;
 }
 </style>
 
@@ -3368,7 +3374,7 @@ async function confirmarPostergar(taskId){
     return;
   }
 
-  const nuevaFecha = `${fecha} ${hora}`;
+  const nuevaFecha = `${fecha}T${hora}`;
 
   try{
 
