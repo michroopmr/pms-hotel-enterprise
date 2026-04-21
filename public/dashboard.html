@@ -665,6 +665,18 @@ footer{
   overflow: visible !important;
   position: relative;
 }
+footer{
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: #fff;
+  text-align: center;
+  padding: 8px;
+  font-size: 12px;
+  border-top: 1px solid #e5e7eb;
+  z-index: 999;
+}
 </style>
 
 
@@ -3324,8 +3336,16 @@ function postergarTarea(taskId){
     return;
   }
 
-  // 🔥 mostrar / ocultar
-  box.style.display = visible ? "none" : "block";
+  // 🔥 detectar si está visible
+  const visible = box.style.display === "flex";
+
+  // 🔥 cerrar todos los abiertos
+  document.querySelectorAll("[id^='postergar-']").forEach(el=>{
+    el.style.display = "none";
+  });
+
+  // 🔥 abrir este
+  box.style.display = visible ? "none" : "flex";
 
   // 🔥 poner fecha y hora automática (+15 min)
   const now = new Date();
