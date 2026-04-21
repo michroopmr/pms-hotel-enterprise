@@ -3394,7 +3394,8 @@ async function confirmarPostergar(taskId){
       return;
     }
 
-    document.getElementById(`postergar-${taskId}`).style.display = "none";
+    const box = document.getElementById(`postergar-${taskId}`);
+if(box) box.style.display = "none";
 
     await cargar();
 
@@ -3595,6 +3596,11 @@ document.addEventListener("visibilitychange", () => {
    limpiarNotificaciones();
  }
 });
+const footer = document.querySelector("footer");
+
+if(footer){
+  document.body.appendChild(footer);
+}
 </script>
 
 </div> <!-- ← CIERRA TU CONTENEDOR PRINCIPAL (app) -->
