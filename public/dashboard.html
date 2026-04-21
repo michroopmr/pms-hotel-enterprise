@@ -3368,15 +3368,22 @@ function postergarTarea(taskId){
 }
 async function confirmarPostergar(taskId){
 
-  const fecha = document.getElementById(`fecha-${taskId}`).value;
-  const hora = document.getElementById(`hora-${taskId}`).value;
+  const fecha = document.getElementById(`fecha-${taskId}`)?.value;
+  const hora = document.getElementById(`hora-${taskId}`)?.value;
 
   if(!fecha || !hora){
     alert("Selecciona fecha y hora");
     return;
   }
 
+  // 🔥 FIX TIMEZONE
   const nuevaFecha = new Date(`${fecha}T${hora}`);
+
+  // 🔥 CERRAR UI ANTES DE RECARGAR
+  const box = document.getElementById(`postergar-${taskId}`);
+  if(box){
+    box.style.display = "none";
+  }
 
   try{
 
@@ -3387,18 +3394,14 @@ async function confirmarPostergar(taskId){
         Authorization:"Bearer " + token
       },
       body: JSON.stringify({
-  due_date: nuevaFecha.toISOString()
-})
+        due_date: nuevaFecha.toISOString()
+      })
     });
 
-    if(!res.ok){
+    if(!res || !res.ok){
       alert("Error al guardar");
       return;
     }
-
-    // 🔥 CERRAR ANTES DE RECARGAR
-    const box = document.getElementById(`postergar-${taskId}`);
-    if(box) box.style.display = "none";
 
     await cargar();
 
