@@ -2648,13 +2648,23 @@ function formatearVidaTarea(t){
 
   let total = "-";
 
-  if(creado && cerrado){
-    const diff = Math.floor((cerrado - creado) / 60000);
-    total = diff + " min";
-  }
+if(creado && cerrado){
+
+  const diff = Math.floor((cerrado - creado) / 60000);
+
+  const horas = Math.floor(diff / 60);
+  const mins = diff % 60;
+
+  total = `${horas}h ${mins}m`;
+}
 
   // 🔥 AQUÍ VA TU LÍNEA
-  return `${fmt(creado)} | ${fmt(proceso)} | ${fmt(cerrado)} (${total})`;
+  return [
+  `${fmt(creado)} → Creado`,
+  `${fmt(proceso)} → Proceso`,
+  `${fmt(cerrado)} → Cerrado`,
+  `⏱ ${total}`
+].join("\n");
 }
 // ================= FOOTER =================
 function agregarFooter(pdf){
