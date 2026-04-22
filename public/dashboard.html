@@ -2550,11 +2550,25 @@ function exportarPDF(){
   comentariosTexto
 ];
 
-      const splitRow = row.map((col,i)=>
-        pdf.splitTextToSize(String(col),colWidth[i]-8)
-      );
+      const splitRow = row.map((col,i)=>{
 
-      const rowHeight = Math.max(...splitRow.map(r=>r.length))*5;
+  // 🔥 TIEMPOS (array)
+  if(i === 7 && Array.isArray(col)){
+    return col;
+  }
+
+  // 🔥 NO cortar textos cortos
+  if(String(col).length < 15){
+    return [String(col)];
+  }
+
+  return pdf.splitTextToSize(String(col),colWidth[i]-8);
+
+});
+
+      const rowHeight = Math.max(
+  ...splitRow.map(r => Array.isArray(r) ? r.length : r.length)
+) * 6;
 
       if(y + rowHeight > 190){
 
@@ -2579,45 +2593,39 @@ function exportarPDF(){
 
       splitRow.forEach((col,i)=>{
 
-        // 🎨 SLA (columna 6)
-if(i === 6){
-
-  if(String(col).includes("En tiempo")){
-    pdf.setTextColor(0,150,0); // verde
+  // 🎨 SLA (columna 6)
+  if(i === 6){
+    if(String(col).includes("En tiempo")){
+      pdf.setTextColor(0,150,0);
+    }
+    else if(String(col).includes("Fuera")){
+      pdf.setTextColor(255,165,0);
+    }
+    else if(String(col).includes("Vencida")){
+      pdf.setTextColor(200,0,0);
+    }
   }
-  else if(String(col).includes("Fuera")){
-    pdf.setTextColor(255,165,0); // naranja
-  }
-  else if(String(col).includes("Vencida")){
-    pdf.setTextColor(200,0,0); // rojo
-  }
-}
 
-// 🎨 SCORE (columna 7)
-if(i === 7){
+  // 🎨 TIEMPOS (columna 7)
+  if(i === 7 && Array.isArray(col)){
 
-  if(String(col).includes("En tiempo")){
-    pdf.setTextColor(0,150,0);
-  }
-  else if(String(col).includes("Fuera")){
-    pdf.setTextColor(255,165,0);
-  }
-  else if(String(col).includes("Vencida")){
-    pdf.setTextColor(200,0,0);
-  }
-}
+    let yTemp = y;
 
-        pdf.text(col,x,y);
-        pdf.setTextColor(0,0,0);
-
-        x += colWidth[i];
-
-      });
-
-      y += rowHeight;
-
+    col.forEach(linea=>{
+      pdf.text(linea, x, yTemp);
+      yTemp += 5;
     });
 
+  }else{
+    pdf.text(col, x, y);
+  }
+
+  pdf.setTextColor(0,0,0);
+  x += colWidth[i];
+
+});
+y += rowHeight;
+});
     agregarFooter(pdf);
 
     pdf.save("reporte_ejecutivo_operativo.pdf");
