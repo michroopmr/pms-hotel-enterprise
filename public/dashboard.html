@@ -3512,8 +3512,15 @@ async function resetDemo(){
   }
 
 }
-// 🔥 Año automático
-document.getElementById("year").innerText = new Date().getFullYear();
+document.addEventListener("DOMContentLoaded", () => {
+
+  const yearEl = document.getElementById("year");
+
+  if(yearEl){
+    yearEl.innerText = new Date().getFullYear();
+  }
+
+});
 
 // 🔥 Cargar empresa
 async function cargarEmpresa(){
