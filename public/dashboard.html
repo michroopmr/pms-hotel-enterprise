@@ -700,9 +700,9 @@ body{
     <h2>MollyHelpers</h2>
 
     <div class="menu-item" id="menuDashboard" onclick="mostrarVista('dashboard')">
-      <span class="icon">📊</span>
-      <span class="text">Dashboard <span id="badgeNotif" class="badgeNotif"></span></span>
-    </div>
+  <span class="icon">📊</span>
+  <span class="text">Dashboard</span>
+</div>
 
     <div class="menu-item" id="menuCrear" onclick="mostrarVista('crear')">
       <span class="icon">➕</span>
@@ -1025,11 +1025,13 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
     display:none;
   ">0</span>
 
-</div>
-  </div>
+</div> <!-- notif -->
 
-</div>
+    </div> <!-- grid -->
 
+  </div> <!-- panelSistemas -->
+
+</div> <!-- vista-sistemas 🔥 ESTE FALTABA -->
 
 <script>
   /* ===== DETECTAR MODO APP INSTALADA ===== */
@@ -1444,23 +1446,21 @@ function fechaPMS(fecha){
 
  if(!fecha) return {fecha:"",hora:""};
 
+ // 🔥 NORMALIZAR (clave)
  const d = new Date(fecha);
 
+ if(isNaN(d)) return {fecha:"",hora:""};
+
  return {
-
    fecha: d.toLocaleDateString("es-MX"),
-
    hora: d.toLocaleTimeString("es-MX",{
      hour:"numeric",
      minute:"2-digit",
      hour12:true
    })
-
  };
 
 }
-
-
 /* ================= CARGA ================= */
 async function cargar(){
 
