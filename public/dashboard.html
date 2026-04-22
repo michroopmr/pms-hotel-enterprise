@@ -2546,7 +2546,7 @@ function exportarPDF(){
   `${fecha.fecha} ${fecha.hora}`,
   calcularTiempoTotal(t),
   calcularSLA(t),
-  calcularScore(t),
+  formatearVidaTarea(t),
   comentariosTexto
 ];
 
@@ -2630,6 +2630,31 @@ if(i === 7){
     alert("Error generando PDF — revisa consola (F12)");
 
   }
+}
+function formatearVidaTarea(t){
+
+  const creado = t.created_at ? new Date(t.created_at) : null;
+  const proceso = t.started_at ? new Date(t.started_at) : null;
+  const cerrado = t.closed_at ? new Date(t.closed_at) : null;
+
+  const fmt = (d)=>{
+    if(!d) return "-";
+    return d.toLocaleTimeString("es-MX",{
+      hour:"numeric",
+      minute:"2-digit",
+      hour12:true
+    });
+  };
+
+  let total = "-";
+
+  if(creado && cerrado){
+    const diff = Math.floor((cerrado - creado) / 60000);
+    total = diff + " min";
+  }
+
+  // 🔥 AQUÍ VA TU LÍNEA
+  return `${fmt(creado)} → ${fmt(proceso)} → ${fmt(cerrado)} (${total})`;
 }
 // ================= FOOTER =================
 function agregarFooter(pdf){
