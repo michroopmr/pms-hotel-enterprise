@@ -2646,25 +2646,12 @@ function formatearVidaTarea(t){
     });
   };
 
-  let total = "-";
-
-if(creado && cerrado){
-
-  const diff = Math.floor((cerrado - creado) / 60000);
-
-  const horas = Math.floor(diff / 60);
-  const mins = diff % 60;
-
-  total = `${horas}h ${mins}m`;
-}
-
-  // 🔥 AQUÍ VA TU LÍNEA
   return [
-  `${fmt(creado)} → Creado`,
-  `${fmt(proceso)} → Proceso`,
-  `${fmt(cerrado)} → Cerrado`,
-  `⏱ ${total}`
-].join("\n");
+  creado ? fmt(creado) : "",
+  proceso ? fmt(proceso) : "",
+  cerrado ? fmt(cerrado) : ""
+];
+
 }
 // ================= FOOTER =================
 function agregarFooter(pdf){
