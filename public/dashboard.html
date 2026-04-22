@@ -3398,7 +3398,12 @@ async function confirmarPostergar(taskId){
 
   // 🔥 cerrar UI ANTES
   const box = document.getElementById(`postergar-${taskId}`);
-  if(box) box.style.display = "none";
+
+if (!box) {
+  console.warn("⚠️ Box no encontrado:", taskId);
+} else {
+  box.style.display = "none";
+}
 
   try{
 
@@ -3457,9 +3462,15 @@ function formatearFechaLocal(fechaStr){
 
   if(!fechaStr) return "-";
 
-  const fecha = new Date(fechaStr);
+  const limpia = String(fechaStr).replace(" ", "T");
 
+  const fecha = new Date(limpia);
+
+  if(isNaN(fecha)) return "-";
+
+  // 🔥 FORZAR ZONA MÉXICO
   return fecha.toLocaleString("es-MX",{
+    timeZone: "America/Mexico_City",
     day: "2-digit",
     month: "2-digit",
     year: "numeric",
