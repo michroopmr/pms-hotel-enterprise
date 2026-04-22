@@ -2640,18 +2640,17 @@ function formatearVidaTarea(t){
   const fmt = (d)=>{
     if(!d) return "-";
     return d.toLocaleTimeString("es-MX",{
-      hour:"numeric",
+      hour:"2-digit",
       minute:"2-digit",
       hour12:true
     });
   };
 
   return [
-  creado ? fmt(creado) : "",
-  proceso ? fmt(proceso) : "",
-  cerrado ? fmt(cerrado) : ""
-];
-
+    fmt(creado),
+    fmt(proceso),
+    fmt(cerrado)
+  ];
 }
 // ================= FOOTER =================
 function agregarFooter(pdf){
