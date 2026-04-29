@@ -2187,6 +2187,30 @@ AND (
  }
 
 });
+// ===== LOGOUT DEVICE (PUSH CLEANUP) =====
+app.post(
+  "/logout-device",
+  authMiddleware,
+  async(req,res)=>{
+    try{
+
+      // opcional: limpiar algo en users
+      await db.query(
+        `
+        UPDATE users
+        SET device_token = NULL
+        WHERE id=$1
+        `,
+        [req.user.id]
+      );
+
+      res.json({ ok:true });
+
+    }catch(err){
+      console.log(err);
+      res.status(500).send("Error logout");
+    }
+});
 app.get("/company", authMiddleware, async (req,res)=>{
 
  try{
