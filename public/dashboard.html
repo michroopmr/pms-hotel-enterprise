@@ -1166,12 +1166,7 @@ async function cargarDepartamentos(){
   try{
 
     const r = await secureFetch(
-      `${API}/departments`,
-      {
-        headers:{
-          "Authorization":"Bearer " + localStorage.getItem("token")
-        }
-      }
+      `${API}/departments`
     );
 
     if(!r || !r.ok){
@@ -1182,6 +1177,7 @@ async function cargarDepartamentos(){
     const departamentos = await r.json();
 
     const container = document.getElementById("nr");
+
     container.innerHTML = "";
 
     departamentos.forEach(dep => {
@@ -1199,22 +1195,18 @@ async function cargarDepartamentos(){
             type="checkbox"
             value="${dep}"
             class="dept-checkbox"
-          >
+          />
           ${dep}
         </label>
       `;
-
     });
 
   }catch(e){
-
     console.error(
       "Error cargando departamentos:",
       e
     );
-
   }
-
 }
 /* ================= HELPERS ================= */
 function estado(t){
