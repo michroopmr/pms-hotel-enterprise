@@ -899,18 +899,43 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
     <!-- 2. COMENTARIOS -->
     <textarea id="d" placeholder="Comentarios"></textarea>
 
-    <!-- 3. DEPARTAMENTO -->
-    <div id="nr" style="
-  background:#f9fafb;
-  padding:12px;
-  border-radius:10px;
-  border:1px solid #ddd;
-  margin-bottom:10px;
-  min-height:120px;
-">
-  <small style="display:block;color:#6b7280;margin-bottom:8px;">
-    Selecciona uno o varios departamentos
-  </small>
+    <div style="position:relative; margin-bottom:10px;">
+
+  <button
+    type="button"
+    onclick="toggleDepartamentosCrear()"
+    style="
+      width:100%;
+      background:white;
+      border:1px solid #ddd;
+      padding:12px;
+      border-radius:10px;
+      text-align:left;
+      cursor:pointer;
+    "
+  >
+    Seleccionar uno o varios departamentos ▼
+  </button>
+
+  <div 
+    id="nr"
+    style="
+      display:none;
+      position:absolute;
+      width:100%;
+      background:white;
+      border:1px solid #ddd;
+      border-radius:10px;
+      padding:12px;
+      margin-top:5px;
+      max-height:250px;
+      overflow-y:auto;
+      z-index:1000;
+      box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    "
+  >
+  </div>
+
 </div>
 
     <!-- 4. FECHA -->
@@ -1429,6 +1454,31 @@ function filtrarMultiplesDeptos(){
 
   render();
 }
+function toggleDepartamentosCrear(){
+
+  const box =
+    document.getElementById("nr");
+
+  box.style.display =
+    box.style.display === "block"
+      ? "none"
+      : "block";
+}
+document.addEventListener("click", function(e){
+
+  const box = document.getElementById("nr");
+  const trigger = e.target.closest(
+    '[onclick="toggleDepartamentosCrear()"]'
+  );
+
+  if(
+    !e.target.closest("#nr") &&
+    !trigger
+  ){
+    box.style.display = "none";
+  }
+
+});
 function toggleFiltroDeptos(){
 
   const box =
@@ -1439,6 +1489,22 @@ function toggleFiltroDeptos(){
       ? "none"
       : "block";
 }
+document.addEventListener("click", function(e){
+
+  const box = document.getElementById("filtroDeptos");
+
+  const trigger = e.target.closest(
+    '[onclick="toggleFiltroDeptos()"]'
+  );
+
+  if(
+    !e.target.closest("#filtroDeptos") &&
+    !trigger
+  ){
+    box.style.display = "none";
+  }
+
+});
 function aplicarTareaRapida(){
 
   const tipo = document.getElementById("tareaRapida").value;
