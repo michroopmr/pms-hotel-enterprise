@@ -869,9 +869,14 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
     <textarea id="d" placeholder="Comentarios"></textarea>
 
     <!-- 3. DEPARTAMENTO -->
-    <select id="nr" multiple style="height:140px;">
-      <option value="">Seleccionar departamento</option>
-    </select>
+    <div id="nr" style="
+  background:white;
+  padding:10px;
+  border-radius:10px;
+  border:1px solid #ddd;
+  margin-bottom:10px;
+">
+</div>
 
     <!-- 4. FECHA -->
     <input type="datetime-local" id="due">
@@ -1161,38 +1166,42 @@ async function cargarDepartamentos(){
   try{
 
     const r = await secureFetch(
-      `${API}/departments`,
-      {
-        headers:{
-          "Authorization":"Bearer "+localStorage.getItem("token")
-        }
-      }
+      `${API}/departments`
     );
 
-    if(!r.ok){
+    if(!r || !r.ok){
       console.error("Error cargando departamentos");
       return;
     }
 
     const departamentos = await r.json();
 
-    const select = document.getElementById("nr");
-    select.innerHTML = "";
+    const container = document.getElementById("nr");
+    container.innerHTML = "";
 
     departamentos.forEach(dep => {
 
-      const option = document.createElement("option");
-      option.value = dep;
-      option.textContent = dep;
-
-      select.appendChild(option);
-
+      container.innerHTML += `
+        <label style="
+          display:flex;
+          align-items:center;
+          gap:8px;
+          margin-bottom:8px;
+          cursor:pointer;
+        ">
+          <input 
+            type="checkbox" 
+            value="${dep}" 
+            class="dept-checkbox"
+          >
+          ${dep}
+        </label>
+      `;
     });
 
   }catch(e){
     console.error("Error:", e);
   }
-
 }
 /* ================= HELPERS ================= */
 function estado(t){
@@ -2175,7 +2184,10 @@ async function crearTarea(){
    const tarea = document.getElementById("tareaRapida");
    const descripcion = document.getElementById("d");
    const due = document.getElementById("due");
-   const dep = document.getElementById("nr");
+
+   const depCheckboxes = document.querySelectorAll(
+     ".dept-checkbox:checked"
+   );
 
    const currentUser = JSON.parse(
      localStorage.getItem("user")
@@ -2190,12 +2202,10 @@ async function crearTarea(){
      return;
    }
 
-   // 🔥 NUEVO: múltiples departamentos
+   // múltiples departamentos
    const departments = Array.from(
-     dep.selectedOptions
-   )
-   .map(opt => opt.value)
-   .filter(Boolean);
+     depCheckboxes
+   ).map(cb => cb.value);
 
    if(!descripcion.value || departments.length === 0){
      alert("Completa los campos");
@@ -2240,10 +2250,12 @@ async function crearTarea(){
    descripcion.value = "";
    due.value = "";
 
-   // 🔥 limpiar multiselect
-   Array.from(dep.options).forEach(opt=>{
-     opt.selected = false;
-   });
+   // limpiar checkboxes
+   document
+     .querySelectorAll(".dept-checkbox")
+     .forEach(cb => {
+       cb.checked = false;
+     });
 
  }catch(e){
 
