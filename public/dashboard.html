@@ -2306,10 +2306,10 @@ cont.innerHTML = Object.entries(data)
 .sort((a,b)=>b[1]-a[1])
 .map(([dep,total])=>{
 
-const width = Math.pow(total/max, 1.5) * 100;
+const width = (total / max) * 100;
 
 return `
-<div style="margin-bottom:16px;">
+<div style="margin-bottom:14px; max-width:500px;">
 
   <div style="
     display:flex;
@@ -2334,12 +2334,12 @@ return `
   </div>
 
   <div style="
-    height:4px;
+    height:6px;
     background:#e5e7eb;
     border-radius:999px;
   ">
     <div style="
-      width:${Math.min(width, 90)}%;
+      width:${width}%;
       height:100%;
       background:#1e3a8a;
       border-radius:999px;
