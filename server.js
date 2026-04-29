@@ -848,12 +848,17 @@ app.use(express.static(path.join(__dirname, "public")));
 const DEPARTMENTS = [
   "Recepción",
   "Mantenimiento",
-  "Operaciones",
-  "Spa",
   "Housekeeping",
+  "Operaciones",
+  "Seguridad",
+  "Spa",
   "Alimentos Bebidas",
   "Cocina",
-  "Tabaqueria",
+  "Room Service",
+  "Eventos",
+  "Ventas",
+  "Recursos Humanos",
+  "Finanzas",
   "Gerencia General"
 ];
 async function traducirIA(texto, idioma){
@@ -944,14 +949,19 @@ function authMiddleware(req, res, next){
 app.get("/departments", authMiddleware, (req,res)=>{
   res.json([
     "Recepción",
-    "Mantenimiento",
-    "Operaciones",
-    "Spa",
-    "Housekeeping",
-    "Alimentos Bebidas",
-    "Cocina",
-    "Tabaqueria",
-    "Gerencia General"
+  "Mantenimiento",
+  "Housekeeping",
+  "Operaciones",
+  "Seguridad",
+  "Spa",
+  "Alimentos Bebidas",
+  "Cocina",
+  "Room Service",
+  "Eventos",
+  "Ventas",
+  "Recursos Humanos",
+  "Finanzas",
+  "Gerencia General"
   ]);
 });
 /* ================= DATABASE (POSTGRESQL) ================= */
