@@ -186,7 +186,9 @@ body{
 
 /* INPUTS */
 
-input,textarea,select{
+input:not([type="checkbox"]),
+textarea,
+select{
  width:100%;
  padding:10px;
  border-radius:8px;
@@ -194,7 +196,13 @@ input,textarea,select{
  margin-bottom:10px;
  transition:0.2s;
 }
-
+.dept-checkbox{
+ width:auto !important;
+ margin:0 !important;
+ padding:0 !important;
+ transform:scale(1.2);
+ cursor:pointer;
+}
 input:focus,textarea:focus,select:focus{
  outline:none;
  border-color:#2563eb;
