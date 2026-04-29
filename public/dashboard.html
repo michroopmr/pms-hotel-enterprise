@@ -828,27 +828,43 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
   <button onclick="modoFecha='all'; render()" style="background:#6b7280;">Todas</button>
 </div>
 
-<select onchange="filtrarDepto(this.value)" style="margin-bottom:10px;">
-  <option value="">Todos los departamentos</option>
-  <option value="Recepción">Recepción</option>
-  <option value="Mantenimiento">Mantenimiento</option>
-  <option value="Housekeeping">Housekeeping</option>
-  <option value="Operaciones">Operaciones</option>
-  <option value="Seguridad">Seguridad</option>
-  <option value="Spa">Spa</option>
-  <option value="Alimentos Bebidas">Alimentos Bebidas</option>
-  <option value="Cocina">Cocina</option>
-  <option value="Room Service">Room Service</option>
-  <option value="Eventos">Eventos</option>
-  <option value="Ventas">Ventas</option>
-  <option value="Recursos Humanos">Recursos Humanos</option>
-  <option value="Finanzas">Finanzas</option>
-  <option value="Gerencia General">Gerencia General</option>
-</select>
+<div style="margin-bottom:15px; position:relative;">
+
+  <button 
+    onclick="toggleFiltroDeptos()"
+    style="
+      background:#111827;
+      color:white;
+      border:none;
+      padding:10px 15px;
+      border-radius:8px;
+      cursor:pointer;
+    "
+  >
+    Filtrar departamentos ▼
+  </button>
+
+  <div 
+    id="filtroDeptos"
+    style="
+      display:none;
+      position:absolute;
+      top:50px;
+      left:0;
+      background:white;
+      padding:15px;
+      border-radius:10px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.15);
+      z-index:1000;
+      max-height:300px;
+      overflow-y:auto;
+      min-width:250px;
+    ">
+  </div>
+
+</div>
 
 <div id="lista"></div>
-
-    </div>
 
     <!-- ================= CREAR TAREA ================= -->
    <div id="vista-crear" class="vista" style="display:none">
@@ -994,14 +1010,20 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
       </select>
 
       <select id="userDepartment">
-        <option value="Recepción">Recepción</option>
-        <option value="Mantenimiento">Mantenimiento</option>
-        <option value="Housekeeping">Housekeeping</option>
-        <option value="Spa">Spa</option>
-        <option value="Operaciones">Operaciones</option>
-        <option value="Gerencia General">Gerencia General</option>
-        <option value="Cocina">Cocina</option>
-        <option value="Alimentos Bebidas">Alimentos Bebidas</option>
+      <option value="Recepción">Recepción</option>
+  <option value="Mantenimiento">Mantenimiento</option>
+  <option value="Housekeeping">Housekeeping</option>
+  <option value="Operaciones">Operaciones</option>
+  <option value="Seguridad">Seguridad</option>
+  <option value="Spa">Spa</option>
+  <option value="Alimentos Bebidas">Alimentos Bebidas</option>
+  <option value="Cocina">Cocina</option>
+  <option value="Room Service">Room Service</option>
+  <option value="Eventos">Eventos</option>
+  <option value="Ventas">Ventas</option>
+  <option value="Recursos Humanos">Recursos Humanos</option>
+  <option value="Finanzas">Finanzas</option>
+  <option value="Gerencia General">Gerencia General</option>
       </select>
 
       <button onclick="crearUsuario()">Crear usuario</button>
@@ -1359,6 +1381,64 @@ function calcularScore(t){
   if(minutos <= 20) return "Fuera de tiempo";
   return "Vencida";
 }
+async function cargarFiltroDepartamentos(){
+
+  const r = await secureFetch(
+    `${API}/departments`
+  );
+
+  if(!r || !r.ok) return;
+
+  const departamentos = await r.json();
+
+  const container =
+    document.getElementById("filtroDeptos");
+
+  container.innerHTML = "";
+
+  departamentos.forEach(dep=>{
+
+    container.innerHTML += `
+      <label style="
+        display:block;
+        margin-bottom:8px;
+      ">
+        <input
+          type="checkbox"
+          class="filtro-depto"
+          value="${dep}"
+          onchange="filtrarMultiplesDeptos()"
+        >
+        ${dep}
+      </label>
+    `;
+  });
+}
+function filtrarMultiplesDeptos(){
+
+  const seleccionados = Array.from(
+    document.querySelectorAll(
+      ".filtro-depto:checked"
+    )
+  ).map(cb => cb.value);
+
+  filtroDepto =
+    seleccionados.length
+      ? seleccionados
+      : null;
+
+  render();
+}
+function toggleFiltroDeptos(){
+
+  const box =
+    document.getElementById("filtroDeptos");
+
+  box.style.display =
+    box.style.display === "block"
+      ? "none"
+      : "block";
+}
 function aplicarTareaRapida(){
 
   const tipo = document.getElementById("tareaRapida").value;
@@ -1592,12 +1672,16 @@ if(user && user.role === "operador"){
  console.log("Filtro seleccionado:", filtroDepto);
  console.log("Departamentos en tareas:", tareas.map(t => t.department));
 
- if(filtroDepto){
-  visibles = visibles.filter(t => 
-    (t.department || "").trim().toLowerCase() === 
-    (filtroDepto || "").trim().toLowerCase()
+ if(
+  filtroDepto &&
+  Array.isArray(filtroDepto)
+){
+  visibles = visibles.filter(t =>
+    filtroDepto.includes(
+      t.department
+    )
   );
- }
+}
 
  // 🔥 PMS UX: Reportes solo muestra resultados al consultar
  if(vistaActual === "reportes" && !filtroFecha){
