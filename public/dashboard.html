@@ -1166,7 +1166,12 @@ async function cargarDepartamentos(){
   try{
 
     const r = await secureFetch(
-      `${API}/departments`
+      `${API}/departments`,
+      {
+        headers:{
+          "Authorization":"Bearer " + localStorage.getItem("token")
+        }
+      }
     );
 
     if(!r || !r.ok){
@@ -1185,23 +1190,31 @@ async function cargarDepartamentos(){
         <label style="
           display:flex;
           align-items:center;
-          gap:8px;
+          gap:10px;
           margin-bottom:8px;
           cursor:pointer;
+          font-size:14px;
         ">
-          <input 
-            type="checkbox" 
-            value="${dep}" 
+          <input
+            type="checkbox"
+            value="${dep}"
             class="dept-checkbox"
           >
           ${dep}
         </label>
       `;
+
     });
 
   }catch(e){
-    console.error("Error:", e);
+
+    console.error(
+      "Error cargando departamentos:",
+      e
+    );
+
   }
+
 }
 /* ================= HELPERS ================= */
 function estado(t){
