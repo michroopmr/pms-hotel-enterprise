@@ -2310,7 +2310,7 @@ cont.innerHTML = Object.entries(data)
 .sort((a,b)=>b[1]-a[1])
 .map(([dep,total])=>{
 
-const width = (total/max)*100;
+const width = Math.pow(total/max, 1.5) * 100;
 
 return `
 <div style="margin-bottom:16px;">
@@ -2343,7 +2343,7 @@ return `
     border-radius:999px;
   ">
     <div style="
-      width:${Math.max(width,3)}%;
+      width:${Math.min(width, 90)}%;
       height:100%;
       background:#1e3a8a;
       border-radius:999px;
