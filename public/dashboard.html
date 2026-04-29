@@ -2543,7 +2543,7 @@ function exportarPDF(){
       .replace(/\b\w/g, l => l.toUpperCase());
     return e;
   })(),
-  t.created_by || "",
+   t.closed_by || t.created_by || "",
   `${fecha.fecha} ${fecha.hora}`,
   calcularTiempoTotal(t),
   calcularSLA(t),
