@@ -878,12 +878,16 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
     <!-- 3. DEPARTAMENTO -->
     <div id="nr" style="
-  background:white;
-  padding:10px;
+  background:#f9fafb;
+  padding:12px;
   border-radius:10px;
   border:1px solid #ddd;
   margin-bottom:10px;
+  min-height:120px;
 ">
+  <small style="display:block;color:#6b7280;margin-bottom:8px;">
+    Selecciona uno o varios departamentos
+  </small>
 </div>
 
     <!-- 4. FECHA -->
@@ -1173,9 +1177,7 @@ async function cargarDepartamentos(){
 
   try{
 
-    const r = await secureFetch(
-      `${API}/departments`
-    );
+    const r = await secureFetch(`${API}/departments`);
 
     if(!r || !r.ok){
       console.error("Error cargando departamentos");
@@ -1184,36 +1186,40 @@ async function cargarDepartamentos(){
 
     const departamentos = await r.json();
 
+    console.log("Departamentos backend:", departamentos);
+
     const container = document.getElementById("nr");
 
-    container.innerHTML = "";
+    container.innerHTML = `
+      <small style="display:block;color:#6b7280;margin-bottom:8px;">
+        Selecciona uno o varios departamentos
+      </small>
+    `;
 
     departamentos.forEach(dep => {
-
       container.innerHTML += `
-        <label style="
+        <div style="
           display:flex;
           align-items:center;
           gap:10px;
-          margin-bottom:8px;
-          cursor:pointer;
-          font-size:14px;
+          margin-bottom:10px;
+          background:white;
+          padding:8px;
+          border-radius:8px;
         ">
           <input
             type="checkbox"
             value="${dep}"
             class="dept-checkbox"
+            style="width:auto;"
           />
-          ${dep}
-        </label>
+          <span>${dep}</span>
+        </div>
       `;
     });
 
   }catch(e){
-    console.error(
-      "Error cargando departamentos:",
-      e
-    );
+    console.error("Error cargando departamentos:", e);
   }
 }
 /* ================= HELPERS ================= */
