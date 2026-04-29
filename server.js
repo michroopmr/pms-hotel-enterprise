@@ -1752,59 +1752,96 @@ app.post("/settings", authMiddleware, async (req,res)=>{
 /* ================= CREATE TASK ================= */
 app.post("/tasks", authMiddleware, async (req,res)=>{
 
- const { title, description, department, due_date, user } = req.body;
+ try{
 
- // 🔒 Validar que el departamento exista
- if(!DEPARTMENTS.includes(department)){
-   return res.status(400).send("Departamento inválido");
+   const { title, description, departments, due_date, user } = req.body;
+
+   // validar que venga al menos un departamento
+   if(!departments || !Array.isArray(departments) || departments.length === 0){
+     return res.status(400).send("Debes seleccionar al menos un departamento");
+   }
+
+   // 🔥 SLA AUTOMÁTICO
+   let dueDateFinal;
+
+   if(due_date){
+     dueDateFinal = new Date(due_date);
+   }else{
+     dueDateFinal = new Date();
+     dueDateFinal.setMinutes(
+       dueDateFinal.getMinutes() + 15
+     );
+   }
+
+   const tareasCreadas = [];
+
+   const companyRes = await db.query(
+     "SELECT code FROM companies WHERE id=$1",
+     [req.user.company_id]
+   );
+
+   const company_code = companyRes.rows[0].code;
+
+   for(const department of departments){
+
+     // validar cada departamento
+     if(!DEPARTMENTS.includes(department)){
+       continue;
+     }
+
+     const result = await db.query(
+       `
+       INSERT INTO tasks
+       (
+         title,
+         description,
+         department,
+         status,
+         created_by,
+         due_date,
+         company_id
+       )
+       VALUES($1,$2,$3,$4,$5,$6,$7)
+       RETURNING *
+       `,
+       [
+         title,
+         description,
+         department,
+         "abierto",
+         user,
+         dueDateFinal,
+         req.user.company_id
+       ]
+     );
+
+     const nuevaTarea = result.rows[0];
+
+     tareasCreadas.push(nuevaTarea);
+
+     // socket realtime
+     io.to("admin_" + company_code)
+       .emit("task_update", nuevaTarea);
+
+     // push notification
+     await sendPushByDepartment(
+       department,
+       "Nueva tarea",
+       `${title} - ${department}`,
+       nuevaTarea.id,
+       req.user.company_id
+     );
+   }
+
+   res.json(tareasCreadas);
+
+ }catch(err){
+
+   console.error("Error creando tareas:", err);
+   res.status(500).send("Error creando tareas");
+
  }
 
- // 🔥 SLA AUTOMÁTICO
- let dueDateFinal;
-
- if(due_date){
-   dueDateFinal = new Date(due_date);
- }else{
-   dueDateFinal = new Date();
-   dueDateFinal.setMinutes(dueDateFinal.getMinutes() + 15);
- }
-
- const result = await db.query(
-  `INSERT INTO tasks
-  (title,description,department,status,created_by,due_date,company_id)
-  VALUES($1,$2,$3,$4,$5,$6,$7)
-  RETURNING *`,
-  [
-    title,
-    description,
-    department,
-    "abierto",
-    user,
-    dueDateFinal, // 🔥 AQUÍ
-    req.user.company_id
-  ]
-);
-
- const nuevaTarea = result.rows[0];
-
- const companyRes = await db.query(
-  "SELECT code FROM companies WHERE id=$1",
-  [req.user.company_id]
-);
-
-const company_code = companyRes.rows[0].code;
-
- io.to("admin_" + company_code).emit("task_update", nuevaTarea);
-
- await sendPushByDepartment(
-  department,
-  "Nueva tarea",
-  `${title} - ${department}`,
-  nuevaTarea.id,
-  req.user.company_id // 🔥 ESTE FALTABA
-);
-
- res.json(nuevaTarea);
 });
 app.put("/admin/services/:id", authMiddleware, async (req,res)=>{
 

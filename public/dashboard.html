@@ -869,7 +869,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
     <textarea id="d" placeholder="Comentarios"></textarea>
 
     <!-- 3. DEPARTAMENTO -->
-    <select id="nr">
+    <select id="nr" multiple style="height:140px;">
       <option value="">Seleccionar departamento</option>
     </select>
 
@@ -2177,7 +2177,9 @@ async function crearTarea(){
    const due = document.getElementById("due");
    const dep = document.getElementById("nr");
 
-   const currentUser = JSON.parse(localStorage.getItem("user"));
+   const currentUser = JSON.parse(
+     localStorage.getItem("user")
+   );
 
    const title = tarea.value === "libre"
      ? descripcion.value
@@ -2188,48 +2190,74 @@ async function crearTarea(){
      return;
    }
 
-   if(!descripcion.value || !dep.value){
+   // 🔥 NUEVO: múltiples departamentos
+   const departments = Array.from(
+     dep.selectedOptions
+   )
+   .map(opt => opt.value)
+   .filter(Boolean);
+
+   if(!descripcion.value || departments.length === 0){
      alert("Completa los campos");
      return;
    }
 
-   const res = await secureFetch(`${API}/tasks`,{
-     method:"POST",
-     body:JSON.stringify({
-       title,
-       description: descripcion.value,
-       department: dep.value,
-       due_date: due.value ? new Date(due.value).toISOString() : null,
-       user: currentUser.username
-     })
-   });
+   const res = await secureFetch(
+     `${API}/tasks`,
+     {
+       method:"POST",
+       body:JSON.stringify({
+         title,
+         description: descripcion.value,
+         departments,
+         due_date: due.value
+           ? new Date(due.value).toISOString()
+           : null,
+         user: currentUser.username
+       })
+     }
+   );
 
    if(!res) return;
-   
+
    if(!res.ok){
      const text = await res.text();
      console.error("ERROR:", text);
+     alert("Error creando tarea");
      return;
    }
 
-   await res.json();
+   const data = await res.json();
+
+   console.log("✅ Tareas creadas:", data);
 
    await recargarTareas();
+
    mostrarVista("dashboard");
 
-   // limpiar
-   tarea.value="";
-   descripcion.value="";
-   due.value="";
-   dep.selectedIndex=0;
+   // limpiar formulario
+   tarea.value = "";
+   descripcion.value = "";
+   due.value = "";
+
+   // 🔥 limpiar multiselect
+   Array.from(dep.options).forEach(opt=>{
+     opt.selected = false;
+   });
 
  }catch(e){
 
-   console.error("Error creando tarea:", e);
+   console.error(
+     "Error creando tarea:",
+     e
+   );
+
    alert("No se pudo crear la tarea");
 
  }
-}async function cambiarEstado(id,s){
+
+}
+async function cambiarEstado(id,s){
 
  await secureFetch(`${API}/tasks/${id}`,{
    method:"PUT",
