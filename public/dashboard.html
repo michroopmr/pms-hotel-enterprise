@@ -3210,65 +3210,89 @@ function unlockAudio(){
 }
 socket.on("task_update",(payload)=>{
 
- if(!payload) return;
+  if(!payload) return;
 
- if(typeof payload.comments === "string"){
-   try{
-     payload.comments = JSON.parse(payload.comments);
-   }catch(e){}
- }
+  const currentUser = JSON.parse(
+    localStorage.getItem("user")
+  );
 
- const visible = document.visibilityState === "visible";
+  if(typeof payload.comments === "string"){
+    try{
+      payload.comments = JSON.parse(payload.comments);
+    }catch(e){}
+  }
 
- // 🔔 ALERTA VISUAL SOLO SI APP ABIERTA
- if (visible) {
-   mostrarAlerta(payload);
- }
+  // 🔒 FILTRO POR DEPARTAMENTO
+  const rolesFullAccess = [
+    "admin",
+    "recepcion",
+    "sistemas"
+  ];
 
- // 🔊 SONIDO SOLO SI APP ABIERTA
- const audio = document.getElementById("alertSound");
- if (visible && audio) {
-   audio.play().catch(()=>{});
- }
+  const puedeVerTodo = rolesFullAccess.includes(
+    currentUser.role
+  );
 
- // 🔥 NORMALIZAR ID
- const payloadId = String(payload.id);
+  const puedeVerDepartamento =
+    currentUser.role === "operador" &&
+    payload.department === currentUser.department;
 
- // 🔥 BUSCAR SI YA EXISTE
- const existe = tareas.some(t => String(t.id) === payloadId);
+  if(!puedeVerTodo && !puedeVerDepartamento){
+    console.log(
+      "⛔ tarea bloqueada por departamento:",
+      payload.department
+    );
+    return;
+  }
 
- if(existe){
+  const visible =
+    document.visibilityState === "visible";
 
-   tareas = tareas.map(t =>
-     String(t.id) === payloadId
-       ? { ...t, ...payload }
-       : t
-   );
+  if(visible){
+    mostrarAlerta(payload);
+  }
 
- }else{
+  const audio =
+    document.getElementById("alertSound");
 
-   tareas.unshift(payload);
+  if(visible && audio){
+    audio.play().catch(()=>{});
+  }
 
-   // 🔥 SOLO SI ESTÁ ABIERTA
-   if (visible) {
-     reproducirAlerta();
-     activarNotificacionVisual();
-     mostrarNotificacionSistema(payload);
-   }
+  const payloadId = String(payload.id);
 
- }
+  const existe = tareas.some(
+    t => String(t.id) === payloadId
+  );
 
- // 🔥 RENDER (DEBE IR AQUÍ)
- if(payload.status === "terminado"){
-   render();
- }else{
-   renderTareaIndividual(payload);
- }
+  if(existe){
 
- cargarKPIs();
+    tareas = tareas.map(t =>
+      String(t.id) === payloadId
+        ? { ...t, ...payload }
+        : t
+    );
+
+  }else{
+
+    tareas.unshift(payload);
+
+    if(visible){
+      reproducirAlerta();
+      activarNotificacionVisual();
+      mostrarNotificacionSistema(payload);
+    }
+  }
+
+  if(payload.status === "terminado"){
+    render();
+  }else{
+    renderTareaIndividual(payload);
+  }
+
+  cargarKPIs();
 
 });
-
 function activarNotificacionVisual(){
 
  const badge = document.getElementById("badgeNotif");
