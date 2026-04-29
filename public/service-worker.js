@@ -2,7 +2,7 @@
 
 /* ===== CACHE CONFIG ===== */
 
-const CACHE_NAME = "molly-v17";
+const CACHE_NAME = "molly-v18";
 
 const urlsToCache = [
   "/",
