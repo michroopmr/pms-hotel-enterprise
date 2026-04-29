@@ -1340,128 +1340,176 @@ function calcularScore(t){
   if(minutos <= 20) return "Fuera de tiempo";
   return "Vencida";
 }
-
 function aplicarTareaRapida(){
 
   const tipo = document.getElementById("tareaRapida").value;
 
   const descripcion = document.getElementById("d");
-  const depto = document.getElementById("nr");
   const due = document.getElementById("due");
 
-  // 🔥 SI NO HAY SELECCIÓN → LIMPIAR
+  // limpiar checkboxes
+  function limpiarDepartamentos(){
+    document
+      .querySelectorAll(".dept-checkbox")
+      .forEach(cb=>{
+        cb.checked = false;
+      });
+  }
+
+  // marcar checkbox automático
+  function marcarDepartamento(nombre){
+
+    limpiarDepartamentos();
+
+    const checkbox = document.querySelector(
+      `.dept-checkbox[value="${nombre}"]`
+    );
+
+    if(checkbox){
+      checkbox.checked = true;
+    }
+  }
+
+  // si no selecciona nada
   if(!tipo){
     descripcion.value = "";
-    depto.value = "";
     due.value = "";
+    limpiarDepartamentos();
     return;
   }
 
   function sumarMinutos(min){
 
-  const fecha = new Date();
-  fecha.setMinutes(fecha.getMinutes() + min);
+    const fecha = new Date();
+    fecha.setMinutes(fecha.getMinutes() + min);
 
-  const year = fecha.getFullYear();
-  const month = String(fecha.getMonth() + 1).padStart(2, "0");
-  const day = String(fecha.getDate()).padStart(2, "0");
+    const year = fecha.getFullYear();
+    const month = String(
+      fecha.getMonth() + 1
+    ).padStart(2,"0");
 
-  const hours = String(fecha.getHours()).padStart(2, "0");
-  const minutes = String(fecha.getMinutes()).padStart(2, "0");
+    const day = String(
+      fecha.getDate()
+    ).padStart(2,"0");
 
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
-}
+    const hours = String(
+      fecha.getHours()
+    ).padStart(2,"0");
+
+    const minutes = String(
+      fecha.getMinutes()
+    ).padStart(2,"0");
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
 
   switch(tipo){
 
     case "wc":
-      descripcion.value = "WC tapado - El sanitario presenta obstrucción";
-      depto.value = "Mantenimiento";
+      descripcion.value =
+        "WC tapado - El sanitario presenta obstrucción";
+      marcarDepartamento("Mantenimiento");
     break;
 
     case "tv":
-      descripcion.value = "Falla de TV - No funciona correctamente";
-      depto.value = "Mantenimiento";
+      descripcion.value =
+        "Falla de TV - No funciona correctamente";
+      marcarDepartamento("Mantenimiento");
     break;
 
     case "tina":
-      descripcion.value = "Tina tapada - No drena correctamente";
-      depto.value = "Mantenimiento";
+      descripcion.value =
+        "Tina tapada - No drena correctamente";
+      marcarDepartamento("Mantenimiento");
     break;
 
     case "ac":
-      descripcion.value = "Falla de Aire acondicionado";
-      depto.value = "Mantenimiento";
+      descripcion.value =
+        "Falla de Aire acondicionado";
+      marcarDepartamento("Mantenimiento");
     break;
 
     case "limpieza":
-      descripcion.value = "Limpieza de habitación";
-      depto.value = "Housekeeping";
+      descripcion.value =
+        "Limpieza de habitación";
+      marcarDepartamento("Housekeeping");
     break;
 
     case "foco":
-      descripcion.value = "Foco fundido";
-      depto.value = "Mantenimiento";
+      descripcion.value =
+        "Foco fundido";
+      marcarDepartamento("Mantenimiento");
     break;
 
     case "toallas":
-      descripcion.value = "Solicitud de toallas extras";
-      depto.value = "Housekeeping";
+      descripcion.value =
+        "Solicitud de toallas extras";
+      marcarDepartamento("Housekeeping");
     break;
 
     case "jabon":
-      descripcion.value = "Solicitud de jabón extra";
-      depto.value = "Housekeeping";
+      descripcion.value =
+        "Solicitud de jabón extra";
+      marcarDepartamento("Housekeeping");
     break;
 
     case "shampoo":
-      descripcion.value = "Solicitud de shampoo extra";
-      depto.value = "Housekeeping";
+      descripcion.value =
+        "Solicitud de shampoo extra";
+      marcarDepartamento("Housekeeping");
     break;
 
     case "internet":
-      descripcion.value = "Falla de internet";
-      depto.value = "Sistemas";
+      descripcion.value =
+        "Falla de internet";
+      marcarDepartamento("Operaciones");
     break;
 
     case "tarja":
-      descripcion.value = "Tarja tapada";
-      depto.value = "Mantenimiento";
+      descripcion.value =
+        "Tarja tapada";
+      marcarDepartamento("Mantenimiento");
     break;
 
     case "objeto":
-      descripcion.value = "Objeto olvidado";
-      depto.value = "Recepción";
+      descripcion.value =
+        "Objeto olvidado";
+      marcarDepartamento("Recepción");
     break;
 
     case "cambio":
-      descripcion.value = "Cambio de habitación";
-      depto.value = "Recepción";
+      descripcion.value =
+        "Cambio de habitación";
+      marcarDepartamento("Recepción");
     break;
 
     case "olor":
-      descripcion.value = "Mal olor en habitación";
-      depto.value = "Housekeeping";
+      descripcion.value =
+        "Mal olor en habitación";
+      marcarDepartamento("Housekeeping");
     break;
 
     case "agua":
-      descripcion.value = "Falla de agua caliente";
-      depto.value = "Mantenimiento";
+      descripcion.value =
+        "Falla de agua caliente";
+      marcarDepartamento("Mantenimiento");
     break;
 
     case "coladera":
-      descripcion.value = "Coladera tapada";
-      depto.value = "Mantenimiento";
+      descripcion.value =
+        "Coladera tapada";
+      marcarDepartamento("Mantenimiento");
     break;
 
     case "libre":
       descripcion.value = "";
-      depto.value = "";
+      limpiarDepartamentos();
     break;
   }
 
-  // 🔥 SLA AUTOMÁTICO 15 MIN
+  // SLA automático
   due.value = sumarMinutos(15);
+
   descripcion.focus();
 }
  // 🔥 normalizar formato
