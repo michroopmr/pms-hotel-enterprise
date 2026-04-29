@@ -1843,8 +1843,10 @@ app.put("/tasks/:id", authMiddleware, async (req,res)=>{
 
   // 🔥 Si se cierra → guardar hora cierre
   if(status === "terminado"){
-    updateQuery += ", closed_at=NOW()";
-  }
+   updateQuery += ", closed_at=NOW(), closed_by=$" + index;
+   values.push(req.user.username);
+   index++;
+}
 
   updateQuery += ` WHERE id=$${index} AND company_id=$${index+1}`;
 values.push(id, req.user.company_id);
@@ -1928,9 +1930,12 @@ app.post("/change-password", authMiddleware, async (req,res)=>{
    const hashed = await bcrypt.hash(newPassword, 10);
 
    await db.query(
-     "UPDATE users SET password=$1 WHERE username=$2",
-     [hashed, username]
-   );
+  `UPDATE users
+   SET password=$1
+   WHERE username=$2
+   AND company_id=$3`,
+  [hashed, username, req.user.company_id]
+);
 
    res.json({ok:true});
 
@@ -2154,29 +2159,7 @@ app.get("/company", authMiddleware, async (req,res)=>{
  }
 
 });
-// ===== CREAR USUARIO SISTEMAS (TEMPORAL) =====
-app.get("/create-sistemas", async (req,res)=>{
 
-  
- try{
-
-   await db.query(
-     `INSERT INTO users(username,password,role)
-      VALUES($1,$2,$3)
-      ON CONFLICT (username) DO NOTHING`,
-     ["sistemas","1234","sistemas"]
-   );
-
-   res.send("Usuario sistemas creado");
-
- }catch(err){
-
-   console.log(err);
-   res.status(500).send("Error creando usuario");
-
- }
-
-});   
 /* ================= GET COMPANIES ================= */
 
 app.get("/admin/companies", authMiddleware, async (req,res)=>{
@@ -2334,14 +2317,31 @@ app.post("/admin/company-admin", authMiddleware, async (req,res)=>{
 
  try{
 
-   const [username, hashedPassword, company_id] = req.body;
+   const { username, password, company_id } = req.body;
+
+   if(!username || !password || !company_id){
+     return res.status(400).json({
+       error:"Datos incompletos"
+     });
+   }
+
+   const hashedPassword = await bcrypt.hash(password,10);
 
    await db.query(
    `
-   INSERT INTO users(username,password,role,company_id)
+   INSERT INTO users(
+     username,
+     password,
+     role,
+     company_id
+   )
    VALUES($1,$2,'admin',$3)
    `,
-   [username,password,company_id]
+   [
+     username,
+     hashedPassword,
+     company_id
+   ]
    );
 
    res.json({ok:true});
@@ -2363,8 +2363,14 @@ app.get("/users", authMiddleware, async (req,res)=>{
  try{
 
    const result = await db.query(
-     "SELECT id, username, role, department FROM users ORDER BY id DESC"
-   );
+  `
+  SELECT id, username, role, department
+  FROM users
+  WHERE company_id = $1
+  ORDER BY id DESC
+  `,
+  [req.user.company_id]
+);
 
    res.json(result.rows);
 
@@ -2391,9 +2397,9 @@ app.delete("/users/:id", authMiddleware, async (req,res)=>{
    }
 
    await db.query(
-     "DELETE FROM users WHERE id=$1",
-     [id]
-   );
+  "DELETE FROM users WHERE id=$1 AND company_id=$2",
+  [id, req.user.company_id]
+);
 
    res.json({ok:true});
 
