@@ -943,7 +943,22 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
     <input type="datetime-local" id="due">
 
     <!-- 5. BOTÓN -->
-    <button onclick="crearTarea()">Crear</button>
+    <button 
+  onclick="crearTarea()"
+  style="
+    width:100%;
+    background:#111827;
+    color:white;
+    border:none;
+    padding:12px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:600;
+    margin-top:10px;
+  "
+>
+  Crear tarea
+</button>
 
   </div>
 
@@ -981,8 +996,34 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
     <!-- 🔥 BOTONES -->
     <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-      <button onclick="filtrarPorFecha()">Consultar</button>
-      <button onclick="exportarPDF()">Exportar PDF</button>
+      <button 
+  onclick="consultarReporte()"
+  style="
+    background:#111827;
+    color:white;
+    border:none;
+    padding:10px 15px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+  "
+>
+  Consultar
+</button>
+      <button 
+  onclick="exportarPDF()"
+  style="
+    background:#111827;
+    color:white;
+    border:none;
+    padding:10px 15px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+  "
+>
+  Exportar PDF
+</button>
     </div>
 
     <!-- 🔥 (OPCIONAL) MENSAJE FILTRO -->
@@ -995,9 +1036,20 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
       font-size:13px;
     ">
       🔎 Filtro activo
-      <button onclick="limpiarFiltros()" style="margin-left:10px;">
-        Limpiar
-      </button>
+      <button 
+  onclick="limpiarFiltros()"
+  style="
+    background:#111827;
+    color:white;
+    border:none;
+    padding:10px 15px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+  "
+>
+  Limpiar
+</button>
     </div>
 
   </div>
