@@ -1221,21 +1221,22 @@ if(token && user){
 }
 document.addEventListener("visibilitychange", () => {
 
+  console.log("👁 visibility:", document.hidden);
+
+  if(!socket || !socket.connected){
+    console.warn("⚠️ Socket no conectado aún");
+    return;
+  }
+
   if(document.hidden){
 
     console.log("📴 App en segundo plano");
-
-    if(socket){
-      socket.emit("app_background", user.department);
-    }
+    socket.emit("app_background", user.department);
 
   }else{
 
     console.log("📱 App activa");
-
-    if(socket){
-      socket.emit("app_foreground", user.department);
-    }
+    socket.emit("app_foreground", user.department);
 
   }
 
@@ -3413,6 +3414,15 @@ function iniciarSocket(){
     if(company_code){
       socket.emit("join_admin", company_code);
       console.log("🟢 Unido a canal:", "admin_" + company_code);
+    }
+
+    // 🔥 ESTE ES EL FIX IMPORTANTE
+    if(document.hidden){
+      console.log("📴 Sync inicial: background");
+      socket.emit("app_background", user.department);
+    }else{
+      console.log("📱 Sync inicial: foreground");
+      socket.emit("app_foreground", user.department);
     }
 
   });

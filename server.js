@@ -1701,7 +1701,7 @@ async function sendPushByDepartment(department, title, message, taskId, companyI
   const lastSeen = onlineDepartments[department];
 
   // 🔥 evitar push si el usuario está activo recientemente (solo socket)
-  if(lastSeen && (Date.now() - lastSeen < 60000)){
+  if(lastSeen && lastSeen !== 0 && (Date.now() - lastSeen < 60000)){
   console.log(`⚡ ${department} activo → solo socket`);
   return;
 }
