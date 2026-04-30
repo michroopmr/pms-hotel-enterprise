@@ -633,7 +633,25 @@ app.get("/chat/:guest_id", async (req,res)=>{
   res.status(500).json({error:"Error obteniendo chat"});
  }
 });
+app.get("/company", authMiddleware, async (req,res)=>{
+  try{
 
+    const result = await db.query(
+      "SELECT name FROM companies WHERE id=$1",
+      [req.user.company_id]
+    );
+
+    if(result.rows.length === 0){
+      return res.status(404).json({ error:"Empresa no encontrada" });
+    }
+
+    res.json(result.rows[0]);
+
+  }catch(err){
+    console.error("Error /company:", err);
+    res.status(500).json({error:"Error obteniendo empresa"});
+  }
+});
 app.get("/tickets/:company_code", async (req,res)=>{
  try{
 
@@ -1239,6 +1257,17 @@ const onlineDepartments = {}; // { department: timestamp }
     socket.disconnect();
     return;
   }
+// ===== DETECCIÓN APP =====
+socket.on("app_background", (department)=>{
+  onlineDepartments[department] = 0;
+  console.log("📴 Background:", department);
+});
+
+socket.on("app_foreground", (department)=>{
+  onlineDepartments[department] = Date.now();
+  console.log("📱 Foreground:", department);
+});
+
   socket.on("logout", ()=>{
   console.log("🔌 Socket cerrado por logout");
   socket.disconnect(true);
@@ -1255,6 +1284,7 @@ socket.on("typing", (data)=>{
   });
 
 });
+
 
 socket.on("admin_typing", (data)=>{
 
@@ -1406,11 +1436,11 @@ if(decoded.role === "sistemas"){
  socket.on("disconnect",()=>{
 
    if(department){
-     delete onlineDepartments[department];
+     onlineDepartments[department] = 0; // 🔥 en lugar de delete
      console.log(`🔴 ${department} offline`);
    }
 
- });
+});
 
 });
 
@@ -1671,10 +1701,10 @@ async function sendPushByDepartment(department, title, message, taskId, companyI
   const lastSeen = onlineDepartments[department];
 
   // 🔥 evitar push si el usuario está activo recientemente (solo socket)
-  if(lastSeen && (Date.now() - lastSeen < 5000)){
-    console.log(`⚡ ${department} activo recientemente → solo socket`);
-    return;
-  }
+  if(lastSeen && (Date.now() - lastSeen < 60000)){
+  console.log(`⚡ ${department} activo → solo socket`);
+  return;
+}
 
   const payload = JSON.stringify({
     title,

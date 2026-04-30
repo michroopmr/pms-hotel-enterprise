@@ -1219,6 +1219,32 @@ const token = localStorage.getItem("token");
 if(token && user){
   iniciarSocket();
 }
+document.addEventListener("visibilitychange", () => {
+
+  if(document.hidden){
+
+    console.log("📴 App en segundo plano");
+
+    if(socket){
+      socket.emit("app_background", user.department);
+    }
+
+  }else{
+
+    console.log("📱 App activa");
+
+    if(socket){
+      socket.emit("app_foreground", user.department);
+    }
+
+  }
+
+});
+setInterval(()=>{
+  if(socket && user?.department){
+    socket.emit("heartbeat", user.department);
+  }
+}, 10000);
 
 function aplicarPermisos(){
 
@@ -1283,9 +1309,10 @@ async function secureFetch(url, options = {}) {
   }
 }
 
-if(user){
+const info = document.getElementById("info");
+
+if(info && user){
   info.innerText = `Usuario: ${user.username}`;
-  userTop.innerText = user.username;
 }
 // 🔥 OBTENER company_code
 const company_code = localStorage.getItem("company_code");
@@ -3967,13 +3994,19 @@ document.addEventListener("DOMContentLoaded", () => {
 async function cargarEmpresa(){
 
   try{
-    const res = await secureFetch(`${API}/company`);
-    const data = await res.json();
 
-    const el = document.getElementById("empresaNombre");
+    const r = await secureFetch(`${API}/company`);
 
-    if(el){
-      el.innerText = data.name || "Empresa";
+    if(!r || !r.ok){
+      console.error("❌ Error cargando empresa:", r?.status);
+      return;
+    }
+
+    const data = await r.json();
+
+    const el = document.getElementById("companyName");
+    if(el && data?.name){
+      el.innerText = data.name;
     }
 
   }catch(err){
