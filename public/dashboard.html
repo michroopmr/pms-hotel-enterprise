@@ -1197,18 +1197,28 @@ if(isAppMode){
 /* ================= SESIÓN ================= */
 let user=null;
 let audioEnabled = false;
-
+let socket = null;
+// 🔥 PROTECCIÓN GLOBAL (evita sockets vivos al salir)
+window.addEventListener("beforeunload", ()=>{
+  if(socket){
+    socket.disconnect();
+  }
+});
 // 🔥 AGREGA AQUÍ
 const API = "https://pms-hotel-enterprise.onrender.com";
 
-const saved=localStorage.getItem("user");
-if(saved) user=JSON.parse(saved);
+const saved = localStorage.getItem("user");
+if(saved) user = JSON.parse(saved);
 
 if(!localStorage.getItem("token")){
- location.href="login.html";
+  location.href = "login.html";
 }
 
 const token = localStorage.getItem("token");
+
+if(token && user){
+  iniciarSocket();
+}
 
 function aplicarPermisos(){
 
@@ -1794,9 +1804,9 @@ function render(){
 
  let visibles = [...tareas];
 
- const user = JSON.parse(localStorage.getItem("user"));
+ const currentUser = JSON.parse(localStorage.getItem("user"));
 
-if(user && user.role === "operador"){
+if(currentUser && currentUser.role === "operador"){
   visibles = visibles.filter(t => 
     (t.department || "").trim().toLowerCase() === 
     (user.department || "").trim().toLowerCase()
@@ -2058,7 +2068,7 @@ ${t.status !== "terminado" ? `
 <input type="date" id="fecha-${t.id}" style="width:100%">
 <input type="time" id="hora-${t.id}" style="width:100%">
 
-  <<button class="btn-dark" onclick="confirmarPostergar(${t.id})">Guardar</button>
+  <button class="btn-dark" onclick="confirmarPostergar(${t.id})">Guardar</button>
 
 </div>
 
@@ -2238,11 +2248,11 @@ function kpis(){
  };
 
  // 🔥 AGREGAR ESTO
- const user = JSON.parse(localStorage.getItem("user"));
+ const currentUser = JSON.parse(localStorage.getItem("user"));
 
  let tareasFiltradas = tareas;
 
- if(user && user.role === "operador"){
+ if(currentUser && currentUser.role === "operador"){
    tareasFiltradas = tareas.filter(t => 
      (t.department || "").trim().toLowerCase() === 
      (user.department || "").trim().toLowerCase()
@@ -2912,9 +2922,7 @@ function exportarPDF(){
 
 });
 
-      const rowHeight = Math.max(
-  ...splitRow.map(r => Array.isArray(r) ? r.length : r.length)
-) * 6;
+      const rowHeight = Math.max(...splitRow.map(r => r.length)) * 6;
 
       if(y + rowHeight > 190){
 
@@ -3254,54 +3262,6 @@ function urlBase64ToUint8Array(base64String) {
 // refresh inteligente cada 5 segundos
 let ultimaNotificacion = 0;
 
-const socket = io(API,{
-
- auth:{
-   token: localStorage.getItem("token")
- },
-
- query:{
-   department: user.department
- }
-
-});
-
-socket.on("connect", () => {
-
-  console.log("🔥 SOCKET CONECTADO:", socket.id);
-
-  const company_code = localStorage.getItem("company_code");
-
-  if(company_code){
-
-    socket.emit("join_admin", company_code);
-
-    console.log("🟢 Unido a canal:", "admin_" + company_code);
-
-  }else{
-
-    console.warn("❌ No hay company_code");
-
-  }
-
-});
-
-socket.on("comentarioAgregado", data => {
-
-   console.log("comentario recibido:", data);
-
-   const tarea = tareas.find(t => String(t.id) === String(data.tareaId));
-
-   if(!tarea){
-      console.log("No encontré la tarea");
-      return;
-   }
-
-   tarea.comments.push(data.comentario);
-   renderTareaIndividual(tarea);  
-
-});
-
 // ================= DEEP LINK LISTENER =================
 
 if("serviceWorker" in navigator){
@@ -3395,23 +3355,71 @@ secureFetch(`${API}/settings`)
   }
 
 });
+function iniciarSocket(){
+
+  // 🔥 limpiar socket previo
+  if(socket){
+    socket.disconnect();
+    socket = null;
+  }
+
+  const token = localStorage.getItem("token");
+  if(!token) return;
+
+  if(!user || !user.department){
+    console.warn("⚠️ Usuario sin departamento");
+  }
+
+  socket = io(API,{
+    auth:{ token },
+    query:{ department: user?.department || "" },
+    reconnection:false
+  });
+
+  socket.on("connect", () => {
+
+    console.log("🔥 SOCKET CONECTADO:", socket.id);
+
+    const company_code = localStorage.getItem("company_code");
+
+    if(company_code){
+      socket.emit("join_admin", company_code);
+      console.log("🟢 Unido a canal:", "admin_" + company_code);
+    }
+
+  });
+
+  socket.on("comentarioAgregado", data => {
+
+    if(!localStorage.getItem("token")) return;
+    if(!Array.isArray(tareas)) return;
+
+    const tarea = tareas.find(t => String(t.id) === String(data.tareaId));
+    if(!tarea) return;
+
+    tarea.comments.push(data.comentario);
+    renderTareaIndividual(tarea);
+
+  });
+
+}
 async function logout(){
 
   try{
-
-    await secureFetch(
-      `${API}/logout-device`,
-      {
-        method:"POST"
-      }
-    );
-
+    await secureFetch(`${API}/logout-device`, { method:"POST" });
   }catch(e){
     console.log(e);
   }
 
-  localStorage.removeItem("token");
-  localStorage.removeItem("user");
+  // 🔥 LIMPIAR SOCKET COMPLETAMENTE
+  if(socket){
+    socket.off();        // elimina listeners
+    socket.disconnect(); // corta conexión
+    socket = null;
+  }
+
+  // 🔥 limpiar todo
+  localStorage.clear();
 
   location.href="login.html";
 }
