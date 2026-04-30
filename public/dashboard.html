@@ -1261,9 +1261,10 @@ async function secureFetch(url, options = {}) {
     const response = await fetch(url, {
       ...options,
       headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      }
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${token}`,
+  ...(options.headers || {})
+}
     });
 
     console.log("📡 STATUS:", response.status);
@@ -3406,20 +3407,38 @@ function iniciarSocket(){
 async function logout(){
 
   try{
-    await secureFetch(`${API}/logout-device`, { method:"POST" });
+
+    const registration = await navigator.serviceWorker.ready;
+    const sub = await registration.pushManager.getSubscription();
+
+    console.log("🔔 SUB:", sub);
+
+    const endpoint = sub?.endpoint;
+
+    console.log("📡 ENDPOINT:", endpoint);
+
+    await secureFetch(`${API}/logout-device`, {
+      method:"POST",
+      body: JSON.stringify({ endpoint })
+    });
+
+    if(sub){
+      await sub.unsubscribe();
+      console.log("🧹 Push desuscrito");
+    }
+
   }catch(e){
-    console.log(e);
+    console.log("❌ Error logout:", e);
   }
 
-  // 🔥 LIMPIAR SOCKET COMPLETAMENTE
   if(socket){
-    socket.off();        // elimina listeners
-    socket.disconnect(); // corta conexión
+    socket.emit("logout"); // 🔥 AGREGA ESTO
+    socket.disconnect();
     socket = null;
   }
 
-  // 🔥 limpiar todo
-  localStorage.clear();
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
 
   location.href="login.html";
 }

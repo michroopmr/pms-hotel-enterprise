@@ -90,7 +90,24 @@ const io = new Server(server, {
     origin: ["https://mollyhelpers.com"]
   }
 });
+// 🔥 VALIDACIÓN DE SOCKET (AQUÍ VA)
+io.use((socket, next) => {
 
+  const token = socket.handshake.auth?.token;
+
+  if(!token){
+    return next(new Error("No autorizado"));
+  }
+
+  try{
+    const decoded = jwt.verify(token, SECRET);
+    socket.user = decoded;
+    next();
+  }catch(err){
+    return next(new Error("Token inválido"));
+  }
+
+});
 // 🔥 DISPONIBLE EN TODAS LAS RUTAS
 app.set("io", io);
 
@@ -1213,10 +1230,23 @@ if (
 
 const onlineDepartments = {}; // { department: timestamp }
 
-io.on("connection",(socket)=>{
 
+  io.on("connection",(socket)=>{
+
+  // 🔥 BLOQUEO SI NO HAY USUARIO
+  if(!socket.user){
+    console.log("❌ Socket sin usuario, desconectando");
+    socket.disconnect();
+    return;
+  }
+  socket.on("logout", ()=>{
+  console.log("🔌 Socket cerrado por logout");
+  socket.disconnect(true);
+});
   // ================= TYPING =================
 socket.on("typing", (data)=>{
+
+  if(!socket.user) return; // 🔥 CLAVE
 
   const { guest_id, company_code } = data;
 
@@ -1228,6 +1258,8 @@ socket.on("typing", (data)=>{
 
 socket.on("admin_typing", (data)=>{
 
+  if(!socket.user) return;
+
   const { guest_id } = data;
 
   socket.to("guest_" + guest_id).emit("typing_admin");
@@ -1236,17 +1268,32 @@ socket.on("admin_typing", (data)=>{
 
 // ================= READ =================
 socket.on("message_read",(data)=>{
+
+  if(!socket.user) return;
+
   io.to("admin_" + data.company_code).emit("message_read", data);
+
 });
 
   socket.on("heartbeat", (department)=>{
+
+  if(!socket.user) return;
+
   if(department){
     onlineDepartments[department] = Date.now();
   }
+
 });
 
   socket.on("join_admin", (company_code)=>{
+
+  if(!socket.user){
+    console.log("❌ join_admin bloqueado (sin usuario)");
+    return;
+  }
+
   socket.join("admin_" + company_code);
+
 });
 
   socket.on("join_guest", (guest_id)=>{
@@ -1254,7 +1301,7 @@ socket.on("message_read",(data)=>{
 });
 socket.on("call_staff", (data) => {
 
-  console.log("🔔 Solicitud de staff:", data);
+  if(!socket.user) return;
 
   io.to("admin_" + data.company_code).emit("staff_alert", {
     guest_id: data.guest_id,
@@ -1264,6 +1311,8 @@ socket.on("call_staff", (data) => {
 
 });
 socket.on("admin_send_message", async (data)=>{
+
+  if(!socket.user) return;
 
   const { guest_id, message, company_code } = data;
 
@@ -1617,65 +1666,72 @@ async function crearTicket({guest_id, room, tipo, prioridad="normal", company_id
 
 /* ================= PUSH HELPER ================= */
 
-async function sendPushByDepartment(department,title,message,taskId,companyId){
+async function sendPushByDepartment(department, title, message, taskId, companyId){
 
-const lastSeen = onlineDepartments[department];
+  const lastSeen = onlineDepartments[department];
 
-// 🔥 reducir tiempo (debug)
-if(lastSeen && (Date.now() - lastSeen < 5000)){
-  console.log(`⚡ ${department} activo recientemente → solo socket`);
-  return;
-}
+  // 🔥 evitar push si el usuario está activo recientemente (solo socket)
+  if(lastSeen && (Date.now() - lastSeen < 5000)){
+    console.log(`⚡ ${department} activo recientemente → solo socket`);
+    return;
+  }
 
- const payload = JSON.stringify({
-   title,
-   body:message,
-   taskId
- });
+  const payload = JSON.stringify({
+    title,
+    body: message,
+    taskId
+  });
 
- const result = await db.query(
-   `SELECT subscription FROM push_subscriptions 
-    WHERE department=$1 AND company_id=$2`,
-   [department, companyId]
- );
+  const result = await db.query(
+    `
+    SELECT subscription 
+    FROM push_subscriptions 
+    WHERE department = $1 AND company_id = $2
+    `,
+    [department, companyId]
+  );
 
- console.log("📦 Subs encontradas:", result.rows.length);
+  console.log("📦 Subs encontradas:", result.rows.length);
 
- for(const row of result.rows){
+  for(const row of result.rows){
 
- let sub;
+    let sub;
 
- try{
-   sub = JSON.parse(row.subscription);
- }catch(e){
-   console.log("⚠ Suscripción inválida");
-   continue;
- }
+    try{
+      sub = JSON.parse(row.subscription);
+    }catch(e){
+      console.log("⚠ Suscripción inválida (JSON)");
+      continue;
+    }
 
- if(!sub || !sub.endpoint){
-   console.log("⚠ Sin endpoint");
-   continue;
- }
+    if(!sub || !sub.endpoint){
+      console.log("⚠ Suscripción sin endpoint");
+      continue;
+    }
 
- webpush.sendNotification(sub,payload)
- .catch(async e=>{
+    try{
 
-   console.log("Push error:",e.message);
+      await webpush.sendNotification(sub, payload);
 
-   if(e.statusCode === 410 || e.statusCode === 404){
+    }catch(e){
 
-     await db.query(
-       "DELETE FROM push_subscriptions WHERE endpoint=$1",
-       [sub.endpoint]
-     );
+      console.log("❌ Push error:", e.message);
 
-     console.log("🧹 Suscripción eliminada");
+      // 🔥 eliminar suscripciones muertas automáticamente
+      if(e.statusCode === 410 || e.statusCode === 404){
 
-   }
+        await db.query(
+          "DELETE FROM push_subscriptions WHERE endpoint = $1",
+          [sub.endpoint]
+        );
 
- });
+        console.log("🧹 Suscripción eliminada:", sub.endpoint);
 
- }
+      }
+
+    }
+
+  }
 }
 
 
@@ -2194,15 +2250,17 @@ app.post(
   async(req,res)=>{
     try{
 
-      // opcional: limpiar algo en users
-      await db.query(
-        `
-        UPDATE users
-        SET device_token = NULL
-        WHERE id=$1
-        `,
-        [req.user.id]
-      );
+      const { endpoint } = req.body;
+
+      // 🔥 ELIMINAR SUSCRIPCIÓN PUSH REAL
+      if(endpoint){
+        await db.query(
+          "DELETE FROM push_subscriptions WHERE endpoint=$1",
+          [endpoint]
+        );
+
+        console.log("🧹 Push eliminado:", endpoint);
+      }
 
       res.json({ ok:true });
 
@@ -2211,26 +2269,6 @@ app.post(
       res.status(500).send("Error logout");
     }
 });
-app.get("/company", authMiddleware, async (req,res)=>{
-
- try{
-
-  const result = await db.query(
-    "SELECT name FROM companies WHERE id=$1",
-    [req.user.company_id]
-  );
-
-  res.json(result.rows[0]);
-
- }catch(err){
-
-  console.error(err);
-  res.status(500).json({error:"Error obteniendo empresa"});
-
- }
-
-});
-
 /* ================= GET COMPANIES ================= */
 
 app.get("/admin/companies", authMiddleware, async (req,res)=>{
