@@ -310,6 +310,37 @@ async function cloneDemoData(newCompanyId){
 
   console.log("✅ Onboarding terminado");
 }
+app.post("/save-subscription", authMiddleware, async (req,res)=>{
+  try{
+
+    const { subscription } = req.body;
+
+    if(!subscription || !subscription.endpoint){
+      return res.status(400).json({error:"Subscription inválida"});
+    }
+
+    await db.query(`
+      INSERT INTO push_subscriptions (endpoint, department, subscription)
+      VALUES ($1,$2,$3)
+      ON CONFLICT (endpoint) DO UPDATE SET
+      subscription = EXCLUDED.subscription
+    `,
+    [
+      subscription.endpoint,
+      req.user.department,
+      JSON.stringify(subscription)
+    ]);
+
+    console.log("✅ Push guardado:", subscription.endpoint);
+
+    res.json({ ok:true });
+
+  }catch(err){
+    console.error("❌ ERROR save-subscription:", err);
+    res.status(500).json({error:"Error guardando push"});
+  }
+});
+
 app.post("/guest/task", async (req,res)=>{
  try{
 
