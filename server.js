@@ -645,6 +645,18 @@ await db.query(
   });
  }
 });
+
+app.get("/users", authMiddleware, async (req,res)=>{
+
+  const result = await db.query(
+    "SELECT id, username, department FROM users WHERE company_id=$1",
+    [req.user.company_id]
+  );
+
+  res.json(result.rows);
+
+});
+
 // Obtener chat
 app.get("/chat/:guest_id", async (req,res)=>{
  try{
