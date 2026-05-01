@@ -319,24 +319,39 @@ app.post("/save-subscription", authMiddleware, async (req,res)=>{
       return res.status(400).json({error:"Subscription inválida"});
     }
 
+    if(!req.user?.id){
+      return res.status(400).json({error:"Usuario inválido"});
+    }
+
     await db.query(`
-      INSERT INTO push_subscriptions (endpoint, department, subscription)
-      VALUES ($1,$2,$3)
-      ON CONFLICT (endpoint) DO UPDATE SET
-      subscription = EXCLUDED.subscription
+      INSERT INTO push_subscriptions
+      (endpoint, subscription, department, company_id, user_id)
+      VALUES ($1,$2,$3,$4,$5)
+      ON CONFLICT (endpoint)
+      DO UPDATE SET
+        subscription = EXCLUDED.subscription,
+        department = EXCLUDED.department,
+        company_id = EXCLUDED.company_id,
+        user_id = EXCLUDED.user_id
     `,
     [
       subscription.endpoint,
+      JSON.stringify(subscription),
       req.user.department,
-      JSON.stringify(subscription)
+      req.user.company_id,
+      req.user.id
     ]);
 
-    console.log("✅ Push guardado:", subscription.endpoint);
+    console.log("✅ Push guardado:", {
+      endpoint: subscription.endpoint,
+      user: req.user.id,
+      dept: req.user.department
+    });
 
     res.json({ ok:true });
 
   }catch(err){
-    console.error("❌ ERROR save-subscription:", err);
+    console.error(err);
     res.status(500).json({error:"Error guardando push"});
   }
 });
@@ -1277,203 +1292,216 @@ if (
 
 /* ================= SOCKET ================= */
 
-const onlineDepartments = {}; // { department: timestamp }
+// 🔥 GLOBAL (arriba del archivo)
+const onlineDepartments = {}; // existente
+const onlineUsers = {}; // 🔥 NUEVO (solo UNA vez)
+
+function emitirUsuariosOnline(io){
+
+  const activos = Object.keys(onlineUsers).map(id => String(id));
+
+  io.emit("online_users_update", activos);
+
+}
+
+setInterval(()=>{
+
+  const ahora = Date.now();
+
+  Object.keys(onlineUsers).forEach(id=>{
+    if(ahora - onlineUsers[id] > 30000){
+      delete onlineUsers[id];
+    }
+  });
+
+},10000);
 
 
-  io.on("connection",(socket)=>{
 
-  // 🔥 BLOQUEO SI NO HAY USUARIO
+// ================= SOCKET =================
+io.on("connection",(socket)=>{
+
+  // ================= AUTH =================
+  const token = socket.handshake.auth?.token;
+  const department = socket.handshake.query?.department;
+
+  if(!token){
+    console.log("👤 Guest conectado");
+    return;
+  }
+
+  let decoded;
+
+  try{
+    decoded = jwt.verify(token, SECRET);
+    socket.user = decoded;
+  }catch(e){
+    console.log("⛔ Socket no autorizado");
+    socket.disconnect();
+    return;
+  }
+
   if(!socket.user){
     console.log("❌ Socket sin usuario, desconectando");
     socket.disconnect();
     return;
   }
-// ===== DETECCIÓN APP =====
-socket.on("app_background", (department)=>{
-  onlineDepartments[department] = 0;
-  console.log("📴 Background:", department);
+
+  // ================= PRESENCIA =================
+
+  // 🔥 Usuario activo por user_id
+  let lastEmit = 0;
+
+socket.on("heartbeat", ()=>{
+
+  if(socket.user?.id){
+    onlineUsers[socket.user.id] = Date.now();
+  }
+
+  if(Date.now() - lastEmit > 3000){
+    emitirUsuariosOnline(io);
+    lastEmit = Date.now();
+  }
+
 });
 
-socket.on("app_foreground", (department)=>{
-  onlineDepartments[department] = Date.now();
-  console.log("📱 Foreground:", department);
-});
-
-  socket.on("logout", ()=>{
-  console.log("🔌 Socket cerrado por logout");
-  socket.disconnect(true);
-});
-  // ================= TYPING =================
-socket.on("typing", (data)=>{
-
-  if(!socket.user) return; // 🔥 CLAVE
-
-  const { guest_id, company_code } = data;
-
-  socket.to("admin_" + company_code).emit("typing",{
-    guest_id
+  // 🔥 App background / foreground (departamento)
+  socket.on("app_background", (department)=>{
+    onlineDepartments[department] = 0;
+    console.log("📴 Background:", department);
   });
 
-});
+  socket.on("app_foreground", (department)=>{
+    onlineDepartments[department] = Date.now();
+    console.log("📱 Foreground:", department);
+  });
 
-
-socket.on("admin_typing", (data)=>{
-
-  if(!socket.user) return;
-
-  const { guest_id } = data;
-
-  socket.to("guest_" + guest_id).emit("typing_admin");
-
-});
-
-// ================= READ =================
-socket.on("message_read",(data)=>{
-
-  if(!socket.user) return;
-
-  io.to("admin_" + data.company_code).emit("message_read", data);
-
-});
-
-  socket.on("heartbeat", (department)=>{
-
-  if(!socket.user) return;
+  // ================= ROOMS =================
 
   if(department){
+    socket.join(department);
     onlineDepartments[department] = Date.now();
+    console.log(`🟢 ${department} online`);
   }
 
-});
+  if(decoded.role === "sistemas"){
+    DEPARTMENTS.forEach(dep=>{
+      socket.join(dep);
+    });
+  }
 
   socket.on("join_admin", (company_code)=>{
-
-  if(!socket.user){
-    console.log("❌ join_admin bloqueado (sin usuario)");
-    return;
-  }
-
-  socket.join("admin_" + company_code);
-
-});
-
-  socket.on("join_guest", (guest_id)=>{
-  socket.join("guest_" + guest_id);
-});
-socket.on("call_staff", (data) => {
-
-  if(!socket.user) return;
-
-  io.to("admin_" + data.company_code).emit("staff_alert", {
-    guest_id: data.guest_id,
-    message: data.message,
-    company_code: data.company_code
+    socket.join("admin_" + company_code);
   });
 
-});
-socket.on("admin_send_message", async (data)=>{
+  socket.on("join_guest", (guest_id)=>{
+    socket.join("guest_" + guest_id);
+  });
 
-  if(!socket.user) return;
+  // ================= EVENTOS =================
 
-  const { guest_id, message, company_code } = data;
+  socket.on("typing", (data)=>{
 
-  // 🔒 VALIDACIÓN
-  if(!guest_id || !message || !company_code){
-    console.error("❌ Datos incompletos admin_send_message:", data);
-    return;
-  }
+    const { guest_id, company_code } = data;
 
-  try{
-
-    // 🔥 1. GUARDAR MENSAJE
-    await db.query(
-      "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'admin')",
-      [guest_id, message]
-    );
-
-    // 🔥 2. ACTUALIZAR ESTADO DEL GUEST
-    await db.query(
-      "UPDATE guests SET last_response_at=NOW() WHERE id=$1",
-      [guest_id]
-    );
-
-    // 🔥 3. CONFIRMAR ENTREGA (opcional tipo WhatsApp)
-    io.to("guest_" + guest_id).emit("message_delivered",{
+    socket.to("admin_" + company_code).emit("typing",{
       guest_id
     });
 
-    // 🔥 4. ENVIAR AL HUÉSPED
-    io.to("guest_" + guest_id).emit("new_message",{
-      guest_id,
-      message,
-      sender:"admin"
+  });
+
+  socket.on("admin_typing", (data)=>{
+
+    const { guest_id } = data;
+
+    socket.to("guest_" + guest_id).emit("typing_admin");
+
+  });
+
+  socket.on("message_read",(data)=>{
+    io.to("admin_" + data.company_code).emit("message_read", data);
+  });
+
+  socket.on("call_staff", (data) => {
+
+    io.to("admin_" + data.company_code).emit("staff_alert", {
+      guest_id: data.guest_id,
+      message: data.message,
+      company_code: data.company_code
     });
 
-    // 🔥 5. ACTUALIZAR TODOS LOS ADMINS
-    io.to("admin_" + company_code).emit("new_message",{
-      guest_id,
-      message,
-      sender:"admin"
-    });
+  });
 
-  }catch(err){
+  socket.on("admin_send_message", async (data)=>{
 
-    console.error("❌ ERROR admin_send_message:", err);
+    const { guest_id, message, company_code } = data;
 
-    // 🔥 NO romper socket
-    io.to("admin_" + company_code).emit("error_message",{
-      error:"No se pudo enviar el mensaje"
-    });
+    if(!guest_id || !message || !company_code){
+      console.error("❌ Datos incompletos admin_send_message:", data);
+      return;
+    }
 
+    try{
+
+      await db.query(
+        "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'admin')",
+        [guest_id, message]
+      );
+
+      await db.query(
+        "UPDATE guests SET last_response_at=NOW() WHERE id=$1",
+        [guest_id]
+      );
+
+      io.to("guest_" + guest_id).emit("message_delivered",{ guest_id });
+
+      io.to("guest_" + guest_id).emit("new_message",{
+        guest_id,
+        message,
+        sender:"admin"
+      });
+
+      io.to("admin_" + company_code).emit("new_message",{
+        guest_id,
+        message,
+        sender:"admin"
+      });
+
+    }catch(err){
+
+      console.error("❌ ERROR admin_send_message:", err);
+
+      io.to("admin_" + company_code).emit("error_message",{
+        error:"No se pudo enviar el mensaje"
+      });
+
+    }
+
+  });
+
+  socket.on("logout", ()=>{
+    console.log("🔌 Socket cerrado por logout");
+    socket.disconnect(true);
+  });
+
+  // ================= DISCONNECT =================
+
+  socket.on("disconnect",()=>{
+
+  if(socket.user?.id){
+    delete onlineUsers[socket.user.id];
+  }
+
+  emitirUsuariosOnline(io);
+
+  if(department){
+    onlineDepartments[department] = 0;
+    console.log(`🔴 ${department} offline`);
   }
 
 });
-
-const token = socket.handshake.auth?.token;
-const department = socket.handshake.query?.department;
-
-if(!token){
-  console.log("👤 Guest conectado");
-  return;
-}
-
-let decoded;
-
-try{
-  decoded = jwt.verify(token, SECRET);
-  socket.user = decoded;
-}catch(e){
-  console.log("⛔ Socket no autorizado");
-  socket.disconnect();
-  return;
-}
-
-// 🔥 unir a departamento
-if(department){
-  socket.join(department);
-
-  // guardar timestamp en lugar de booleano
-  onlineDepartments[department] = Date.now();
-
-  console.log(`🟢 ${department} online`);
-}
-// 🔥 sistemas escucha todo
-if(decoded.role === "sistemas"){
-  DEPARTMENTS.forEach(dep=>{
-    socket.join(dep);
-  });
-}
-
- socket.on("disconnect",()=>{
-
-   if(department){
-     onlineDepartments[department] = 0; // 🔥 en lugar de delete
-     console.log(`🔴 ${department} offline`);
-   }
-
 });
 
-});
 
 function normalizar(msg){
  return msg
@@ -1731,11 +1759,10 @@ async function sendPushByDepartment(department, title, message, taskId, companyI
 
   const lastSeen = onlineDepartments[department];
 
-  // 🔥 evitar push si el usuario está activo recientemente (solo socket)
-  if(lastSeen && lastSeen !== 0 && (Date.now() - lastSeen < 60000)){
-  console.log(`⚡ ${department} activo → solo socket`);
-  return;
-}
+  if(lastSeen && (Date.now() - lastSeen < 10000)){
+    console.log(`⚡ ${department} activo → solo socket`);
+    return;
+  }
 
   const payload = JSON.stringify({
     title,
@@ -1744,57 +1771,56 @@ async function sendPushByDepartment(department, title, message, taskId, companyI
   });
 
   const result = await db.query(
-    `
-    SELECT subscription 
-    FROM push_subscriptions 
-    WHERE department = $1 AND company_id = $2
-    `,
-    [department, companyId]
-  );
+  `
+  SELECT subscription, user_id
+  FROM push_subscriptions
+  WHERE department = $1 AND company_id = $2
+  `,
+  [department, companyId]
+);
 
   console.log("📦 Subs encontradas:", result.rows.length);
 
-  for(const row of result.rows){
+  if(result.rows.length === 0){
+    console.log(`⚠ No hay subs para ${department}`);
+    return;
+  }
+
+  await Promise.all(result.rows.map(async (row) => {
 
     let sub;
 
     try{
       sub = JSON.parse(row.subscription);
     }catch(e){
-      console.log("⚠ Suscripción inválida (JSON)");
-      continue;
+      console.log("⚠ Suscripción inválida");
+      return;
     }
 
-    if(!sub || !sub.endpoint){
-      console.log("⚠ Suscripción sin endpoint");
-      continue;
+    if(!sub?.endpoint){
+      console.log("⚠ Sin endpoint");
+      return;
     }
 
     try{
-
       await webpush.sendNotification(sub, payload);
-
     }catch(e){
 
       console.log("❌ Push error:", e.message);
 
-      // 🔥 eliminar suscripciones muertas automáticamente
       if(e.statusCode === 410 || e.statusCode === 404){
-
         await db.query(
           "DELETE FROM push_subscriptions WHERE endpoint = $1",
           [sub.endpoint]
         );
-
-        console.log("🧹 Suscripción eliminada:", sub.endpoint);
-
+        console.log("🧹 Eliminada:", sub.endpoint);
       }
 
     }
 
-  }
-}
+  }));
 
+}
 
 /* ================= SUBSCRIBE ================= */
 

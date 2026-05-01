@@ -697,6 +697,21 @@ footer{
 .btn-dark:hover{
   background:#1f2937;
 }
+.usuario-item.online .estado{
+  background: #22c55e;
+}
+
+.usuario-item.offline .estado{
+  background: #ef4444;
+}
+
+.estado{
+  width:10px;
+  height:10px;
+  border-radius:50%;
+  display:inline-block;
+  margin-left:6px;
+}
 </style>
 
 
@@ -812,6 +827,16 @@ footer{
         </div>
 
       </div>
+<div id="usuariosOnlineBox" style="
+  background:white;
+  padding:12px;
+  border-radius:10px;
+  margin-bottom:15px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+">
+  <h4 style="margin:0 0 10px 0;">Usuarios activos</h4>
+  <div id="usuariosOnlineLista"></div>
+</div>
 
 <div id="actividadDepto" style="
 background:white;
@@ -1260,6 +1285,14 @@ if(token && user){
 document.addEventListener("visibilitychange", () => {
 
   console.log("👁 visibility:", document.hidden);
+
+  socket.on("online_users_update", (users) => {
+
+  console.log("🟢 Usuarios online:", users);
+
+  actualizarUsuariosOnline(users);
+
+});
 
   if(!socket || !socket.connected){
     console.warn("⚠️ Socket no conectado aún");
@@ -3440,7 +3473,7 @@ function iniciarSocket(){
   socket = io(API,{
     auth:{ token },
     query:{ department: user?.department || "" },
-    reconnection:false
+    reconnection:true
   });
 
   socket.on("connect", () => {
@@ -3464,6 +3497,15 @@ function iniciarSocket(){
     }
 
   });
+  
+  socket.on("online_users_update", (users)=>{
+
+  console.log("🟢 Usuarios online:", users);
+
+  actualizarUsuariosOnline(users);
+
+});
+
 
   socket.on("comentarioAgregado", data => {
 
@@ -3478,6 +3520,49 @@ function iniciarSocket(){
 
   });
 
+}
+function actualizarUsuariosOnline(onlineUsers){
+
+  const contenedor = document.getElementById("usuariosOnlineLista");
+
+  if(!contenedor) return;
+
+  // 🔥 fallback si no existe listaUsuarios
+  if(!Array.isArray(listaUsuarios)){
+    console.warn("⚠️ listaUsuarios no disponible");
+    
+    contenedor.innerHTML = onlineUsers.map(id => `
+      <div>Usuario ${id} 🟢</div>
+    `).join("");
+
+    return;
+  }
+
+  let html = "";
+
+  listaUsuarios.forEach(u => {
+
+    const activo = onlineUsers.includes(String(u.id));
+
+    html += `
+      <div style="
+        display:flex;
+        justify-content:space-between;
+        padding:6px 0;
+        border-bottom:1px solid #eee;
+      ">
+        <span>${u.username}</span>
+        <span style="
+          width:10px;
+          height:10px;
+          border-radius:50%;
+          background:${activo ? "#22c55e" : "#ef4444"};
+        "></span>
+      </div>
+    `;
+  });
+
+  contenedor.innerHTML = html;
 }
 async function logout(){
 
