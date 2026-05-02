@@ -1,7 +1,7 @@
 /* ================= MOLLYHELPERS SERVICE WORKER ================= */
 
 /* ===== VERSION ===== */
-const CACHE_NAME = "molly-v28";
+const CACHE_NAME = "molly-v29";
 
 /* ===== ARCHIVOS BASE ===== */
 const urlsToCache = [
@@ -45,10 +45,16 @@ self.addEventListener("activate", event => {
   self.clients.claim(); // 🔥 toma control inmediato
 });
 
-/* ===== FETCH (NETWORK FIRST) ===== */
+/* ===== FETCH (NETWORK FIRST - FIX COMPLETO) ===== */
 self.addEventListener("fetch", event => {
 
+  // 🔥 SOLO MISMO ORIGEN
   if (!event.request.url.startsWith(self.location.origin)) {
+    return;
+  }
+
+  // 🔥 SOLO GET (evita errores con POST/PUT)
+  if (event.request.method !== "GET") {
     return;
   }
 
@@ -57,10 +63,18 @@ self.addEventListener("fetch", event => {
     fetch(event.request)
       .then(networkResponse => {
 
-        return caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, networkResponse.clone());
+        // 🔥 VALIDAR RESPUESTA
+        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== "basic") {
           return networkResponse;
+        }
+
+        const responseClone = networkResponse.clone();
+
+        caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, responseClone);
         });
+
+        return networkResponse;
 
       })
       .catch(() => {
@@ -69,6 +83,7 @@ self.addEventListener("fetch", event => {
 
           if (response) return response;
 
+          // 🔥 fallback navegación
           if (event.request.mode === "navigate") {
             return caches.match("/dashboard.html");
           }
@@ -78,84 +93,5 @@ self.addEventListener("fetch", event => {
       })
 
   );
-
-});
-
-/* ================= PUSH ================= */
-
-self.addEventListener("push", event => {
-
-  console.log("📩 Push recibido");
-
-  if (!event.data) return;
-
-  const data = event.data.json();
-
-  event.waitUntil(
-
-    self.registration.showNotification(
-      data.title || "Nueva notificación",
-      {
-        body: data.body || "",
-        icon: "/icon-192.png",
-        badge: "/icon-192.png",
-        data: {
-          taskId: data.taskId || null
-        }
-      }
-    )
-
-  );
-
-});
-
-/* ================= CLICK NOTIFICATION ================= */
-
-self.addEventListener("notificationclick", event => {
-
-  event.notification.close();
-
-  const taskId = event.notification.data?.taskId;
-
-  event.waitUntil(
-
-    clients.matchAll({
-      type: "window",
-      includeUncontrolled: true
-    })
-    .then(clientList => {
-
-      for (const client of clientList) {
-
-        if (client.url.includes("dashboard.html")) {
-
-          client.focus();
-
-          if (taskId) {
-            client.postMessage({
-              type: "OPEN_TASK",
-              taskId: taskId
-            });
-          }
-
-          return;
-        }
-      }
-
-      return clients.openWindow("/dashboard.html");
-
-    })
-
-  );
-
-});
-
-/* ================= MESSAGE ================= */
-
-self.addEventListener("message", event => {
-
-  if (event.data === "skipWaiting") {
-    self.skipWaiting();
-  }
 
 });
