@@ -1801,10 +1801,10 @@ async function sendPushByDepartment(department, title, message, taskId, companyI
   */
 
   const payload = JSON.stringify({
-  title,
+  title: title,
   body: message,
-  taskId,
-  sound: "default" // 🔥 CLAVE PARA IPHONE
+  taskId: taskId,
+  sound: "default"
 });
 
   const result = await db.query(
