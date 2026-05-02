@@ -1227,9 +1227,10 @@ if(isAppMode){
 
 /* ================= SESIÓN ================= */
 let user = null;
-let audioEnabled = false;
+let audioEnabled = true; // 🔥 CAMBIO CLAVE
+let audioUnlocked = false; // 🔥 NUEVO
 let socket = null;
-let listaUsuarios = []; // 🔥 GLOBAL
+let listaUsuarios = [];
 
 // ================= PUSH =================
 async function asegurarPush(){
@@ -2936,7 +2937,39 @@ function obtenerTareasVisibles(){
     return true;
   });
 }
+function unlockAudio(){
+  if(audioUnlocked) return;
 
+  const audio = document.getElementById("alertSound");
+  if(!audio) return;
+
+  audio.play()
+    .then(()=>{
+      audio.pause();
+      audio.currentTime = 0;
+      audioUnlocked = true;
+      console.log("🔓 Audio desbloqueado");
+    })
+    .catch(()=>{});
+}
+
+function reproducirAlerta(){
+
+  if(!audioEnabled || !audioUnlocked) return; // 🔥 ESTA LÍNEA ES LA CLAVE
+
+  const audio = document.getElementById("alertSound");
+  if(!audio) return;
+
+  audio.currentTime = 0;
+  audio.play().catch(()=>{});
+}
+
+window.unlockAudio = unlockAudio;
+window.reproducirAlerta = reproducirAlerta;
+
+document.addEventListener("pointerdown", unlockAudio, { once: true }); // 🔥 ESTA ES LA CLAVE
+document.addEventListener("touchstart", unlockAudio, { once: true });
+document.addEventListener("keydown", unlockAudio, { once: true });
 /* ================= EXPORT ================= */
 function exportarPDF(){
 
@@ -3839,16 +3872,7 @@ if(audioEnabled && "vibrate" in navigator){
   navigator.vibrate([200,100,200]);
 }
 }
-document.addEventListener("click",()=>{
-  audioEnabled = true;
- const audio = document.getElementById("alertSound");
- if(audio){
-   audio.play().then(()=>{
-     audio.pause();
-     audio.currentTime=0;
-   }).catch(()=>{});
- }
-},{once:true});
+
 
 document.addEventListener("pointerdown", unlockAudio);
 document.addEventListener("touchstart", unlockAudio);
