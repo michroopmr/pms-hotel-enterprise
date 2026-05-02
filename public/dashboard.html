@@ -1299,6 +1299,16 @@ if(token && user){
   cargarUsuarios();
 }
 
+// 🔥 AUTO-UPDATE SEGURO
+if ('serviceWorker' in navigator) {
+
+  navigator.serviceWorker.addEventListener("controllerchange", () => {
+    console.log("🔄 Nueva versión detectada, recargando...");
+    window.location.reload();
+  });
+
+}
+
 // ================= UI USUARIOS =================
 document.addEventListener("DOMContentLoaded", ()=>{
 

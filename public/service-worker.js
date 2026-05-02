@@ -1,9 +1,9 @@
 /* ================= MOLLYHELPERS SERVICE WORKER ================= */
 
-/* ===== CACHE CONFIG ===== */
+/* ===== VERSION ===== */
+const CACHE_NAME = "molly-v28";
 
-const CACHE_NAME = "molly-v27";
-
+/* ===== ARCHIVOS BASE ===== */
 const urlsToCache = [
   "/",
   "/dashboard.html",
@@ -11,9 +11,8 @@ const urlsToCache = [
 ];
 
 /* ===== INSTALL ===== */
-
 self.addEventListener("install", event => {
-  console.log("🔥 Service Worker instalado");
+  console.log("🔥 SW instalado");
 
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -23,13 +22,12 @@ self.addEventListener("install", event => {
       })
   );
 
-  self.skipWaiting();
+  self.skipWaiting(); // 🔥 activa inmediatamente
 });
 
 /* ===== ACTIVATE ===== */
-
 self.addEventListener("activate", event => {
-  console.log("🔥 Service Worker activo");
+  console.log("🔥 SW activo");
 
   event.waitUntil(
     caches.keys().then(keys => {
@@ -44,36 +42,38 @@ self.addEventListener("activate", event => {
     })
   );
 
-  self.clients.claim();
+  self.clients.claim(); // 🔥 toma control inmediato
 });
 
-/* ===== FETCH (FIX ERROR + PWA) ===== */
-
+/* ===== FETCH (NETWORK FIRST) ===== */
 self.addEventListener("fetch", event => {
 
-  // 🔥 IGNORAR REQUESTS EXTERNAS (API, CDNs, etc)
   if (!event.request.url.startsWith(self.location.origin)) {
     return;
   }
 
   event.respondWith(
 
-    caches.match(event.request)
-      .then(response => {
+    fetch(event.request)
+      .then(networkResponse => {
 
-        if (response) {
-          return response;
-        }
+        return caches.open(CACHE_NAME).then(cache => {
+          cache.put(event.request, networkResponse.clone());
+          return networkResponse;
+        });
 
-        return fetch(event.request)
-          .catch(() => {
+      })
+      .catch(() => {
 
-            // 🔥 SI FALLA RED (OFFLINE)
-            if (event.request.mode === "navigate") {
-              return caches.match("/dashboard.html");
-            }
+        return caches.match(event.request).then(response => {
 
-          });
+          if (response) return response;
+
+          if (event.request.mode === "navigate") {
+            return caches.match("/dashboard.html");
+          }
+
+        });
 
       })
 
@@ -81,7 +81,7 @@ self.addEventListener("fetch", event => {
 
 });
 
-/* ================= PUSH EVENT ================= */
+/* ================= PUSH ================= */
 
 self.addEventListener("push", event => {
 
@@ -93,14 +93,17 @@ self.addEventListener("push", event => {
 
   event.waitUntil(
 
-    self.registration.showNotification(data.title || "Nueva notificación", {
-      body: data.body || "",
-      icon: "/icon-192.png",
-      badge: "/icon-192.png",
-      data: {
-        taskId: data.taskId || null
+    self.registration.showNotification(
+      data.title || "Nueva notificación",
+      {
+        body: data.body || "",
+        icon: "/icon-192.png",
+        badge: "/icon-192.png",
+        data: {
+          taskId: data.taskId || null
+        }
       }
-    })
+    )
 
   );
 
