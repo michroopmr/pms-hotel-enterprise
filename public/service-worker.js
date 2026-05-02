@@ -1,7 +1,7 @@
 /* ================= MOLLYHELPERS SERVICE WORKER ================= */
 
 /* ===== VERSION ===== */
-const CACHE_NAME = "molly-v29";
+const CACHE_NAME = "molly-v30";
 
 /* ===== ARCHIVOS BASE ===== */
 const urlsToCache = [

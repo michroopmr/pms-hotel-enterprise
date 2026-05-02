@@ -1236,6 +1236,11 @@ async function asegurarPush(){
 
   try{
 
+    if (!('serviceWorker' in navigator)) {
+      console.warn("⚠️ Service Worker no disponible");
+      return;
+    }
+
     let permission = Notification.permission;
 
     if(permission !== "granted"){
@@ -1259,12 +1264,25 @@ async function asegurarPush(){
         applicationServerKey: urlBase64ToUint8Array("BFCjuIrtlaAGysbjuC1YpFH3YZfEL9KNGNMsmqyVdQRHdmYG6g8QcD8qcziJNiPk2ETcC66Esa-K5y_eVqhQ-D4")
       });
 
-      await guardarSub(sub);
+      const oldEndpoint = localStorage.getItem("push_endpoint");
+
+      if(!oldEndpoint || oldEndpoint !== sub.endpoint){
+        await guardarSub(sub);
+        localStorage.setItem("push_endpoint", sub.endpoint);
+      }
 
     }else{
 
       console.log("✅ Ya existe suscripción");
-      await guardarSub(sub);
+
+      const oldEndpoint = localStorage.getItem("push_endpoint");
+
+      if(!oldEndpoint || oldEndpoint !== sub.endpoint){
+        await guardarSub(sub);
+        localStorage.setItem("push_endpoint", sub.endpoint);
+      }else{
+        console.log("🔁 Suscripción ya registrada, no se envía");
+      }
 
     }
 
@@ -1274,6 +1292,23 @@ async function asegurarPush(){
 
 }
 
+
+async function guardarSub(sub){
+
+  try{
+
+    await secureFetch(`${API}/save-subscription`, {
+      method: "POST",
+      body: JSON.stringify({ subscription: sub })
+    });
+
+    console.log("✅ Suscripción enviada al backend");
+
+  }catch(err){
+    console.error("❌ Error guardando suscripción:", err);
+  }
+
+}
 // ================= CONFIG =================
 window.addEventListener("beforeunload", ()=>{
   if(socket){
@@ -1297,6 +1332,7 @@ if(token && user){
   iniciarSocket();
   asegurarPush();
   cargarUsuarios();
+  asegurarPush();
 }
 
 // 🔥 AUTO-UPDATE SEGURO
