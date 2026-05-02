@@ -1,9 +1,9 @@
 /* ================= MOLLYHELPERS SERVICE WORKER ================= */
 
-/* ===== VERSION ===== */
-const CACHE_NAME = "molly-v31";
+/* ===== CACHE CONFIG ===== */
 
-/* ===== ARCHIVOS BASE ===== */
+const CACHE_NAME = "molly-v32";
+
 const urlsToCache = [
   "/",
   "/dashboard.html",
@@ -11,8 +11,9 @@ const urlsToCache = [
 ];
 
 /* ===== INSTALL ===== */
+
 self.addEventListener("install", event => {
-  console.log("🔥 SW instalado");
+  console.log("🔥 Service Worker instalado");
 
   event.waitUntil(
     caches.open(CACHE_NAME)
@@ -22,12 +23,13 @@ self.addEventListener("install", event => {
       })
   );
 
-  self.skipWaiting(); // 🔥 activa inmediatamente
+  self.skipWaiting();
 });
 
 /* ===== ACTIVATE ===== */
+
 self.addEventListener("activate", event => {
-  console.log("🔥 SW activo");
+  console.log("🔥 Service Worker activo");
 
   event.waitUntil(
     caches.keys().then(keys => {
@@ -42,56 +44,115 @@ self.addEventListener("activate", event => {
     })
   );
 
-  self.clients.claim(); // 🔥 toma control inmediato
+  self.clients.claim();
 });
 
-/* ===== FETCH (NETWORK FIRST - FIX COMPLETO) ===== */
+/* ===== FETCH (FIX ERROR + PWA) ===== */
+
 self.addEventListener("fetch", event => {
 
-  // 🔥 SOLO MISMO ORIGEN
+  // 🔥 IGNORAR REQUESTS EXTERNAS (API, CDNs, etc)
   if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
-
-  // 🔥 SOLO GET (evita errores con POST/PUT)
-  if (event.request.method !== "GET") {
     return;
   }
 
   event.respondWith(
 
-    fetch(event.request)
-      .then(networkResponse => {
+    caches.match(event.request)
+      .then(response => {
 
-        // 🔥 VALIDAR RESPUESTA
-        if (!networkResponse || networkResponse.status !== 200 || networkResponse.type !== "basic") {
-          return networkResponse;
+        if (response) {
+          return response;
         }
 
-        const responseClone = networkResponse.clone();
+        return fetch(event.request)
+          .catch(() => {
 
-        caches.open(CACHE_NAME).then(cache => {
-          cache.put(event.request, responseClone);
-        });
+            // 🔥 SI FALLA RED (OFFLINE)
+            if (event.request.mode === "navigate") {
+              return caches.match("/dashboard.html");
+            }
 
-        return networkResponse;
-
-      })
-      .catch(() => {
-
-        return caches.match(event.request).then(response => {
-
-          if (response) return response;
-
-          // 🔥 fallback navegación
-          if (event.request.mode === "navigate") {
-            return caches.match("/dashboard.html");
-          }
-
-        });
+          });
 
       })
 
   );
+
+});
+
+/* ================= PUSH EVENT ================= */
+
+self.addEventListener("push", event => {
+
+  console.log("📩 Push recibido");
+
+  if (!event.data) return;
+
+  const data = event.data.json();
+
+  event.waitUntil(
+
+    self.registration.showNotification(data.title || "Nueva notificación", {
+      body: data.body || "",
+      icon: "/icon-192.png",
+      badge: "/icon-192.png",
+      data: {
+        taskId: data.taskId || null
+      }
+    })
+
+  );
+
+});
+
+/* ================= CLICK NOTIFICATION ================= */
+
+self.addEventListener("notificationclick", event => {
+
+  event.notification.close();
+
+  const taskId = event.notification.data?.taskId;
+
+  event.waitUntil(
+
+    clients.matchAll({
+      type: "window",
+      includeUncontrolled: true
+    })
+    .then(clientList => {
+
+      for (const client of clientList) {
+
+        if (client.url.includes("dashboard.html")) {
+
+          client.focus();
+
+          if (taskId) {
+            client.postMessage({
+              type: "OPEN_TASK",
+              taskId: taskId
+            });
+          }
+
+          return;
+        }
+      }
+
+      return clients.openWindow("/dashboard.html");
+
+    })
+
+  );
+
+});
+
+/* ================= MESSAGE ================= */
+
+self.addEventListener("message", event => {
+
+  if (event.data === "skipWaiting") {
+    self.skipWaiting();
+  }
 
 });
