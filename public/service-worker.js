@@ -2,7 +2,7 @@
 
 /* ===== CACHE CONFIG ===== */
 
-const CACHE_NAME = "molly-v112";
+const CACHE_NAME = "molly-v114";
 
 const urlsToCache = [
   "/",
@@ -103,6 +103,7 @@ self.addEventListener("push", event => {
       body: data.body || "",
       icon: "/icon-192.png",
       badge: "/icon-192.png",
+      sound: data.sound || "default", // 🔥 CLAVE
       data: {
         taskId: data.taskId || null
       }
