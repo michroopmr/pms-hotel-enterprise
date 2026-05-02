@@ -3603,7 +3603,7 @@ function iniciarSocket(){
 
   // 🔥 limpiar socket previo
   if(socket){
-    socket.off(); // 🔥 limpia listeners (CLAVE)
+    socket.off();
     socket.disconnect();
     socket = null;
   }
@@ -3647,11 +3647,8 @@ function iniciarSocket(){
 
   // ================= ONLINE USERS =================
   socket.on("online_users_update", (users)=>{
-
     console.log("🟢 Usuarios online:", users);
-
     actualizarUsuariosOnline(users);
-
   });
 
   // ================= COMENTARIOS =================
@@ -3668,13 +3665,87 @@ function iniciarSocket(){
 
   });
 
+  // ================= TASK UPDATE =================
+  socket.on("task_update",(payload)=>{
+
+    if(!payload) return;
+
+    const currentUser = JSON.parse(
+      localStorage.getItem("user")
+    );
+
+    const rolesFullAccess = [
+      "admin",
+      "recepcion",
+      "sistemas"
+    ];
+
+    const puedeVerTodo = rolesFullAccess.includes(
+      currentUser.role
+    );
+
+    const puedeVerDepartamento =
+      currentUser.role === "operador" &&
+      payload.department === currentUser.department;
+
+    if(!puedeVerTodo && !puedeVerDepartamento){
+      return;
+    }
+
+    const visible =
+      document.visibilityState === "visible";
+
+    if(visible){
+      mostrarAlerta(payload);
+    }
+
+    const payloadId = String(payload.id);
+
+    const existe = tareas.some(
+      t => String(t.id) === payloadId
+    );
+
+    if(existe){
+
+      tareas = tareas.map(t =>
+        String(t.id) === payloadId
+          ? { ...t, ...payload }
+          : t
+      );
+
+    } else {
+
+      tareas.unshift(payload);
+
+      if(visible){
+
+        if(audioUnlocked){
+          reproducirAlerta(); // 🔥 sonido solo aquí
+        } else {
+          console.log("🔇 audio bloqueado aún");
+        }
+
+        activarNotificacionVisual();
+        mostrarNotificacionSistema(payload);
+      }
+    }
+
+    if(payload.status === "terminado"){
+      render();
+    }else{
+      renderTareaIndividual(payload);
+    }
+
+    cargarKPIs();
+
+  });
+
   // ================= DISCONNECT =================
   socket.on("disconnect", (reason)=>{
     console.log("🔴 Socket desconectado:", reason);
   });
 
-}
-function actualizarUsuariosOnline(onlineUsers){
+}function actualizarUsuariosOnline(onlineUsers){
 
   const contenedor = document.getElementById("usuariosOnlineLista");
 
