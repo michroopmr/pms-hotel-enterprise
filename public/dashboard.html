@@ -1231,6 +1231,7 @@ let audioEnabled = true; // 🔥 CAMBIO CLAVE
 let audioUnlocked = false; // 🔥 NUEVO
 let socket = null;
 let listaUsuarios = [];
+let pendingSound = false;
 
 // ================= PUSH =================
 async function asegurarPush(){
@@ -2948,10 +2949,18 @@ function unlockAudio(){
       audio.pause();
       audio.currentTime = 0;
       audioUnlocked = true;
-      console.log("🔓 Audio desbloqueado");
+console.log("🔓 Audio desbloqueado");
+
+if(pendingSound){
+  console.log("🔔 reproduciendo sonido pendiente");
+  reproducirAlerta();
+  pendingSound = false;
+}
+      
     })
     .catch(()=>{});
 }
+
 document.addEventListener("pointerdown", () => {
   unlockAudio();
   console.log("🔓 intento unlock");
@@ -3851,10 +3860,11 @@ function iniciarSocket(){
       if(visible){
 
         if(audioUnlocked){
-          reproducirAlerta(); // 🔥 SOLO AQUÍ suena
-        } else {
-          console.log("🔇 audio bloqueado aún");
-        }
+  reproducirAlerta();
+} else {
+  console.log("🔇 audio bloqueado aún");
+  pendingSound = true; // 🔥 AQUÍ
+}
 
         activarNotificacionVisual();
         mostrarNotificacionSistema(payload);
