@@ -3496,13 +3496,14 @@ function iniciarSocket(){
 
   });
 
-}async function guardarSub(sub){
+}
+async function guardarSub(sub){
 
   const token = localStorage.getItem("token");
 
   try{
 
-    await fetch(API + "/push/subscribe",{
+    await fetch(API + "/save-subscription",{
       method:"POST",
       headers:{
         "Content-Type":"application/json",
