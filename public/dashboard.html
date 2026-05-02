@@ -3723,123 +3723,110 @@ window.addEventListener("load", ()=>{
  aplicarPermisos();
 });
 
-function reproducirAlerta(){
+function iniciarSocket(){
 
- if(!audioEnabled) return; // 🔥 CLAVE
-
- const audio = document.getElementById("alertSound");
-
- if(!audio) return;
-
- audio.currentTime = 0;
- audio.play().catch(()=>{});
-
-}
-let audioUnlocked = false;
-
-function unlockAudio(){
-
- if(audioUnlocked) return;
-
- const audio = document.getElementById("alertSound");
-
- if(!audio) return;
-
- audio.play()
-  .then(()=>{
-    audio.pause();
-    audio.currentTime = 0;
-    audioUnlocked = true;
-    console.log("🔓 Audio desbloqueado");
-  })
-  .catch(()=>{});
-
-}
-socket.on("task_update",(payload)=>{
-
-  if(!payload) return;
-
-  const currentUser = JSON.parse(
-    localStorage.getItem("user")
-  );
-
-  if(typeof payload.comments === "string"){
-    try{
-      payload.comments = JSON.parse(payload.comments);
-    }catch(e){}
+  if(socket){
+    socket.off();
+    socket.disconnect();
+    socket = null;
   }
 
-  // 🔒 FILTRO POR DEPARTAMENTO
-  const rolesFullAccess = [
-    "admin",
-    "recepcion",
-    "sistemas"
-  ];
+  const token = localStorage.getItem("token");
+  if(!token) return;
 
-  const puedeVerTodo = rolesFullAccess.includes(
-    currentUser.role
-  );
+  socket = io(API,{
+    auth:{ token },
+    query:{ department: user?.department || "" },
+    reconnection:true
+  });
 
-  const puedeVerDepartamento =
-    currentUser.role === "operador" &&
-    payload.department === currentUser.department;
+  socket.on("connect", () => {
+    console.log("🔥 SOCKET CONECTADO:", socket.id);
+  });
 
-  if(!puedeVerTodo && !puedeVerDepartamento){
-    console.log(
-      "⛔ tarea bloqueada por departamento:",
-      payload.department
-    );
-    return;
-  }
+  // 🔥 👉 MOVER ESTO AQUÍ
+  socket.on("task_update",(payload)=>{
 
-  const visible =
-    document.visibilityState === "visible";
+    if(!payload) return;
 
-  if(visible){
-    mostrarAlerta(payload);
-  }
-
-  const audio =
-    document.getElementById("alertSound");
-
-  if(visible && audio){
-    audio.play().catch(()=>{});
-  }
-
-  const payloadId = String(payload.id);
-
-  const existe = tareas.some(
-    t => String(t.id) === payloadId
-  );
-
-  if(existe){
-
-    tareas = tareas.map(t =>
-      String(t.id) === payloadId
-        ? { ...t, ...payload }
-        : t
+    const currentUser = JSON.parse(
+      localStorage.getItem("user")
     );
 
-  }else{
+    if(typeof payload.comments === "string"){
+      try{
+        payload.comments = JSON.parse(payload.comments);
+      }catch(e){}
+    }
 
-    tareas.unshift(payload);
+    const rolesFullAccess = [
+      "admin",
+      "recepcion",
+      "sistemas"
+    ];
+
+    const puedeVerTodo = rolesFullAccess.includes(
+      currentUser.role
+    );
+
+    const puedeVerDepartamento =
+      currentUser.role === "operador" &&
+      payload.department === currentUser.department;
+
+    if(!puedeVerTodo && !puedeVerDepartamento){
+      return;
+    }
+
+    const visible =
+      document.visibilityState === "visible";
 
     if(visible){
-      reproducirAlerta();
-      activarNotificacionVisual();
-      mostrarNotificacionSistema(payload);
+      mostrarAlerta(payload);
     }
-  }
 
-  if(payload.status === "terminado"){
-    render();
-  }else{
-    renderTareaIndividual(payload);
-  }
+    const audio =
+      document.getElementById("alertSound");
 
-  cargarKPIs();
+    if(visible && audio){
+      audio.play().catch(()=>{});
+    }
 
-});
+    const payloadId = String(payload.id);
+
+    const existe = tareas.some(
+      t => String(t.id) === payloadId
+    );
+
+    if(existe){
+
+      tareas = tareas.map(t =>
+        String(t.id) === payloadId
+          ? { ...t, ...payload }
+          : t
+      );
+
+    }else{
+
+      tareas.unshift(payload);
+
+      if(visible){
+        reproducirAlerta();
+        activarNotificacionVisual();
+        mostrarNotificacionSistema(payload);
+      }
+    }
+
+    if(payload.status === "terminado"){
+      render();
+    }else{
+      renderTareaIndividual(payload);
+    }
+
+    cargarKPIs();
+
+  });
+
+}
 function activarNotificacionVisual(){
 
  const badge = document.getElementById("badgeNotif");
