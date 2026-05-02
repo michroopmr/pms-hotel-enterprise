@@ -2,7 +2,7 @@
 
 /* ===== CACHE CONFIG ===== */
 
-const CACHE_NAME = "molly-v114";
+const CACHE_NAME = "molly-v116";
 
 const urlsToCache = [
   "/",
@@ -58,6 +58,15 @@ self.addEventListener("fetch", event => {
 
     fetch(event.request)
       .then(res => {
+
+        // 🔥 NO cachear respuestas parciales ni audio
+        if(
+          res.status === 206 ||
+          event.request.url.includes(".mp3") ||
+          event.request.url.includes(".wav")
+        ){
+          return res;
+        }
 
         const clone = res.clone();
 
