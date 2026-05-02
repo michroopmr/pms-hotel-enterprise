@@ -211,11 +211,11 @@ input:focus,textarea:focus,select:focus{
 
 /* BUTTON */
 
-button:not([class]) {
+button{
  padding:8px 12px;
  border:none;
  border-radius:8px;
-  background:#1c2130;
+ background:#2563eb;
  color:white;
  cursor:pointer;
  font-weight:500;
@@ -223,7 +223,7 @@ button:not([class]) {
 }
 
 button:hover{
- background:#1c2130;
+ background:#1d4ed8;
 }
 
 /* FOOTER */
@@ -271,8 +271,7 @@ footer{
 /* lista tareas estilo pro */
 
 #lista{
-  width:100%;
-  max-width:100%;
+ max-width:900px;
 }
 
 
@@ -675,14 +674,23 @@ footer{
   position: relative;
 }
 footer{
-  display: block;
+  display: block !important;
   min-height: 40px;
   padding: 10px;
   background: #ffffff;
   text-align: center;
-  border-top: 1px solid #ddd;
-}
 
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+
+  border-top: 1px solid #ddd;
+  z-index: 9999;
+}
+body{
+  padding-bottom: 60px;
+}
 .btn-dark{
   background:#111827;
   color:white;
@@ -697,24 +705,6 @@ footer{
 
 .btn-dark:hover{
   background:#1f2937;
-}
-.usuario-item.online .estado{
-  background: #22c55e;
-}
-
-.usuario-item.offline .estado{
-  background: #ef4444;
-}
-
-.estado{
-  width:10px;
-  height:10px;
-  border-radius:50%;
-  display:inline-block;
-  margin-left:6px;
-}
-#usuariosOnlineBox{
-  width:100%;
 }
 </style>
 
@@ -829,41 +819,20 @@ footer{
         <div class="card cerrado" onclick="aplicarFiltro('cerrado')">
           <div id="kC">0</div>Cerradas
         </div>
+
       </div>
 
-      <!-- 🔽 USUARIOS ACTIVOS (como card independiente) -->
-<div id="usuariosOnlineBox" style="
-  background:white;
-  padding:12px;
-  border-radius:10px;
-  margin-bottom:15px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.05);
-">
-
-  <div style="display:flex; justify-content:space-between; cursor:pointer;" onclick="toggleUsuarios()">
-    <strong>Usuarios activos</strong>
-    <span id="toggleIcon">▼</span>
-  </div>
-
-  <div id="usuariosOnlineLista" style="display:none; margin-top:10px;">
-    <div style="color:#888; font-size:12px;">
-      Click para ver usuarios activos
-    </div>
-  </div>
-
-</div>
-
-<!-- 🔽 ACTIVIDAD (SEPARADO, NO DENTRO) -->
 <div id="actividadDepto" style="
-  background:white;
-  padding:12px;
-  border-radius:10px;
-  margin-bottom:15px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.05);
+background:white;
+padding:12px;
+border-radius:10px;
+margin-bottom:15px;
+box-shadow:0 2px 8px rgba(0,0,0,0.05);
 ">
-  <h4 style="margin:0 0 10px 0;">Actividad por departamento</h4>
-  <div id="deptChart"></div>
+<h4 style="margin:0 0 10px 0;">Actividad por departamento</h4>
+<div id="deptChart"></div>
 </div>
+   <h3>Tareas</h3>
 
 <!-- 🔥 NUEVO FILTRO HOY / TODAS -->
 <div style="margin-bottom:10px; display:flex; gap:10px;">
@@ -1226,22 +1195,13 @@ if(isAppMode){
 }
 
 /* ================= SESIÓN ================= */
-let user = null;
-let audioEnabled = true; // 🔥 CAMBIO CLAVE
-let audioUnlocked = false; // 🔥 NUEVO
+let user=null;
+let audioEnabled = false;
 let socket = null;
-let listaUsuarios = [];
-let pendingSound = false;
 
-// ================= PUSH =================
 async function asegurarPush(){
 
   try{
-
-    if (!('serviceWorker' in navigator)) {
-      console.warn("⚠️ Service Worker no disponible");
-      return;
-    }
 
     let permission = Notification.permission;
 
@@ -1259,32 +1219,23 @@ async function asegurarPush(){
 
     if(!sub){
 
-      console.log("📱 Creando suscripción...");
+      console.log("📱 Creando suscripción iOS...");
 
       sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array("BFCjuIrtlaAGysbjuC1YpFH3YZfEL9KNGNMsmqyVdQRHdmYG6g8QcD8qcziJNiPk2ETcC66Esa-K5y_eVqhQ-D4")
       });
 
-      const oldEndpoint = localStorage.getItem("push_endpoint");
+      console.log("📲 SUB:", sub);
 
-      if(!oldEndpoint || oldEndpoint !== sub.endpoint){
-        await guardarSub(sub);
-        localStorage.setItem("push_endpoint", sub.endpoint);
-      }
+      await guardarSub(sub);
 
     }else{
 
-      console.log("✅ Ya existe suscripción");
+      console.log("✅ Ya existe suscripción:", sub.endpoint);
 
-      const oldEndpoint = localStorage.getItem("push_endpoint");
-
-      if(!oldEndpoint || oldEndpoint !== sub.endpoint){
-        await guardarSub(sub);
-        localStorage.setItem("push_endpoint", sub.endpoint);
-      }else{
-        console.log("🔁 Suscripción ya registrada, no se envía");
-      }
+      // 🔥 asegura sincronización con backend
+      await guardarSub(sub);
 
     }
 
@@ -1293,31 +1244,13 @@ async function asegurarPush(){
   }
 
 }
-
-
-async function guardarSub(sub){
-
-  try{
-
-    await secureFetch(`${API}/save-subscription`, {
-      method: "POST",
-      body: JSON.stringify({ subscription: sub })
-    });
-
-    console.log("✅ Suscripción enviada al backend");
-
-  }catch(err){
-    console.error("❌ Error guardando suscripción:", err);
-  }
-
-}
-// ================= CONFIG =================
+// 🔥 PROTECCIÓN GLOBAL (evita sockets vivos al salir)
 window.addEventListener("beforeunload", ()=>{
   if(socket){
     socket.disconnect();
   }
 });
-
+// 🔥 AGREGA AQUÍ
 const API = "https://pms-hotel-enterprise.onrender.com";
 
 const saved = localStorage.getItem("user");
@@ -1329,55 +1262,10 @@ if(!localStorage.getItem("token")){
 
 const token = localStorage.getItem("token");
 
-// 🔥 AUTO-UPDATE SEGURO (ESTO SE QUEDA FUERA)
-if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.addEventListener("controllerchange", () => {
-    console.log("🔄 Nueva versión detectada, recargando...");
-    window.location.reload();
-  });
+if(token && user){
+  iniciarSocket();
+  asegurarPush(); // 🔥 ESTA ES LA CLAVE
 }
-
-// ================= DOM READY =================
-document.addEventListener("DOMContentLoaded", ()=>{
-
-  // ================= INIT =================
-  if(token && user){
-    iniciarSocket();
-    cargarUsuarios();
-    asegurarPush(); // 🔥 AHORA SÍ EN EL MOMENTO CORRECTO
-  }
-
-  // ================= UI USUARIOS =================
-  const box = document.getElementById("usuariosOnlineBox");
-  const lista = document.getElementById("usuariosOnlineLista");
-  const icon = document.getElementById("toggleIcon");
-
-  let abierto = false;
-
-  if(box && lista && icon){
-
-    box.addEventListener("click", (e)=>{
-
-      e.stopPropagation();
-
-      abierto = !abierto;
-
-      lista.style.display = abierto ? "block" : "none";
-      icon.innerText = abierto ? "▲" : "▼";
-
-    });
-
-    document.addEventListener("click", ()=>{
-      lista.style.display = "none";
-      icon.innerText = "▼";
-      abierto = false;
-    });
-
-  }
-
-});
-
-// ================= VISIBILITY =================
 document.addEventListener("visibilitychange", () => {
 
   console.log("👁 visibility:", document.hidden);
@@ -1388,34 +1276,24 @@ document.addEventListener("visibilitychange", () => {
   }
 
   if(document.hidden){
+
     console.log("📴 App en segundo plano");
     socket.emit("app_background", user.department);
+
   }else{
+
     console.log("📱 App activa");
     socket.emit("app_foreground", user.department);
+
   }
 
 });
-
-// ================= HEARTBEAT =================
 setInterval(()=>{
-  if(socket){
-    socket.emit("heartbeat"); // 🔥 limpio
+  if(socket && user?.department){
+    socket.emit("heartbeat", user.department);
   }
 }, 10000);
-function toggleUsuarios(){
 
-  const lista = document.getElementById("usuariosOnlineLista");
-  const icon = document.getElementById("toggleIcon");
-
-  if(!lista || !icon) return;
-
-  const visible = lista.style.display === "block";
-
-  lista.style.display = visible ? "none" : "block";
-  icon.innerText = visible ? "▼" : "▲";
-
-}
 function aplicarPermisos(){
 
  if(!user) return;
@@ -1433,6 +1311,7 @@ function aplicarPermisos(){
  }
 
  if(user.role === "sistemas"){
+   cargarUsuarios();
  }
 
  // 🔥 CONTROL RESET DEMO (AQUÍ VA)
@@ -1507,7 +1386,6 @@ let modoFecha = "today"; // 🔥 AQUÍ
 let logoCloudData = null;
 let alertasDisparadas = {};
 let contadorNotificaciones = 0;
-
 
 async function cargarDepartamentos(){
 
@@ -2872,32 +2750,30 @@ function cambiarPassword(){
 
 async function cargarUsuarios(){
 
-  const res = await secureFetch(`${API}/users`);
-  if(!res) return;
+ const res = await secureFetch(`${API}/users`);
+ if(!res) return;
 
-  const usuarios = await res.json();
+ const usuarios = await res.json();
 
-  listaUsuarios = usuarios; // 🔥 ESTA ES LA CLAVE
+ const cont = document.getElementById("listaUsuarios");
+ cont.innerHTML = "";
 
-  const cont = document.getElementById("listaUsuarios");
-  cont.innerHTML = "";
+ usuarios.forEach(u=>{
 
-  usuarios.forEach(u=>{
-
-    cont.innerHTML += `
-      <tr>
-        <td>${u.username}</td>
-        <td>${u.role}</td>
-        <td>${u.department || "-"}</td>
-        <td>
-          <button onclick="borrarUsuario(${u.id})"
-                  style="background:#c0392b;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer;">
-            ❌
-          </button>
-        </td>
-      </tr>
-    `;
-  });
+   cont.innerHTML += `
+     <tr>
+       <td>${u.username}</td>
+       <td>${u.role}</td>
+       <td>${u.department || "-"}</td>
+       <td>
+         <button onclick="borrarUsuario(${u.id})"
+                 style="background:#c0392b;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer;">
+           ❌
+         </button>
+       </td>
+     </tr>
+   `;
+ });
 
 }
 
@@ -2938,51 +2814,7 @@ function obtenerTareasVisibles(){
     return true;
   });
 }
-function unlockAudio(){
-  if(audioUnlocked) return;
 
-  const audio = document.getElementById("alertSound");
-  if(!audio) return;
-
-  audio.play()
-    .then(()=>{
-      audio.pause();
-      audio.currentTime = 0;
-      audioUnlocked = true;
-console.log("🔓 Audio desbloqueado");
-
-if(pendingSound){
-  console.log("🔔 reproduciendo sonido pendiente");
-  reproducirAlerta();
-  pendingSound = false;
-}
-      
-    })
-    .catch(()=>{});
-}
-
-document.addEventListener("pointerdown", () => {
-  unlockAudio();
-  console.log("🔓 intento unlock");
-}, { once: true });
-
-function reproducirAlerta(){
-
-  if(!audioEnabled || !audioUnlocked) return; // 🔥 ESTA LÍNEA ES LA CLAVE
-
-  const audio = document.getElementById("alertSound");
-  if(!audio) return;
-
-  audio.currentTime = 0;
-  audio.play().catch(()=>{});
-}
-
-window.unlockAudio = unlockAudio;
-window.reproducirAlerta = reproducirAlerta;
-
-document.addEventListener("pointerdown", unlockAudio, { once: true }); // 🔥 ESTA ES LA CLAVE
-document.addEventListener("touchstart", unlockAudio, { once: true });
-document.addEventListener("keydown", unlockAudio, { once: true });
 /* ================= EXPORT ================= */
 function exportarPDF(){
 
@@ -3603,7 +3435,6 @@ function iniciarSocket(){
 
   // 🔥 limpiar socket previo
   if(socket){
-    socket.off();
     socket.disconnect();
     socket = null;
   }
@@ -3618,10 +3449,9 @@ function iniciarSocket(){
   socket = io(API,{
     auth:{ token },
     query:{ department: user?.department || "" },
-    reconnection:true
+    reconnection:false
   });
 
-  // ================= CONNECT =================
   socket.on("connect", () => {
 
     console.log("🔥 SOCKET CONECTADO:", socket.id);
@@ -3633,25 +3463,17 @@ function iniciarSocket(){
       console.log("🟢 Unido a canal:", "admin_" + company_code);
     }
 
-    // 🔥 sync estado app
+    // 🔥 ESTE ES EL FIX IMPORTANTE
     if(document.hidden){
+      console.log("📴 Sync inicial: background");
       socket.emit("app_background", user.department);
     }else{
+      console.log("📱 Sync inicial: foreground");
       socket.emit("app_foreground", user.department);
     }
 
-    // 🔥 marcar como activo inmediatamente
-    socket.emit("heartbeat");
-
   });
 
-  // ================= ONLINE USERS =================
-  socket.on("online_users_update", (users)=>{
-    console.log("🟢 Usuarios online:", users);
-    actualizarUsuariosOnline(users);
-  });
-
-  // ================= COMENTARIOS =================
   socket.on("comentarioAgregado", data => {
 
     if(!localStorage.getItem("token")) return;
@@ -3665,102 +3487,6 @@ function iniciarSocket(){
 
   });
 
-  // ================= TASK UPDATE =================
-socket.on("task_update",(payload)=>{
-
-  if(!payload) return;
-
-  console.log("📩 task_update recibido:", payload); // 🔥 DEBUG
-
-  const payloadId = String(payload.id);
-
-  const existe = tareas.some(
-    t => String(t.id) === payloadId
-  );
-
-  const visible =
-    document.visibilityState === "visible";
-
-  if(existe){
-
-    tareas = tareas.map(t =>
-      String(t.id) === payloadId
-        ? { ...t, ...payload }
-        : t
-    );
-
-    renderTareaIndividual(payload);
-
-  } else {
-
-    tareas.unshift(payload);
-
-    if(visible){
-
-      if(audioUnlocked){
-        reproducirAlerta();
-      } else {
-        pendingSound = true;
-      }
-
-      activarNotificacionVisual();
-      mostrarNotificacionSistema(payload);
-    }
-
-    render(); // 🔥 SOLO PARA NUEVAS
-  }
-
-  cargarKPIs();
-
-});
-
-  // ================= DISCONNECT =================
-  socket.on("disconnect", (reason)=>{
-    console.log("🔴 Socket desconectado:", reason);
-  });
-
-}function actualizarUsuariosOnline(onlineUsers){
-
-  const contenedor = document.getElementById("usuariosOnlineLista");
-
-  if(!contenedor) return;
-
-  // 🔥 fallback si no existe listaUsuarios
-  if(!Array.isArray(listaUsuarios)){
-    console.warn("⚠️ listaUsuarios no disponible");
-    
-    contenedor.innerHTML = onlineUsers.map(id => `
-      <div>Usuario ${id} 🟢</div>
-    `).join("");
-
-    return;
-  }
-
-  let html = "";
-
-  listaUsuarios.forEach(u => {
-
-    const activo = onlineUsers.includes(String(u.id));
-
-    html += `
-      <div style="
-        display:flex;
-        justify-content:space-between;
-        padding:6px 0;
-        border-bottom:1px solid #eee;
-      ">
-        <span>${u.username}</span>
-        <span style="
-          width:10px;
-          height:10px;
-          border-radius:50%;
-          background:${activo ? "#22c55e" : "#ef4444"};
-        "></span>
-      </div>
-    `;
-  });
-
-  contenedor.innerHTML = html;
 }
 async function logout(){
 
@@ -3814,121 +3540,123 @@ window.addEventListener("load", ()=>{
  aplicarPermisos();
 });
 
-function iniciarSocket(){
+function reproducirAlerta(){
 
-  if(socket){
-    socket.off();
-    socket.disconnect();
-    socket = null;
+ if(!audioEnabled) return; // 🔥 CLAVE
+
+ const audio = document.getElementById("alertSound");
+
+ if(!audio) return;
+
+ audio.currentTime = 0;
+ audio.play().catch(()=>{});
+
+}
+let audioUnlocked = false;
+
+function unlockAudio(){
+
+ if(audioUnlocked) return;
+
+ const audio = document.getElementById("alertSound");
+
+ if(!audio) return;
+
+ audio.play()
+  .then(()=>{
+    audio.pause();
+    audio.currentTime = 0;
+    audioUnlocked = true;
+    console.log("🔓 Audio desbloqueado");
+  })
+  .catch(()=>{});
+
+}
+socket.on("task_update",(payload)=>{
+
+  if(!payload) return;
+
+  const currentUser = JSON.parse(
+    localStorage.getItem("user")
+  );
+
+  if(typeof payload.comments === "string"){
+    try{
+      payload.comments = JSON.parse(payload.comments);
+    }catch(e){}
   }
 
-  const token = localStorage.getItem("token");
-  if(!token) return;
+  // 🔒 FILTRO POR DEPARTAMENTO
+  const rolesFullAccess = [
+    "admin",
+    "recepcion",
+    "sistemas"
+  ];
 
-  socket = io(API,{
-    auth:{ token },
-    query:{ department: user?.department || "" },
-    reconnection:true
-  });
+  const puedeVerTodo = rolesFullAccess.includes(
+    currentUser.role
+  );
 
-  socket.on("connect", () => {
-    console.log("🔥 SOCKET CONECTADO:", socket.id);
-  });
+  const puedeVerDepartamento =
+    currentUser.role === "operador" &&
+    payload.department === currentUser.department;
 
-  /* ================= TASK UPDATE ================= */
+  if(!puedeVerTodo && !puedeVerDepartamento){
+    console.log(
+      "⛔ tarea bloqueada por departamento:",
+      payload.department
+    );
+    return;
+  }
 
-  socket.on("task_update",(payload)=>{
+  const visible =
+    document.visibilityState === "visible";
 
-    if(!payload) return;
+  if(visible){
+    mostrarAlerta(payload);
+  }
 
-    const currentUser = JSON.parse(
-      localStorage.getItem("user")
+  const audio =
+    document.getElementById("alertSound");
+
+  if(visible && audio){
+    audio.play().catch(()=>{});
+  }
+
+  const payloadId = String(payload.id);
+
+  const existe = tareas.some(
+    t => String(t.id) === payloadId
+  );
+
+  if(existe){
+
+    tareas = tareas.map(t =>
+      String(t.id) === payloadId
+        ? { ...t, ...payload }
+        : t
     );
 
-    if(typeof payload.comments === "string"){
-      try{
-        payload.comments = JSON.parse(payload.comments);
-      }catch(e){}
-    }
+  }else{
 
-    /* ===== PERMISOS ===== */
-
-    const rolesFullAccess = [
-      "admin",
-      "recepcion",
-      "sistemas"
-    ];
-
-    const puedeVerTodo = rolesFullAccess.includes(
-      currentUser.role
-    );
-
-    const puedeVerDepartamento =
-      currentUser.role === "operador" &&
-      payload.department === currentUser.department;
-
-    if(!puedeVerTodo && !puedeVerDepartamento){
-      return;
-    }
-
-    const visible =
-      document.visibilityState === "visible";
+    tareas.unshift(payload);
 
     if(visible){
-      mostrarAlerta(payload);
+      reproducirAlerta();
+      activarNotificacionVisual();
+      mostrarNotificacionSistema(payload);
     }
+  }
 
-    console.log("🔥 EVENTO RECIBIDO");
+  if(payload.status === "terminado"){
+    render();
+  }else{
+    renderTareaIndividual(payload);
+  }
 
-    const payloadId = String(payload.id);
+  cargarKPIs();
 
-    const existe = tareas.some(
-      t => String(t.id) === payloadId
-    );
-
-    /* ===== UPDATE ===== */
-
-    if(existe){
-
-      tareas = tareas.map(t =>
-        String(t.id) === payloadId
-          ? { ...t, ...payload }
-          : t
-      );
-
-    } 
-    /* ===== NUEVA TAREA ===== */
-    else{
-
-      tareas.unshift(payload);
-
-      if(visible){
-
-        if(audioUnlocked){
-  reproducirAlerta();
-} else {
-  console.log("🔇 audio bloqueado aún");
-  pendingSound = true; // 🔥 AQUÍ
-}
-
-        activarNotificacionVisual();
-        mostrarNotificacionSistema(payload);
-      }
-    }
-
-    /* ===== RENDER ===== */
-
-    if(payload.status === "terminado"){
-      render();
-    }else{
-      renderTareaIndividual(payload);
-    }
-
-    cargarKPIs();
-
-  });
-
-}
+});
 function activarNotificacionVisual(){
 
  const badge = document.getElementById("badgeNotif");
@@ -3941,7 +3669,16 @@ if(audioEnabled && "vibrate" in navigator){
   navigator.vibrate([200,100,200]);
 }
 }
-
+document.addEventListener("click",()=>{
+  audioEnabled = true;
+ const audio = document.getElementById("alertSound");
+ if(audio){
+   audio.play().then(()=>{
+     audio.pause();
+     audio.currentTime=0;
+   }).catch(()=>{});
+ }
+},{once:true});
 
 document.addEventListener("pointerdown", unlockAudio);
 document.addEventListener("touchstart", unlockAudio);
