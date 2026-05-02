@@ -2952,6 +2952,10 @@ function unlockAudio(){
     })
     .catch(()=>{});
 }
+document.addEventListener("pointerdown", () => {
+  unlockAudio();
+  console.log("🔓 intento unlock");
+}, { once: true });
 
 function reproducirAlerta(){
 
@@ -3777,7 +3781,8 @@ function iniciarSocket(){
     console.log("🔥 SOCKET CONECTADO:", socket.id);
   });
 
-  // 🔥 👉 MOVER ESTO AQUÍ
+  /* ================= TASK UPDATE ================= */
+
   socket.on("task_update",(payload)=>{
 
     if(!payload) return;
@@ -3791,6 +3796,8 @@ function iniciarSocket(){
         payload.comments = JSON.parse(payload.comments);
       }catch(e){}
     }
+
+    /* ===== PERMISOS ===== */
 
     const rolesFullAccess = [
       "admin",
@@ -3817,18 +3824,15 @@ function iniciarSocket(){
       mostrarAlerta(payload);
     }
 
-    const audio =
-      document.getElementById("alertSound");
-
-    if(visible && audio){
-      audio.play().catch(()=>{});
-    }
+    console.log("🔥 EVENTO RECIBIDO");
 
     const payloadId = String(payload.id);
 
     const existe = tareas.some(
       t => String(t.id) === payloadId
     );
+
+    /* ===== UPDATE ===== */
 
     if(existe){
 
@@ -3838,16 +3842,26 @@ function iniciarSocket(){
           : t
       );
 
-    }else{
+    } 
+    /* ===== NUEVA TAREA ===== */
+    else{
 
       tareas.unshift(payload);
 
       if(visible){
-        reproducirAlerta();
+
+        if(audioUnlocked){
+          reproducirAlerta(); // 🔥 SOLO AQUÍ suena
+        } else {
+          console.log("🔇 audio bloqueado aún");
+        }
+
         activarNotificacionVisual();
         mostrarNotificacionSistema(payload);
       }
     }
+
+    /* ===== RENDER ===== */
 
     if(payload.status === "terminado"){
       render();
