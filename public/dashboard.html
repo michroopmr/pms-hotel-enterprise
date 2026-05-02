@@ -712,6 +712,9 @@ footer{
   display:inline-block;
   margin-left:6px;
 }
+#usuariosOnlineBox{
+  max-width: 250px;
+}
 </style>
 
 
@@ -825,6 +828,7 @@ footer{
         <div class="card cerrado" onclick="aplicarFiltro('cerrado')">
           <div id="kC">0</div>Cerradas
         </div>
+      </div>
 
       <div id="usuariosOnlineBox" style="
   background:white;
@@ -835,13 +839,10 @@ footer{
   cursor:pointer;
 ">
 
-  <div id="usuariosHeader" style="display:flex; justify-content:space-between;">
-    <strong>Usuarios activos</strong>
-    <span id="toggleIcon">▼</span>
+  <div id="usuariosOnlineLista" style="display:none; margin-top:10px;">
+  <div style="color:#888; font-size:12px;">
+    Click para ver usuarios activos
   </div>
-
-  <div id="usuariosOnlineLista" style="display:none; margin-top:10px;"></div>
-
 </div>
 
 <div id="actividadDepto" style="
