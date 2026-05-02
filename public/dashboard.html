@@ -1327,27 +1327,25 @@ if(!localStorage.getItem("token")){
 
 const token = localStorage.getItem("token");
 
-// ================= INIT =================
-if(token && user){
-  iniciarSocket();
-  asegurarPush();
-  cargarUsuarios();
-  asegurarPush();
-}
-
-// 🔥 AUTO-UPDATE SEGURO
+// 🔥 AUTO-UPDATE SEGURO (ESTO SE QUEDA FUERA)
 if ('serviceWorker' in navigator) {
-
   navigator.serviceWorker.addEventListener("controllerchange", () => {
     console.log("🔄 Nueva versión detectada, recargando...");
     window.location.reload();
   });
-
 }
 
-// ================= UI USUARIOS =================
+// ================= DOM READY =================
 document.addEventListener("DOMContentLoaded", ()=>{
 
+  // ================= INIT =================
+  if(token && user){
+    iniciarSocket();
+    cargarUsuarios();
+    asegurarPush(); // 🔥 AHORA SÍ EN EL MOMENTO CORRECTO
+  }
+
+  // ================= UI USUARIOS =================
   const box = document.getElementById("usuariosOnlineBox");
   const lista = document.getElementById("usuariosOnlineLista");
   const icon = document.getElementById("toggleIcon");
