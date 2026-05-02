@@ -663,10 +663,11 @@ await db.query(
 
 app.get("/users", authMiddleware, async (req,res)=>{
 
-  const result = await db.query(
-    "SELECT id, username, department FROM users WHERE company_id=$1",
-    [req.user.company_id]
-  );
+  const result = await db.query(`
+  SELECT id, username, department, role
+  FROM users
+  WHERE company_id=$1
+`);
 
   res.json(result.rows);
 
