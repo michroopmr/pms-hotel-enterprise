@@ -2,7 +2,7 @@
 
 /* ===== CACHE CONFIG ===== */
 
-const CACHE_NAME = "molly-v117";
+const CACHE_NAME = "molly-v118";
 
 const urlsToCache = [
   "/",
@@ -113,7 +113,10 @@ self.addEventListener("push", event => {
       body: data.body || "",
       icon: "/icon-192.png",
       badge: "/icon-192.png",
-      sound: "default", // 🔥 FORZADO
+      sound: "default",
+      renotify: true,
+      requireInteraction: true,
+      tag: "task-alert",
       data: {
         taskId: data.taskId || null
       }
@@ -121,7 +124,6 @@ self.addEventListener("push", event => {
   );
 
 });
-
 /* ================= CLICK NOTIFICATION ================= */
 
 self.addEventListener("notificationclick", event => {
