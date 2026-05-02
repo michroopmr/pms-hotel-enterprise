@@ -3666,79 +3666,53 @@ function iniciarSocket(){
   });
 
   // ================= TASK UPDATE =================
-  socket.on("task_update",(payload)=>{
+socket.on("task_update",(payload)=>{
 
-    if(!payload) return;
+  if(!payload) return;
 
-    const currentUser = JSON.parse(
-      localStorage.getItem("user")
+  console.log("📩 task_update recibido:", payload); // 🔥 DEBUG
+
+  const payloadId = String(payload.id);
+
+  const existe = tareas.some(
+    t => String(t.id) === payloadId
+  );
+
+  const visible =
+    document.visibilityState === "visible";
+
+  if(existe){
+
+    tareas = tareas.map(t =>
+      String(t.id) === payloadId
+        ? { ...t, ...payload }
+        : t
     );
 
-    const rolesFullAccess = [
-      "admin",
-      "recepcion",
-      "sistemas"
-    ];
+    renderTareaIndividual(payload);
 
-    const puedeVerTodo = rolesFullAccess.includes(
-      currentUser.role
-    );
+  } else {
 
-    const puedeVerDepartamento =
-      currentUser.role === "operador" &&
-      payload.department === currentUser.department;
-
-    if(!puedeVerTodo && !puedeVerDepartamento){
-      return;
-    }
-
-    const visible =
-      document.visibilityState === "visible";
+    tareas.unshift(payload);
 
     if(visible){
-      mostrarAlerta(payload);
-    }
 
-    const payloadId = String(payload.id);
-
-    const existe = tareas.some(
-      t => String(t.id) === payloadId
-    );
-
-    if(existe){
-
-      tareas = tareas.map(t =>
-        String(t.id) === payloadId
-          ? { ...t, ...payload }
-          : t
-      );
-
-    } else {
-
-      tareas.unshift(payload);
-
-      if(visible){
-
-        if(audioUnlocked){
-          reproducirAlerta(); // 🔥 sonido solo aquí
-        } else {
-          console.log("🔇 audio bloqueado aún");
-        }
-
-        activarNotificacionVisual();
-        mostrarNotificacionSistema(payload);
+      if(audioUnlocked){
+        reproducirAlerta();
+      } else {
+        pendingSound = true;
       }
+
+      activarNotificacionVisual();
+      mostrarNotificacionSistema(payload);
     }
 
-    if(payload.status === "terminado"){
-      render();
-    }else{
-      renderTareaIndividual(payload);
-    }
+    render(); // 🔥 SOLO PARA NUEVAS
+  }
 
-    cargarKPIs();
+  cargarKPIs();
 
-  });
+});
 
   // ================= DISCONNECT =================
   socket.on("disconnect", (reason)=>{
