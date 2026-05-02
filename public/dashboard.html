@@ -826,16 +826,22 @@ footer{
           <div id="kC">0</div>Cerradas
         </div>
 
-      </div>
-<div id="usuariosOnlineBox" style="
+      <div id="usuariosOnlineBox" style="
   background:white;
   padding:12px;
   border-radius:10px;
   margin-bottom:15px;
   box-shadow:0 2px 8px rgba(0,0,0,0.05);
+  cursor:pointer;
 ">
-  <h4 style="margin:0 0 10px 0;">Usuarios activos</h4>
-  <div id="usuariosOnlineLista"></div>
+
+  <div id="usuariosHeader" style="display:flex; justify-content:space-between;">
+    <strong>Usuarios activos</strong>
+    <span id="toggleIcon">▼</span>
+  </div>
+
+  <div id="usuariosOnlineLista" style="display:none; margin-top:10px;"></div>
+
 </div>
 
 <div id="actividadDepto" style="
@@ -1211,10 +1217,12 @@ if(isAppMode){
 }
 
 /* ================= SESIÓN ================= */
-let user=null;
+let user = null;
 let audioEnabled = false;
 let socket = null;
+let listaUsuarios = []; // 🔥 GLOBAL
 
+// ================= PUSH =================
 async function asegurarPush(){
 
   try{
@@ -1235,22 +1243,18 @@ async function asegurarPush(){
 
     if(!sub){
 
-      console.log("📱 Creando suscripción iOS...");
+      console.log("📱 Creando suscripción...");
 
       sub = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array("BFCjuIrtlaAGysbjuC1YpFH3YZfEL9KNGNMsmqyVdQRHdmYG6g8QcD8qcziJNiPk2ETcC66Esa-K5y_eVqhQ-D4")
       });
 
-      console.log("📲 SUB:", sub);
-
       await guardarSub(sub);
 
     }else{
 
-      console.log("✅ Ya existe suscripción:", sub.endpoint);
-
-      // 🔥 asegura sincronización con backend
+      console.log("✅ Ya existe suscripción");
       await guardarSub(sub);
 
     }
@@ -1260,13 +1264,14 @@ async function asegurarPush(){
   }
 
 }
-// 🔥 PROTECCIÓN GLOBAL (evita sockets vivos al salir)
+
+// ================= CONFIG =================
 window.addEventListener("beforeunload", ()=>{
   if(socket){
     socket.disconnect();
   }
 });
-// 🔥 AGREGA AQUÍ
+
 const API = "https://pms-hotel-enterprise.onrender.com";
 
 const saved = localStorage.getItem("user");
@@ -1278,22 +1283,49 @@ if(!localStorage.getItem("token")){
 
 const token = localStorage.getItem("token");
 
+// ================= INIT =================
 if(token && user){
   iniciarSocket();
   asegurarPush();
-  cargarUsuarios(); // 🔥 ESTA ES LA CLAVE
+  cargarUsuarios();
 }
+
+// ================= UI USUARIOS =================
+document.addEventListener("DOMContentLoaded", ()=>{
+
+  const box = document.getElementById("usuariosOnlineBox");
+  const lista = document.getElementById("usuariosOnlineLista");
+  const icon = document.getElementById("toggleIcon");
+
+  let abierto = false;
+
+  if(box && lista && icon){
+
+    box.addEventListener("click", (e)=>{
+
+      e.stopPropagation();
+
+      abierto = !abierto;
+
+      lista.style.display = abierto ? "block" : "none";
+      icon.innerText = abierto ? "▲" : "▼";
+
+    });
+
+    document.addEventListener("click", ()=>{
+      lista.style.display = "none";
+      icon.innerText = "▼";
+      abierto = false;
+    });
+
+  }
+
+});
+
+// ================= VISIBILITY =================
 document.addEventListener("visibilitychange", () => {
 
   console.log("👁 visibility:", document.hidden);
-
-  socket.on("online_users_update", (users) => {
-
-  console.log("🟢 Usuarios online:", users);
-
-  actualizarUsuariosOnline(users);
-
-});
 
   if(!socket || !socket.connected){
     console.warn("⚠️ Socket no conectado aún");
@@ -1301,21 +1333,19 @@ document.addEventListener("visibilitychange", () => {
   }
 
   if(document.hidden){
-
     console.log("📴 App en segundo plano");
     socket.emit("app_background", user.department);
-
   }else{
-
     console.log("📱 App activa");
     socket.emit("app_foreground", user.department);
-
   }
 
 });
+
+// ================= HEARTBEAT =================
 setInterval(()=>{
-  if(socket && user?.department){
-    socket.emit("heartbeat", user.department);
+  if(socket){
+    socket.emit("heartbeat"); // 🔥 limpio
   }
 }, 10000);
 
@@ -1336,7 +1366,6 @@ function aplicarPermisos(){
  }
 
  if(user.role === "sistemas"){
-   cargarUsuarios();
  }
 
  // 🔥 CONTROL RESET DEMO (AQUÍ VA)
@@ -1411,7 +1440,7 @@ let modoFecha = "today"; // 🔥 AQUÍ
 let logoCloudData = null;
 let alertasDisparadas = {};
 let contadorNotificaciones = 0;
-let listaUsuarios = [];
+
 
 async function cargarDepartamentos(){
 
@@ -3463,6 +3492,7 @@ function iniciarSocket(){
 
   // 🔥 limpiar socket previo
   if(socket){
+    socket.off(); // 🔥 limpia listeners (CLAVE)
     socket.disconnect();
     socket = null;
   }
@@ -3480,6 +3510,7 @@ function iniciarSocket(){
     reconnection:true
   });
 
+  // ================= CONNECT =================
   socket.on("connect", () => {
 
     console.log("🔥 SOCKET CONECTADO:", socket.id);
@@ -3491,26 +3522,28 @@ function iniciarSocket(){
       console.log("🟢 Unido a canal:", "admin_" + company_code);
     }
 
-    // 🔥 ESTE ES EL FIX IMPORTANTE
+    // 🔥 sync estado app
     if(document.hidden){
-      console.log("📴 Sync inicial: background");
       socket.emit("app_background", user.department);
     }else{
-      console.log("📱 Sync inicial: foreground");
       socket.emit("app_foreground", user.department);
     }
 
+    // 🔥 marcar como activo inmediatamente
+    socket.emit("heartbeat");
+
   });
-  
+
+  // ================= ONLINE USERS =================
   socket.on("online_users_update", (users)=>{
 
-  console.log("🟢 Usuarios online:", users);
+    console.log("🟢 Usuarios online:", users);
 
-  actualizarUsuariosOnline(users);
+    actualizarUsuariosOnline(users);
 
-});
+  });
 
-
+  // ================= COMENTARIOS =================
   socket.on("comentarioAgregado", data => {
 
     if(!localStorage.getItem("token")) return;
@@ -3522,6 +3555,11 @@ function iniciarSocket(){
     tarea.comments.push(data.comentario);
     renderTareaIndividual(tarea);
 
+  });
+
+  // ================= DISCONNECT =================
+  socket.on("disconnect", (reason)=>{
+    console.log("🔴 Socket desconectado:", reason);
   });
 
 }
