@@ -598,7 +598,14 @@ try{
         guest_name: guestData.name,
         room: guestData.room,
         message
-      });
+      });await sendPushByDepartment(
+  taskCreada.department,
+  "Nueva tarea",
+  message,
+  taskCreada.id,
+  guestData.company_id
+);
+
 
     }catch(err){
       console.error("❌ ERROR CREANDO TASK:", err);
@@ -1777,12 +1784,21 @@ async function crearTicket({guest_id, room, tipo, prioridad="normal", company_id
 
 async function sendPushByDepartment(department, title, message, taskId, companyId){
 
+  // 🔥 DEBUG INICIAL (SIEMPRE)
+  console.log("🚀 PUSH INTENTO");
+  console.log("Dept:", department);
+  console.log("Company:", companyId);
+
+  // ⚠️ DESACTIVAR TEMPORALMENTE BLOQUEO
+  // (esto está rompiendo iPhone background)
+  /*
   const lastSeen = onlineDepartments[department];
 
   if(lastSeen && (Date.now() - lastSeen < 10000)){
     console.log(`⚡ ${department} activo → solo socket`);
     return;
   }
+  */
 
   const payload = JSON.stringify({
     title,
@@ -1791,13 +1807,13 @@ async function sendPushByDepartment(department, title, message, taskId, companyI
   });
 
   const result = await db.query(
-  `
-  SELECT subscription, user_id
-  FROM push_subscriptions
-  WHERE department = $1 AND company_id = $2
-  `,
-  [department, companyId]
-);
+    `
+    SELECT subscription, user_id
+    FROM push_subscriptions
+    WHERE department = $1 AND company_id = $2
+    `,
+    [department, companyId]
+  );
 
   console.log("📦 Subs encontradas:", result.rows.length);
 
@@ -1823,16 +1839,22 @@ async function sendPushByDepartment(department, title, message, taskId, companyI
     }
 
     try{
+
+      console.log("📤 Enviando push a:", sub.endpoint);
+
       await webpush.sendNotification(sub, payload);
+
     }catch(e){
 
       console.log("❌ Push error:", e.message);
 
       if(e.statusCode === 410 || e.statusCode === 404){
+
         await db.query(
           "DELETE FROM push_subscriptions WHERE endpoint = $1",
           [sub.endpoint]
         );
+
         console.log("🧹 Eliminada:", sub.endpoint);
       }
 

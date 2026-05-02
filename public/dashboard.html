@@ -25,8 +25,6 @@
 <!-- socket -->
 <script src="https://mollyhelpers.com/socket.io/socket.io.js"></script>
 
-</head>
-
 <style>
 
 body{
@@ -698,8 +696,6 @@ footer{
   background:#1f2937;
 }
 </style>
-
-
 </head>
 
 <body>
@@ -1189,6 +1185,26 @@ if(isAppMode){
 let user=null;
 let audioEnabled = false;
 let socket = null;
+let audioUnlocked = false;
+
+function unlockAudio(){
+  if(audioUnlocked) return;
+
+  const audio = document.getElementById("alertSound");
+  if(!audio) return;
+
+  audio.play().then(()=>{
+    audio.pause();
+    audio.currentTime = 0;
+    audioUnlocked = true;
+    console.log("🔓 audio desbloqueado");
+  }).catch(()=>{});
+}
+
+// 🔥 ACTIVADOR GLOBAL
+document.addEventListener("pointerdown", unlockAudio, { once: true });
+
+
 
 async function asegurarPush(){
 
@@ -3440,12 +3456,16 @@ function iniciarSocket(){
   socket = io(API,{
     auth:{ token },
     query:{ department: user?.department || "" },
-    reconnection:false
+    reconnection:true // 🔥 IMPORTANTE
   });
 
+  // ================= CONNECT =================
   socket.on("connect", () => {
 
     console.log("🔥 SOCKET CONECTADO:", socket.id);
+
+    // 🔥 sincronizar datos al reconectar
+    cargarTareas();
 
     const company_code = localStorage.getItem("company_code");
 
@@ -3454,17 +3474,18 @@ function iniciarSocket(){
       console.log("🟢 Unido a canal:", "admin_" + company_code);
     }
 
-    // 🔥 ESTE ES EL FIX IMPORTANTE
+    // 🔥 estado app
     if(document.hidden){
       console.log("📴 Sync inicial: background");
-      socket.emit("app_background", user.department);
+      socket.emit("app_background", user?.department);
     }else{
       console.log("📱 Sync inicial: foreground");
-      socket.emit("app_foreground", user.department);
+      socket.emit("app_foreground", user?.department);
     }
 
   });
 
+  // ================= COMENTARIOS =================
   socket.on("comentarioAgregado", data => {
 
     if(!localStorage.getItem("token")) return;
@@ -3476,6 +3497,11 @@ function iniciarSocket(){
     tarea.comments.push(data.comentario);
     renderTareaIndividual(tarea);
 
+  });
+
+  // ================= DEBUG (RECOMENDADO) =================
+  socket.onAny((event, data) => {
+    console.log("📡 EVENTO:", event, data);
   });
 
 }
@@ -3533,34 +3559,13 @@ window.addEventListener("load", ()=>{
 
 function reproducirAlerta(){
 
- if(!audioEnabled) return; // 🔥 CLAVE
+  if(!audioUnlocked) return; // 🔥 CLAVE REAL
 
- const audio = document.getElementById("alertSound");
+  const audio = document.getElementById("alertSound");
+  if(!audio) return;
 
- if(!audio) return;
-
- audio.currentTime = 0;
- audio.play().catch(()=>{});
-
-}
-let audioUnlocked = false;
-
-function unlockAudio(){
-
- if(audioUnlocked) return;
-
- const audio = document.getElementById("alertSound");
-
- if(!audio) return;
-
- audio.play()
-  .then(()=>{
-    audio.pause();
-    audio.currentTime = 0;
-    audioUnlocked = true;
-    console.log("🔓 Audio desbloqueado");
-  })
-  .catch(()=>{});
+  audio.currentTime = 0;
+  audio.play().catch(()=>{});
 
 }
 socket.on("task_update",(payload)=>{
@@ -3607,12 +3612,9 @@ socket.on("task_update",(payload)=>{
     mostrarAlerta(payload);
   }
 
-  const audio =
-    document.getElementById("alertSound");
-
-  if(visible && audio){
-    audio.play().catch(()=>{});
-  }
+  if(visible && audioUnlocked){
+  reproducirAlerta();
+}
 
   const payloadId = String(payload.id);
 

@@ -2,7 +2,7 @@
 
 /* ===== CACHE CONFIG ===== */
 
-const CACHE_NAME = "molly-v110";
+const CACHE_NAME = "molly-v111";
 
 const urlsToCache = [
   "/",
@@ -51,25 +51,30 @@ self.addEventListener("activate", event => {
 
 self.addEventListener("fetch", event => {
 
-  // 🔥 IGNORAR REQUESTS EXTERNAS (API, CDNs, etc)
-  if (!event.request.url.startsWith(self.location.origin)) {
-    return;
-  }
+  if (!event.request.url.startsWith(self.location.origin)) return;
+  if (event.request.method !== "GET") return;
 
   event.respondWith(
 
-    caches.match(event.request)
-      .then(response => {
+    fetch(event.request)
+      .then(res => {
 
-        if (response) {
-          return response;
-        }
+        const clone = res.clone();
 
-        return fetch(event.request)
-          .catch(() => {
+        caches.open(CACHE_NAME)
+          .then(cache => cache.put(event.request, clone));
 
-            // 🔥 SI FALLA RED (OFFLINE)
-            if (event.request.mode === "navigate") {
+        return res;
+
+      })
+      .catch(() => {
+
+        return caches.match(event.request)
+          .then(res => {
+
+            if(res) return res;
+
+            if(event.request.mode === "navigate"){
               return caches.match("/dashboard.html");
             }
 
@@ -80,6 +85,7 @@ self.addEventListener("fetch", event => {
   );
 
 });
+
 
 /* ================= PUSH EVENT ================= */
 
