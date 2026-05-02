@@ -3456,16 +3456,13 @@ function iniciarSocket(){
   socket = io(API,{
     auth:{ token },
     query:{ department: user?.department || "" },
-    reconnection:true // 🔥 IMPORTANTE
+    reconnection:true
   });
 
   // ================= CONNECT =================
   socket.on("connect", () => {
 
     console.log("🔥 SOCKET CONECTADO:", socket.id);
-
-    // 🔥 sincronizar datos al reconectar
-    cargarTareas();
 
     const company_code = localStorage.getItem("company_code");
 
@@ -3474,7 +3471,7 @@ function iniciarSocket(){
       console.log("🟢 Unido a canal:", "admin_" + company_code);
     }
 
-    // 🔥 estado app
+    // 🔥 estado inicial app
     if(document.hidden){
       console.log("📴 Sync inicial: background");
       socket.emit("app_background", user?.department);
@@ -3499,10 +3496,28 @@ function iniciarSocket(){
 
   });
 
-  // ================= DEBUG (RECOMENDADO) =================
-  socket.onAny((event, data) => {
-    console.log("📡 EVENTO:", event, data);
-  });
+}async function guardarSub(sub){
+
+  const token = localStorage.getItem("token");
+
+  try{
+
+    await fetch(API + "/push/subscribe",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer " + token
+      },
+      body: JSON.stringify({
+        subscription: sub
+      })
+    });
+
+    console.log("✅ Sub guardada");
+
+  }catch(e){
+    console.log("❌ Error guardando sub:", e);
+  }
 
 }
 async function logout(){
