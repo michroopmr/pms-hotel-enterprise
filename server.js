@@ -662,15 +662,25 @@ await db.query(
 });
 
 app.get("/users", authMiddleware, async (req,res)=>{
+  try{
 
-  const result = await db.query(`
-  SELECT id, username, department, role
-  FROM users
-  WHERE company_id=$1
-`);
+    // 🔍 DEBUG AQUÍ
+    console.log("👤 USER:", req.user);
+    console.log("🏢 company_id:", req.user.company_id);
 
-  res.json(result.rows);
+    const result = await db.query(`
+      SELECT id, username, department, role
+      FROM users
+      WHERE company_id=$1
+      ORDER BY username
+    `, [req.user.company_id]);
 
+    res.json(result.rows);
+
+  }catch(err){
+    console.error("❌ ERROR /users:", err);
+    res.status(500).json({ error: "Error obteniendo usuarios" });
+  }
 });
 
 // Obtener chat
