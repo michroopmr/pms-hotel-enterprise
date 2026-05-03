@@ -2692,65 +2692,39 @@ app.post("/services", async (req,res)=>{
 });
 
 /* ================= LOGIN ================= */
-app.post("/login", async (req,res)=>{
+app.get("/users", authMiddleware, async (req, res) => {
 
- try{
+  try {
 
-   const { company_code, username, password } = req.body;
+    const companyId = Number(req.user.company_id);
 
-   const result = await db.query(
-   `
-   SELECT u.*, c.code
-   FROM users u
-   JOIN companies c ON u.company_id = c.id
-   WHERE u.username=$1
-   AND c.code=$2
-   `,
-   [username, company_code]
-   );
+    if (!companyId) {
+      return res.status(400).json({ error: "company_id inválido" });
+    }
 
-   if(result.rows.length === 0){
-     return res.sendStatus(401);
-   }
+    // 🔐 opcional: control de acceso
+    if(req.user.role !== "admin"){
+      return res.status(403).json({ error: "Sin permisos" });
+    }
 
-   const usuario = result.rows[0];
+    const result = await db.query(
+      `
+      SELECT id, username, department, role
+      FROM users
+      WHERE company_id = $1
+      ORDER BY username
+      `,
+      [companyId]
+    );
 
-   // 🔐 VALIDACIÓN SEGURA
-   const valid = await bcrypt.compare(password, usuario.password);
+    res.json(result.rows);
 
-   if(!valid){
-     return res.sendStatus(401);
-   }
+  } catch (err) {
 
-   const token = jwt.sign(
-   {
-     id: usuario.id,
-     username: usuario.username,
-     role: usuario.role,
-     department: usuario.department,
-     company_id: usuario.company_id
-   },
-   SECRET,
-   { expiresIn:"8h" }
-   );
+    console.error("❌ ERROR /users:", err);
+    res.status(500).json({ error: "Error obteniendo usuarios" });
 
-   res.json({
-  token,
-  user:{
-    id: usuario.id,
-    username: usuario.username,
-    role: usuario.role,
-    department: usuario.department
-  },
-  company_code: usuario.code   // 🔥 ESTA ES LA CLAVE
-});
-
- }catch(err){
-
-   console.log(err);
-   res.sendStatus(500);
-
- }
+  }
 
 });
 
