@@ -310,6 +310,70 @@ async function cloneDemoData(newCompanyId){
 
   console.log("✅ Onboarding terminado");
 }
+app.post("/login", async (req, res) => {
+  try{
+
+    const { company_code, username, password } = req.body;
+
+    // 🔥 VALIDACIÓN
+    if(!company_code || !username || !password){
+      return res.status(400).json({ error: "Datos incompletos" });
+    }
+
+    // 🔥 OBTENER EMPRESA
+    let company_id;
+
+    try{
+      company_id = await getCompanyId(company_code);
+    }catch(err){
+      return res.status(400).json({ error: "Empresa no válida" });
+    }
+
+    // 🔥 BUSCAR USUARIO POR EMPRESA
+    const result = await db.query(
+      `SELECT * FROM users 
+       WHERE username=$1 AND company_id=$2`,
+      [username, company_id]
+    );
+
+    if(result.rows.length === 0){
+      return res.status(401).json({ error: "Usuario no existe" });
+    }
+
+    const user = result.rows[0];
+
+    // 🔐 VALIDAR PASSWORD
+    const valid = await bcrypt.compare(password, user.password);
+
+    if(!valid){
+      return res.status(401).json({ error: "Password incorrecto" });
+    }
+
+    // 🔥 TOKEN (CLAVE)
+    const token = jwt.sign({
+      id: user.id,
+      username: user.username,
+      role: user.role,
+      department: user.department,
+      company_id: user.company_id
+    }, SECRET, { expiresIn: "8h" });
+
+    // 🔥 RESPUESTA EXACTA QUE TU FRONT ESPERA
+    res.json({
+      token,
+      user: {
+        username: user.username,
+        role: user.role,
+        department: user.department
+      },
+      company_code
+    });
+
+  }catch(err){
+    console.error("❌ ERROR LOGIN:", err);
+    res.status(500).json({ error: "Error en login" });
+  }
+});
 app.post("/save-subscription", authMiddleware, async (req,res)=>{
   try{
 

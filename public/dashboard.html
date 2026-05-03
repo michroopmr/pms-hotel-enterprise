@@ -2759,36 +2759,41 @@ function cambiarPassword(){
 
 async function cargarUsuarios(){
 
-  const res = await secureFetch(`${API}/users`);
-  if(!res) return;
+  try{
 
-  const usuarios = await res.json();
+    const res = await secureFetch(`${API}/users`);
+    if(!res) return;
 
-  // 🔥 VALIDACIÓN CLAVE
-  if(!Array.isArray(usuarios)){
-    console.error("❌ Error usuarios:", usuarios);
-    return;
+    const usuarios = await res.json();
+
+    if(!Array.isArray(usuarios)){
+      console.warn("⚠️ usuarios inválidos");
+      return;
+    }
+
+    const cont = document.getElementById("listaUsuarios");
+    if(!cont) return;
+
+    cont.innerHTML = "";
+
+    usuarios.forEach(u=>{
+      cont.innerHTML += `
+        <tr>
+          <td>${u.username}</td>
+          <td>${u.role || "-"}</td>
+          <td>${u.department || "-"}</td>
+          <td>
+            <button onclick="borrarUsuario(${u.id})">
+              ❌
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+  }catch(err){
+    console.error("❌ cargarUsuarios error:", err);
   }
-
-  const cont = document.getElementById("listaUsuarios");
-  cont.innerHTML = "";
-
-  usuarios.forEach(u => {
-
-    cont.innerHTML += `
-      <tr>
-        <td>${u.username}</td>
-        <td>${u.role || "-"}</td>
-        <td>${u.department || "-"}</td>
-        <td>
-          <button onclick="borrarUsuario(${u.id})"
-                  style="background:#c0392b;color:white;border:none;padding:5px 8px;border-radius:4px;cursor:pointer;">
-            ❌
-          </button>
-        </td>
-      </tr>
-    `;
-  });
 
 }
 
