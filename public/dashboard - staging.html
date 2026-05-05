@@ -1,0 +1,4235 @@
+<head>
+
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+<title>MollyHelpers PMS</title>
+
+<!-- PWA -->
+<link rel="manifest" href="/manifest.json">
+
+<meta name="theme-color" content="#0b1c36">
+
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Molly">
+
+<link rel="apple-touch-icon" href="/icon-192.png">
+<link rel="icon" type="image/png" href="/icon-192.png">
+
+<!-- librerías -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+
+<!-- socket -->
+<script src="https://pms-hotel-enterprise-staging.onrender.com/socket.io/socket.io.js"></script>
+
+<style>
+
+body{
+ padding-top: env(safe-area-inset-top);
+ padding-bottom: env(safe-area-inset-bottom);
+ margin:0;
+ background:#f4f6f9;
+ color:#111827;
+ font-family: Inter, Segoe UI, system-ui, Arial, sans-serif;
+}
+
+html, body{
+ height:100%;
+ overflow-x:hidden;
+}
+
+input, textarea, select{
+ font-size:16px;
+}
+.col-left{
+ display:block;
+}
+
+.col-right{
+ display:flex;
+ flex-direction:column;
+ gap:18px;
+}
+
+*{
+ box-sizing:border-box;
+ font-family:Inter,Segoe UI,system-ui;
+}
+body{
+ margin:0;
+ background:#f4f6f9;
+ color:#111827;
+}
+
+/* SIDEBAR */
+
+.sidebar{
+ width:250px;
+ background:#0f172a;
+ color:white;
+ min-height:100vh;
+ padding:22px;
+ display:flex;
+ flex-direction:column;
+}
+
+.sidebar h2{
+ font-size:16px;
+ margin-bottom:10px;
+}
+
+.menu-item{
+
+ padding:8px 10px;       /* 🔥 más compacto */
+ font-size:13px;         /* 🔥 letra más pequeña */
+ border-radius:8px;
+
+ cursor:pointer;
+ margin-bottom:4px;
+
+ transition:0.2s;
+
+}
+
+
+.menu-item:hover{
+ background:#1e293b;
+ transform:translateX(3px);
+}
+
+/* MAIN */
+
+.main{
+ flex:1;
+ padding:30px;
+}
+
+/* KPI */
+
+.kpis{
+ display:grid;
+ grid-template-columns: repeat(auto-fit, minmax(180px,1fr));
+ gap:16px;
+ margin-bottom:24px;
+}
+
+.card{
+ background:#fff;
+ padding:18px;
+ border-radius:14px;
+ cursor:pointer;
+ box-shadow:0 3px 12px rgba(0,0,0,0.06);
+ transition:0.25s;
+}
+
+.card:hover{
+ transform:translateY(-3px);
+ box-shadow:0 8px 20px rgba(0,0,0,0.08);
+}
+
+.card div:first-child{
+ font-size:26px;
+ font-weight:600;
+ margin-bottom:6px;
+}
+
+/* STATUS COLORS */
+
+.abierto{border-left:6px solid #22c55e}
+.proceso{border-left:6px solid #facc15}
+.vencido{border-left:6px solid #ef4444}
+.cerrado{border-left:6px solid #9ca3af}
+.proximo{
+ border-left:6px solid #f97316;
+ background:#fff7ed;
+}
+
+
+/* TASK CARD */
+
+.tarea{
+ background:#fff;
+ padding:16px;
+ margin-bottom:12px;
+ border-radius:14px;
+ box-shadow:0 2px 10px rgba(0,0,0,0.05);
+ transition:0.2s;
+}
+
+.tarea:hover{
+ transform:translateY(-2px);
+}
+
+/* FORM BOX */
+
+.form-box{
+
+ background:#cac6c6;
+
+ padding:12px;           /* 🔥 menos espacio interno */
+ border-radius:10px;
+
+ max-width:420px;        /* 🔥 tamaño más profesional */
+ width:100%;
+
+ margin-bottom:12px;     /* 🔥 menos separación */
+
+ box-shadow:0 1px 6px rgba(0,0,0,0.05);
+
+}
+
+
+/* INPUTS */
+
+input:not([type="checkbox"]),
+textarea,
+select{
+ width:100%;
+ padding:10px;
+ border-radius:8px;
+ border:1px solid #e5e7eb;
+ margin-bottom:10px;
+ transition:0.2s;
+}
+.dept-checkbox{
+ width:auto !important;
+ margin:0 !important;
+ padding:0 !important;
+ transform:scale(1.2);
+ cursor:pointer;
+}
+input:focus,textarea:focus,select:focus{
+ outline:none;
+ border-color:#2563eb;
+ box-shadow:0 0 0 2px rgba(37,99,235,0.2);
+}
+
+/* BUTTON */
+
+button:not([class]) {
+ padding:8px 12px;
+ border:none;
+ border-radius:8px;
+  background:#1c2130;
+ color:white;
+ cursor:pointer;
+ font-weight:500;
+ transition:0.2s;
+}
+
+button:hover{
+ background:#1c2130;
+}
+
+/* FOOTER */
+
+footer{
+ text-align:center;
+ margin-top:40px;
+ color:#6b7280;
+ font-size:13px;
+}
+/* ===== LOGO PRO ALIGN ===== */
+
+#logo{
+
+ height:36px;          /* tamaño profesional */
+ width:auto;
+
+ display:block;
+ margin-bottom:18px;
+
+ object-fit:contain;
+
+}
+
+/* contenedor superior limpio */
+
+.main img#logo{
+
+ align-self:flex-start;
+
+}
+/* ===== ULTRA PRO LAYOUT ===== */
+
+.layout{
+ display:grid;
+ grid-template-columns: auto 1fr;
+}
+
+/* panel derecho limpio */
+
+.form-box{
+ width:100%;
+}
+
+/* lista tareas estilo pro */
+
+#lista{
+ width:100%;
+ max-width:1100px;
+ margin:0 auto;
+}
+
+
+.col-left{
+ display:block;
+}
+
+.col-right{
+ display:flex;
+ flex-direction:column;
+ gap:18px;
+}
+
+.form-box{
+ width:100%;
+}
+/* ===== PMS CARDS ===== */
+
+.tarea{
+ background:#fff;
+ border-radius:14px;
+ padding:16px;
+ margin-bottom:14px;
+ box-shadow:0 2px 10px rgba(0,0,0,0.05);
+ transition:0.2s;
+}
+
+.tarea:hover{
+ transform:translateY(-2px);
+}
+
+.tarea-header{
+ display:flex;
+ justify-content:space-between;
+ margin-bottom:8px;
+}
+
+.badge{
+ padding:3px 8px;
+ border-radius:8px;
+ font-size:12px;
+ font-weight:600;
+ color:white;
+}
+
+.badge.abierto{ background:#22c55e }
+.badge.proceso{ background:#facc15; color:#000 }
+.badge.vencido{ background:#ef4444 }
+.badge.cerrado{ background:#9ca3af }
+
+.tarea-title{
+ font-size:16px;
+ font-weight:600;
+ margin-bottom:4px;
+}
+
+.tarea-meta{
+ font-size:12px;
+ color:#6b7280;
+ margin-top:6px;
+}
+/* ===== MODO APP REAL (PWA MOBILE) ===== */
+
+.app-mode{
+
+ background:#f4f6f9;
+
+}
+
+/* sidebar compacto tipo app */
+
+.app-mode .sidebar{
+
+ width:80px;
+ padding:15px;
+ align-items:center;
+
+}
+
+/* ocultar texto grande */
+
+.app-mode .sidebar h2{
+
+ display:none;
+
+}
+
+/* iconos centrados estilo mobile */
+
+.app-mode .menu-item{
+
+ text-align:center;
+ font-size:20px;
+ padding:12px 0;
+
+}
+
+/* área principal más mobile */
+
+.app-mode .main{
+
+ padding:15px;
+
+}
+
+/* tarjetas más táctiles */
+
+.app-mode .card{
+
+ padding:22px;
+
+}
+
+/* ================= MOBILE APP MODE ================= */
+
+@media (max-width: 900px){
+
+  /* layout vertical tipo app */
+
+  .layout{
+    grid-template-columns: 1fr;
+  }
+
+  /* sidebar estilo app */
+
+  .sidebar{
+    position:fixed;
+    left:-260px;
+    top:0;
+    height:100%;
+    z-index:1000;
+    transition:0.3s;
+  }
+
+  .sidebar.open{
+    left:0;
+  }
+
+  /* main ocupa todo */
+
+  .main{
+    padding:15px;
+  }
+
+  /* KPIs en columnas mobile */
+
+  .kpis{
+    grid-template-columns:1fr 1fr;
+  }
+
+  /* tarjetas touch friendly */
+
+  .card{
+    padding:22px;
+  }
+
+  /* lista ancho completo */
+
+  #lista{
+    max-width:100%;
+  }
+
+}
+/* ===== MOBILE PRO MODE ===== */
+
+#mobileTopBar{
+ display:none;
+ align-items:center;
+ gap:12px;
+ margin-bottom:15px;
+}
+
+#menuBtn{
+ background:#0f172a;
+ color:white;
+ border:none;
+ font-size:20px;
+ padding:8px 12px;
+ border-radius:8px;
+}
+
+/* MOBILE */
+
+@media (max-width:900px){
+
+ .layout{
+   grid-template-columns:1fr;
+ }
+
+ /* TOP BAR APP */
+
+ #mobileTopBar{
+   display:flex;
+ }
+
+ /* SIDEBAR APP STYLE */
+
+ .sidebar{
+   position:fixed;
+   left:-260px;
+   top:0;
+   height:100%;
+   z-index:1000;
+   transition:0.3s;
+ }
+
+ .sidebar.open{
+   left:0;
+ }
+
+ /* overlay oscuro */
+
+ .overlay{
+   position:fixed;
+   inset:0;
+   background:rgba(0,0,0,0.3);
+   display:none;
+   z-index:999;
+ }
+
+ .overlay.show{
+   display:block;
+ }
+
+ .main{
+   padding:15px;
+ }
+
+ .kpis{
+   grid-template-columns:1fr 1fr;
+ }
+
+ .card{
+   padding:22px;
+ }
+
+ #lista{
+   max-width:100%;
+ }
+
+}
+.appHeader{
+ display:flex;
+ justify-content:space-between;
+ align-items:center;
+ margin-bottom:20px;
+}
+
+.appTitle{
+ font-size:18px;
+ font-weight:600;
+ color:#0f172a;
+}
+
+.appUser{
+ font-size:13px;
+ color:#6b7280;
+}
+.tarea{
+ animation:fadeUp .3s ease;
+}
+
+@keyframes fadeUp{
+ from{
+   opacity:0;
+   transform:translateY(10px);
+ }
+ to{
+   opacity:1;
+   transform:translateY(0);
+ }
+}
+.card{
+ backdrop-filter:blur(4px);
+ border:1px solid #f1f5f9;
+}
+
+.card:hover{
+ transform:translateY(-3px) scale(1.02);
+}
+/* ===== FIX KPI COLORS ===== */
+
+.card.abierto{ border-left:6px solid #22c55e !important; }
+.card.proceso{ border-left:6px solid #facc15 !important; }
+.card.vencido{ border-left:6px solid #ef4444 !important; }
+.card.cerrado{ border-left:6px solid #9ca3af !important; }
+.vencido_cerrado{
+ border-left:6px solid #9ca3af;
+ opacity:0.7;
+}
+/* ===== MOBILE ICON ONLY MODE ===== */
+
+@media (max-width:900px){
+
+  .menu-item{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap:0;
+  }
+
+  .menu-item .text{
+    display:none;
+  }
+
+  .menu-item .icon{
+    font-size:22px;
+  }
+
+  .sidebar{
+    width:80px;
+    padding:15px;
+  }
+
+  .sidebar h2{
+    display:none;
+  }
+
+}
+.badgeNotif{
+ background:#ef4444;
+ color:white;
+ font-size:10px;
+ padding:2px 6px;
+ border-radius:20px;
+ margin-left:6px;
+ display:none;
+}
+
+#panelSistemas input,
+#panelSistemas select,
+#panelSistemas button {
+  display:block;
+  width:100%;
+  margin-bottom:10px;
+  padding:6px;
+  border-radius:6px;
+  border:1px solid #333;
+}
+.card.active{
+ transform:scale(1.05);
+ box-shadow:0 10px 25px rgba(0,0,0,0.15);
+ border:2px solid #0f172a;
+}
+#vista-sistemas{
+  align-items: flex-start !important;
+}
+#vista-sistemas{
+  display:block;            /* 🔥 CLAVE */
+  padding:20px;
+}
+.proximo {
+  border-left:6px solid #f97316;
+  background:#fff7ed;
+}
+.toast-alert {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  background: #0b1c36;
+  color: white;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 14px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transform: translateX(120%);
+  opacity: 0;
+  transition: all 0.4s ease;
+}
+
+.toast-alert.show {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+.toast-title {
+  font-weight: bold;
+  font-size: 15px;
+}
+
+.toast-sub {
+  font-size: 13px;
+  opacity: 0.8;
+}
+#badgeNotif.animate {
+  animation: pop 0.3s ease;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.8); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+.tarea{
+  overflow: visible !important;
+  position: relative;
+}
+footer{
+  display: block;
+  min-height: 40px;
+  padding: 10px;
+  background: #ffffff;
+  text-align: center;
+  border-top: 1px solid #ddd;
+}
+
+.btn-dark{
+  background:#111827;
+  color:white;
+  border:none;
+  padding:8px 12px;
+  border-radius:8px;
+  cursor:pointer;
+  font-weight:600;
+  margin-right:6px;
+  transition:0.2s;
+}
+
+.btn-dark:hover{
+  background:#1f2937;
+}
+</style>
+</head>
+
+<body>
+<audio id="alertSound" src="alert.mp3" preload="auto"></audio>
+<audio id="alert5min" src="alert-soft.mp3"></audio>
+<div id="overlay" class="overlay" onclick="toggleMenu()"></div>
+<div class="layout">
+
+  <!-- ===== MENU LATERAL ===== -->
+  <div class="sidebar">
+
+    <h2>MollyHelpers</h2>
+
+    <div class="menu-item" id="menuDashboard" onclick="mostrarVista('dashboard')">
+  <span class="icon">📊</span>
+  <span class="text">Dashboard</span>
+</div>
+
+    <div class="menu-item" id="menuCrear" onclick="mostrarVista('crear')">
+      <span class="icon">➕</span>
+      <span class="text">Crear tarea</span>
+    </div>
+
+    <div class="menu-item" id="menuReportes" onclick="mostrarVista('reportes')">
+      <span class="icon">📈</span>
+      <span class="text">Reportes</span>
+    </div> 
+
+    <div id="configBtn" style="display:none;">
+  <button onclick="goConfig()">💬 Chatbot</button>
+</div>
+
+    <div class="menu-item" id="menuSistemas" onclick="mostrarVista('sistemas')">
+      <span class="icon">🛠️</span>
+      <span class="text">Sistemas</span>
+    </div> 
+
+    <div id="resetDemoBox" style="margin-top:20px;">
+
+  <h3>⚙️ Administración</h3>
+
+  <button onclick="resetDemo()" style="
+    background:#ef4444;
+    color:white;
+    border:none;
+    padding:12px 16px;
+    border-radius:10px;
+    cursor:pointer;
+    margin-top:10px;
+    width:100%;
+    font-weight:bold;
+  ">
+    🧹 Reset DEMO (borrar datos)
+  </button>
+
+</div>
+
+    <div class="menu-item" id="menuLogout" onclick="logout()">
+      <span class="icon">🚪</span>
+      <span class="text">Logout</span>
+    </div>
+  </div>
+
+  <!-- ===== CONTENIDO PRINCIPAL ===== -->
+  <div class="main">
+    <div id="mobileTopBar">
+
+  <button id="menuBtn" onclick="toggleMenu()">☰</button>
+  <span>MollyHelpers</span>
+
+</div>
+<div class="appHeader">
+
+  <div class="appTitle">
+    MollyHelpers Smart Hotel Assistant
+  </div>
+
+  <div class="appUser">
+    👤 <span id="userTop"></span>
+  </div>
+
+</div>
+    <!-- ================= DASHBOARD ================= -->
+    <div id="vista-dashboard" class="vista">
+
+      <img id="logo" src="logo.png">
+      
+
+      <h2>📊 Estado General de Operación</h2>
+
+      <div id="info"></div>
+
+      <!-- KPIs -->
+      <div class="kpis">
+
+        <div class="card abierto" onclick="aplicarFiltro('abierto')">
+          <div id="kA">0</div>Abiertas
+        </div>
+
+        <div class="card proceso" onclick="aplicarFiltro('proceso')">
+          <div id="kP">0</div>Proceso
+        </div>
+
+        <div class="card vencido" onclick="aplicarFiltro('vencido')">
+          <div id="kV">0</div>Vencidas
+        </div>
+
+        <div class="card cerrado" onclick="aplicarFiltro('cerrado')">
+          <div id="kC">0</div>Cerradas
+        </div>
+
+      </div>
+
+<div id="actividadDepto" style="
+background:white;
+padding:12px;
+border-radius:10px;
+margin-bottom:15px;
+box-shadow:0 2px 8px rgba(0,0,0,0.05);
+">
+<h4 style="margin:0 0 10px 0;">Actividad por departamento</h4>
+<div id="deptChart"></div>
+</div>
+   <h3>Tareas</h3>
+
+<!-- 🔥 NUEVO FILTRO HOY / TODAS -->
+<div style="margin-bottom:10px; display:flex; gap:10px;">
+  <button onclick="modoFecha='today'; render()" style="background:#22c55e;">Hoy</button>
+  <button onclick="modoFecha='all'; render()" style="background:#6b7280;">Todas</button>
+</div>
+
+<div style="margin-bottom:15px; position:relative;">
+
+  <button 
+    onclick="toggleFiltroDeptos()"
+    style="
+      background:#111827;
+      color:white;
+      border:none;
+      padding:10px 15px;
+      border-radius:8px;
+      cursor:pointer;
+    "
+  >
+    Filtrar departamentos ▼
+  </button>
+
+  <div 
+    id="filtroDeptos"
+    style="
+      display:none;
+      position:absolute;
+      width:300px;
+      top:50px;
+      left:0;
+      background:white;
+      padding:15px;
+      border-radius:10px;
+      box-shadow:0 4px 12px rgba(0,0,0,0.15);
+      z-index:1000;
+      max-height:300px;
+      overflow-y:auto;
+      min-width:250px;
+    ">
+  </div>
+
+</div>
+
+<div id="lista"></div>
+    </div>
+
+    <!-- ================= CREAR TAREA ================= -->
+   <div id="vista-crear" class="vista" style="display:none;">
+
+  <div class="form-box">
+
+    <h4>➕ Crear tarea</h4>
+
+    <!-- 1. TAREA -->
+    <select id="tareaRapida" onchange="aplicarTareaRapida()">
+      <option value="">Seleccionar tarea</option>
+
+      <option value="wc">WC tapado</option>
+      <option value="tv">Falla de TV</option>
+      <option value="tina">Tina tapada</option>
+      <option value="ac">Falla de Aire acondicionado</option>
+      <option value="limpieza">Limpieza de habitación</option>
+      <option value="foco">Foco fundido</option>
+      <option value="toallas">Toallas extras</option>
+      <option value="jabon">Jabón extra</option>
+      <option value="shampoo">Shampoo extra</option>
+      <option value="internet">Falla de internet</option>
+      <option value="tarja">Tarja tapada</option>
+      <option value="objeto">Objeto olvidado</option>
+      <option value="cambio">Cambio de habitación</option>
+      <option value="olor">Mal olor</option>
+      <option value="agua">Agua caliente</option>
+      <option value="coladera">Coladera tapada</option>
+      <option value="libre">Tarea libre</option>
+    </select>
+
+    <!-- 2. COMENTARIOS -->
+    <textarea id="d" placeholder="Comentarios"></textarea>
+
+    <div style="position:relative; margin-bottom:10px;">
+
+  <button
+  id="btnDepartamentos"
+  type="button"
+  onclick="toggleDepartamentosCrear()"
+  style="
+    width:100%;
+    background:white;
+    border:1px solid #ddd;
+    padding:12px;
+    border-radius:10px;
+    text-align:left;
+    cursor:pointer;
+    color:#6b7280;
+  "
+>
+  Selecciona departamento(s) ▼
+</button>
+
+  <div 
+    id="nr"
+    style="
+      display:none;
+      position:absolute;
+      width:100%;
+      background:white;
+      border:1px solid #ddd;
+      border-radius:10px;
+      padding:12px;
+      margin-top:5px;
+      max-height:250px;
+      overflow-y:auto;
+      z-index:1000;
+      box-shadow:0 4px 12px rgba(0,0,0,0.15);
+    "
+  >
+  </div>
+
+</div>
+
+    <!-- 4. FECHA -->
+    <input type="datetime-local" id="due">
+
+    <!-- 5. BOTÓN -->
+    <button 
+  onclick="crearTarea()"
+  style="
+    width:100%;
+    background:#111827;
+    color:white;
+    border:none;
+    padding:12px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:600;
+    margin-top:10px;
+  "
+>
+  Crear tarea
+</button>
+
+  </div>
+
+</div>
+
+<!-- ================= REPORTES ================= -->
+<div id="vista-reportes" class="vista" style="display:none"> 
+
+  <div class="form-box">
+
+    <h4>📅 Historial de tareas</h4>
+
+    <!-- 🔥 DEPARTAMENTO PRIMERO -->
+    <select id="filtroDeptoPDF" style="margin-bottom:10px;">
+      <option value="">Todos los departamentos</option>
+  <option value="Recepción">Recepción</option>
+  <option value="Mantenimiento">Mantenimiento</option>
+  <option value="Housekeeping">Housekeeping</option>
+  <option value="Operaciones">Operaciones</option>
+  <option value="Seguridad">Seguridad</option>
+  <option value="Spa">Spa</option>
+  <option value="Alimentos Bebidas">Alimentos Bebidas</option>
+  <option value="Cocina">Cocina</option>
+  <option value="Room Service">Room Service</option>
+  <option value="Eventos">Eventos</option>
+  <option value="Ventas">Ventas</option>
+  <option value="Recursos Humanos">Recursos Humanos</option>
+  <option value="Finanzas">Finanzas</option>
+  <option value="Gerencia General">Gerencia General</option>
+    </select>
+
+    <!-- 🔥 FECHAS -->
+    <input type="date" id="from">
+    <input type="date" id="to">
+
+    <!-- 🔥 BOTONES -->
+    <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+      <button 
+  onclick="filtrarPorFecha()"
+  style="
+    background:#111827;
+    color:white;
+    border:none;
+    padding:10px 15px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+  "
+>
+  Consultar
+</button>
+      <button 
+  onclick="exportarPDF()"
+  style="
+    background:#111827;
+    color:white;
+    border:none;
+    padding:10px 15px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+  "
+>
+  Exportar PDF
+</button>
+    </div>
+
+    <!-- 🔥 (OPCIONAL) MENSAJE FILTRO -->
+    <div id="filtroActivo" style="
+      display:none;
+      background:#fff3cd;
+      padding:8px;
+      border-radius:8px;
+      margin-top:10px;
+      font-size:13px;
+    ">
+      🔎 Filtro activo
+      <button 
+  onclick="limpiarFiltros()"
+  style="
+    background:#111827;
+    color:white;
+    border:none;
+    padding:10px 15px;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:600;
+  "
+>
+  Limpiar
+</button>
+    </div>
+
+  </div>
+
+  <!-- 🔥 RESULTADOS ABAJO -->
+  <div id="lista-reportes" style="margin-top:15px;"></div>
+
+</div>
+
+  </div>
+
+</div>
+
+<!-- ================= SISTEMAS ================= -->
+<div id="vista-sistemas" class="vista" style="display:none; align-items:flex-start;">
+      <input type="file" id="logoInput" accept="image/*">
+
+      <div id="panelSistemas">
+
+  <h3>⚙ Sistemas</h3>
+
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px; align-items:flex-start;">
+
+    <!-- 🔹 IZQUIERDA -->
+    <div>
+
+      <h4>Crear usuario</h4>
+
+      <input id="nu" placeholder="Usuario">
+      <input id="np" placeholder="Password">
+
+      <select id="userRole">
+        <option value="operador">Operador</option>
+        <option value="admin">Admin</option>
+        <option value="sistemas">Sistemas</option>
+      </select>
+
+      <select id="userDepartment">
+      <option value="Recepción">Recepción</option>
+  <option value="Mantenimiento">Mantenimiento</option>
+  <option value="Housekeeping">Housekeeping</option>
+  <option value="Operaciones">Operaciones</option>
+  <option value="Seguridad">Seguridad</option>
+  <option value="Spa">Spa</option>
+  <option value="Alimentos Bebidas">Alimentos Bebidas</option>
+  <option value="Cocina">Cocina</option>
+  <option value="Room Service">Room Service</option>
+  <option value="Eventos">Eventos</option>
+  <option value="Ventas">Ventas</option>
+  <option value="Recursos Humanos">Recursos Humanos</option>
+  <option value="Finanzas">Finanzas</option>
+  <option value="Gerencia General">Gerencia General</option>
+      </select>
+
+      <button onclick="crearUsuario()">Crear usuario</button>
+
+      <hr style="margin:20px 0">
+
+      <h4>Cambiar contraseña</h4>
+
+      <input id="cu" placeholder="Usuario">
+      <input id="cp" placeholder="Nueva password">
+      <button onclick="cambiarPassword()">Cambiar</button>
+
+      <hr style="margin:30px 0">
+    </div>
+
+    <!-- 🔹 DERECHA -->
+    <div>
+
+      <h4>Usuarios creados</h4>
+
+      <table style="width:100%; border-collapse:collapse;">
+        <thead>
+          <tr>
+            <th>Usuario</th>
+            <th>Rol</th>
+            <th>Departamento</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="listaUsuarios"></tbody>
+      </table>
+
+      <hr style="margin:30px 0">
+
+      <h4>Plantillas existentes</h4>
+      <div id="listaTemplates"></div>
+
+    </div>
+<div style="position:relative;display:inline-block">
+
+  <span id="iconNotif">🔔</span>
+
+  <span id="badgeNotif" style="
+    position:absolute;
+    top:-5px;
+    right:-10px;
+    background:red;
+    color:white;
+    font-size:12px;
+    padding:2px 6px;
+    border-radius:50%;
+    display:none;
+  ">0</span>
+
+</div> <!-- notif -->
+
+    </div> <!-- grid -->
+
+  </div> <!-- panelSistemas -->
+
+</div> <!-- vista-sistemas 🔥 ESTE FALTABA -->
+
+<script>
+  /* ===== DETECTAR MODO APP INSTALADA ===== */
+
+const isAppMode =
+ window.matchMedia('(display-mode: standalone)').matches ||
+ window.navigator.standalone === true;
+
+if(isAppMode){
+
+ document.body.classList.add("app-mode");
+
+ console.log("🔥 MollyHelpers APP MODE ACTIVADO");
+
+}
+
+/* ================= SESIÓN ================= */
+let user=null;
+let audioEnabled = false;
+let socket = null;
+let audioUnlocked = false;
+
+function unlockAudio(){
+  if(audioUnlocked) return;
+
+  const audio = document.getElementById("alertSound");
+  if(!audio) return;
+
+  audio.play().then(()=>{
+    audio.pause();
+    audio.currentTime = 0;
+    audioUnlocked = true;
+    console.log("🔓 audio desbloqueado");
+  }).catch(()=>{});
+}
+
+// 🔥 ACTIVADOR GLOBAL
+document.addEventListener("pointerdown", unlockAudio, { once: true });
+
+
+
+async function asegurarPush(){
+
+  try{
+
+    let permission = Notification.permission;
+
+    if(permission !== "granted"){
+      permission = await Notification.requestPermission();
+    }
+
+    if(permission !== "granted"){
+      console.warn("❌ Permiso de notificaciones denegado");
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.ready;
+    let sub = await registration.pushManager.getSubscription();
+
+    if(!sub){
+
+      console.log("📱 Creando suscripción iOS...");
+
+      sub = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array("BFCjuIrtlaAGysbjuC1YpFH3YZfEL9KNGNMsmqyVdQRHdmYG6g8QcD8qcziJNiPk2ETcC66Esa-K5y_eVqhQ-D4")
+      });
+
+      console.log("📲 SUB:", sub);
+
+      await guardarSub(sub);
+
+    }else{
+
+      console.log("✅ Ya existe suscripción:", sub.endpoint);
+
+      // 🔥 asegura sincronización con backend
+      await guardarSub(sub);
+
+    }
+
+  }catch(err){
+    console.error("❌ Error push:", err);
+  }
+
+}
+// 🔥 PROTECCIÓN GLOBAL (evita sockets vivos al salir)
+window.addEventListener("beforeunload", ()=>{
+  if(socket){
+    socket.disconnect();
+  }
+});
+// 🔥 AGREGA AQUÍ
+const API = "https://pms-hotel-enterprise-staging.onrender.com";
+
+const env = "staging";
+const savedEnv = localStorage.getItem("env");
+
+if(savedEnv !== env){
+  localStorage.clear();
+  localStorage.setItem("env", env);
+  location.href = "login.html";
+  return;
+}
+
+const saved = localStorage.getItem("user");
+if(saved) user = JSON.parse(saved);
+
+if(!localStorage.getItem("token")){
+  location.href = "login.html";
+  return;
+}
+
+const token = localStorage.getItem("token");
+
+if(token && user){
+  iniciarSocket();
+  asegurarPush();
+}
+document.addEventListener("visibilitychange", () => {
+
+  console.log("👁 visibility:", document.hidden);
+
+  if(!socket || !socket.connected){
+    console.warn("⚠️ Socket no conectado aún");
+    return;
+  }
+
+  if(document.hidden){
+
+    console.log("📴 App en segundo plano");
+    socket.emit("app_background", user.department);
+
+  }else{
+
+    console.log("📱 App activa");
+    socket.emit("app_foreground", user.department);
+
+  }
+
+});
+setInterval(()=>{
+  if(socket && user?.department){
+    socket.emit("heartbeat", user.department);
+  }
+}, 10000);
+
+function aplicarPermisos(){
+
+ if(!user) return;
+
+ // 🔒 Solo Sistemas puede ver panel de usuarios
+ if(user.role !== "sistemas"){
+   const panel = document.getElementById("panelSistemas");
+   if(panel) panel.style.display = "none";
+ }
+
+ // 🔒 Operador no puede ver vista global
+ if(user.role === "operador"){
+   const btnGlobal = document.getElementById("btnVistaGlobal");
+   if(btnGlobal) btnGlobal.style.display = "none";
+ }
+
+ if(user.role === "sistemas"){
+   cargarUsuarios();
+ }
+
+ // 🔥 CONTROL RESET DEMO (AQUÍ VA)
+ const resetBox = document.getElementById("resetDemoBox");
+
+ if(!user || user.username !== "mromero"){
+   if(resetBox) resetBox.style.display = "none";
+ }
+
+}
+
+async function secureFetch(url, options = {}) {
+
+  try{
+
+    const token = localStorage.getItem("token");
+
+    console.log("🌐 URL:", url);
+    console.log("🔑 TOKEN:", token);
+
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+  "Content-Type": "application/json",
+  "Authorization": `Bearer ${token}`,
+  ...(options.headers || {})
+}
+    });
+
+    console.log("📡 STATUS:", response.status);
+
+    if (response.status === 401) {
+      logoutAuto("Sesión expirada por seguridad.");
+      return null;
+    }
+
+    return response;
+
+  }catch(err){
+
+    console.error("💥 FETCH ERROR:", err);
+    return null;
+  }
+}
+
+const info = document.getElementById("info");
+
+if(info && user){
+  info.innerText = `Usuario: ${user.username}`;
+}
+// 🔥 OBTENER company_code
+const company_code = localStorage.getItem("company_code");
+
+const esAdmin = user.role && user.role.toLowerCase() === "sistemas";
+
+if(esAdmin){
+  document.getElementById("panelSistemas").style.display = "block";
+  document.getElementById("menuSistemas").style.display = "block";
+}else{
+  document.getElementById("panelSistemas").style.display = "none";
+  document.getElementById("menuSistemas").style.display = "none";
+}
+
+/* ================= DATA ================= */
+let tareas=[];
+let filtroEstado=null;
+let filtroFecha=null;
+let filtroDepto = null;
+let usuarioEditando = false;
+let vistaActual = "dashboard"; // 🔥 saber qué vista está activa
+let modoFecha = "today"; // 🔥 AQUÍ
+let logoCloudData = null;
+let alertasDisparadas = {};
+let contadorNotificaciones = 0;
+
+async function cargarDepartamentos(){
+
+  try{
+
+    const r = await secureFetch(`${API}/departments`);
+
+    if(!r || !r.ok){
+      console.error("Error cargando departamentos");
+      return;
+    }
+
+    const departamentos = await r.json();
+
+    console.log("Departamentos backend:", departamentos);
+
+    const container = document.getElementById("nr");
+
+    container.innerHTML = `
+      <small style="display:block;color:#6b7280;margin-bottom:8px;">
+        Selecciona uno o varios departamentos
+      </small>
+    `;
+
+    departamentos.forEach(dep => {
+      container.innerHTML += `
+        <div style="
+          display:flex;
+          align-items:center;
+          gap:10px;
+          margin-bottom:10px;
+          background:white;
+          padding:8px;
+          border-radius:8px;
+        ">
+          <input
+            type="checkbox"
+            value="${dep}"
+            class="dept-checkbox"
+            style="width:auto;"
+          />
+          <span>${dep}</span>
+        </div>
+      `;
+    });
+
+  }catch(e){
+    console.error("Error cargando departamentos:", e);
+  }
+}
+/* ================= HELPERS ================= */
+function estado(t){
+
+ if(t.status === "terminado"){
+
+   if(t.closed_at && t.due_date){
+
+      const cierre = new Date(String(t.closed_at).replace(" ","T"));
+      const limite = new Date(String(t.due_date).replace(" ","T"));
+
+      // validar fechas
+      if(!isNaN(cierre) && !isNaN(limite)){
+
+         if(cierre > limite){
+            return "vencido_cerrado";
+         }
+
+      }
+
+   }
+
+   return "cerrado";
+ }
+
+ if(t.status === "proceso"){
+   return "proceso";
+ }
+
+ if(t.status === "abierto"){
+   return "abierto";
+ }
+
+ return t.status;
+}
+
+function calcularTiempoTotal(t){
+
+ if(!t.created_at || !t.closed_at) return "-";
+
+ const inicio = new Date(t.created_at);
+ const fin = new Date(t.closed_at);
+
+ const minutos = Math.floor((fin - inicio)/60000);
+
+ const horas = Math.floor(minutos / 60);
+ const mins = minutos % 60;
+
+ if(horas > 0){
+   return `${horas}h ${mins}m`;
+ }
+
+ return `${mins} min`;
+}
+
+function calcularSLA(t){
+
+  if(!t.created_at || !t.closed_at){
+    return "-";
+  }
+
+  const inicio = new Date(t.created_at);
+  const cierre = new Date(t.closed_at);
+
+  const minutos = (cierre - inicio) / 60000;
+
+  // ✅ EN TIEMPO
+  if(minutos <= 15){
+    return "En tiempo";
+  }
+
+  // 🟡 FUERA DE TIEMPO
+  if(minutos <= 20){
+    return "Fuera de tiempo";
+  }
+
+  // 🔴 VENCIDA
+  return "Vencida";
+}
+
+function estadoTiempo(t){
+
+  if(t.status === "terminado") return "";
+
+  if(!t.created_at) return "";
+
+  const inicio = new Date(t.created_at);
+  const ahora = new Date();
+
+  const minutos = (ahora - inicio) / 60000;
+
+  // 🟠 PRÓXIMO (10–15 min)
+  if(minutos >= 10 && minutos <= 15){
+
+    if(!alertasDisparadas[t.id]){
+      const audio = document.getElementById("alert5min");
+      if(audio) audio.play().catch(()=>{});
+      alertasDisparadas[t.id] = true;
+    }
+
+    return "proximo";
+  }
+
+  // 🔴 VENCIDO (15+)
+  if(minutos > 15){
+    return "vencido";
+  }
+
+  return "";
+}
+function calcularScore(t){
+
+  if(!t.created_at || !t.closed_at){
+    return "-";
+  }
+
+  const inicio = new Date(t.created_at);
+  const cierre = new Date(t.closed_at);
+
+  const minutos = (cierre - inicio) / 60000;
+
+  if(minutos <= 15) return "En tiempo";
+  if(minutos <= 20) return "Fuera de tiempo";
+  return "Vencida";
+}
+async function cargarFiltroDepartamentos(){
+
+  const r = await secureFetch(
+    `${API}/departments`
+  );
+
+  if(!r || !r.ok) return;
+
+  const departamentos = await r.json();
+
+  const container =
+    document.getElementById("filtroDeptos");
+
+  container.innerHTML = "";
+
+  departamentos.forEach(dep=>{
+
+    container.innerHTML += `
+      <label style="
+        display:block;
+        margin-bottom:8px;
+      ">
+        <input
+          type="checkbox"
+          class="filtro-depto"
+          value="${dep}"
+          onchange="filtrarMultiplesDeptos()"
+        >
+        ${dep}
+      </label>
+    `;
+  });
+}
+function filtrarMultiplesDeptos(){
+
+  const seleccionados = Array.from(
+    document.querySelectorAll(
+      ".filtro-depto:checked"
+    )
+  ).map(cb => cb.value);
+
+  filtroDepto =
+    seleccionados.length
+      ? seleccionados
+      : null;
+
+  render();
+}
+function toggleDepartamentosCrear(){
+
+  const box =
+    document.getElementById("nr");
+
+  box.style.display =
+    box.style.display === "block"
+      ? "none"
+      : "block";
+}
+document.addEventListener("click", function(e){
+
+  const box = document.getElementById("nr");
+  const trigger = e.target.closest(
+    '[onclick="toggleDepartamentosCrear()"]'
+  );
+
+  if(
+    !e.target.closest("#nr") &&
+    !trigger
+  ){
+    box.style.display = "none";
+  }
+
+});
+function toggleFiltroDeptos(){
+
+  const box =
+    document.getElementById("filtroDeptos");
+
+  box.style.display =
+    box.style.display === "block"
+      ? "none"
+      : "block";
+}
+document.addEventListener("click", function(e){
+
+  const box = document.getElementById("filtroDeptos");
+
+  const trigger = e.target.closest(
+    '[onclick="toggleFiltroDeptos()"]'
+  );
+
+  if(
+    !e.target.closest("#filtroDeptos") &&
+    !trigger
+  ){
+    box.style.display = "none";
+  }
+
+});
+function aplicarTareaRapida(){
+
+  const tipo = document.getElementById("tareaRapida").value;
+
+  const descripcion = document.getElementById("d");
+  const due = document.getElementById("due");
+
+  // limpiar checkboxes
+  function limpiarDepartamentos(){
+    document
+      .querySelectorAll(".dept-checkbox")
+      .forEach(cb=>{
+        cb.checked = false;
+      });
+  }
+
+  // marcar checkbox automático
+  function marcarDepartamento(nombre){
+
+    limpiarDepartamentos();
+
+    const checkbox = document.querySelector(
+      `.dept-checkbox[value="${nombre}"]`
+    );
+
+    if(checkbox){
+      checkbox.checked = true;
+    }
+  }
+
+  // si no selecciona nada
+  if(!tipo){
+    descripcion.value = "";
+    due.value = "";
+    limpiarDepartamentos();
+    return;
+  }
+
+  function sumarMinutos(min){
+
+    const fecha = new Date();
+    fecha.setMinutes(fecha.getMinutes() + min);
+
+    const year = fecha.getFullYear();
+    const month = String(
+      fecha.getMonth() + 1
+    ).padStart(2,"0");
+
+    const day = String(
+      fecha.getDate()
+    ).padStart(2,"0");
+
+    const hours = String(
+      fecha.getHours()
+    ).padStart(2,"0");
+
+    const minutes = String(
+      fecha.getMinutes()
+    ).padStart(2,"0");
+
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  }
+
+  switch(tipo){
+
+    case "wc":
+      descripcion.value =
+        "WC tapado - El sanitario presenta obstrucción";
+      marcarDepartamento("Mantenimiento");
+    break;
+
+    case "tv":
+      descripcion.value =
+        "Falla de TV - No funciona correctamente";
+      marcarDepartamento("Mantenimiento");
+    break;
+
+    case "tina":
+      descripcion.value =
+        "Tina tapada - No drena correctamente";
+      marcarDepartamento("Mantenimiento");
+    break;
+
+    case "ac":
+      descripcion.value =
+        "Falla de Aire acondicionado";
+      marcarDepartamento("Mantenimiento");
+    break;
+
+    case "limpieza":
+      descripcion.value =
+        "Limpieza de habitación";
+      marcarDepartamento("Housekeeping");
+    break;
+
+    case "foco":
+      descripcion.value =
+        "Foco fundido";
+      marcarDepartamento("Mantenimiento");
+    break;
+
+    case "toallas":
+      descripcion.value =
+        "Solicitud de toallas extras";
+      marcarDepartamento("Housekeeping");
+    break;
+
+    case "jabon":
+      descripcion.value =
+        "Solicitud de jabón extra";
+      marcarDepartamento("Housekeeping");
+    break;
+
+    case "shampoo":
+      descripcion.value =
+        "Solicitud de shampoo extra";
+      marcarDepartamento("Housekeeping");
+    break;
+
+    case "internet":
+      descripcion.value =
+        "Falla de internet";
+      marcarDepartamento("Operaciones");
+    break;
+
+    case "tarja":
+      descripcion.value =
+        "Tarja tapada";
+      marcarDepartamento("Mantenimiento");
+    break;
+
+    case "objeto":
+      descripcion.value =
+        "Objeto olvidado";
+      marcarDepartamento("Recepción");
+    break;
+
+    case "cambio":
+      descripcion.value =
+        "Cambio de habitación";
+      marcarDepartamento("Recepción");
+    break;
+
+    case "olor":
+      descripcion.value =
+        "Mal olor en habitación";
+      marcarDepartamento("Housekeeping");
+    break;
+
+    case "agua":
+      descripcion.value =
+        "Falla de agua caliente";
+      marcarDepartamento("Mantenimiento");
+    break;
+
+    case "coladera":
+      descripcion.value =
+        "Coladera tapada";
+      marcarDepartamento("Mantenimiento");
+    break;
+
+    case "libre":
+      descripcion.value = "";
+      limpiarDepartamentos();
+    break;
+  }
+
+  // SLA automático
+  due.value = sumarMinutos(15);
+
+  descripcion.focus();
+}
+ // 🔥 normalizar formato
+function fechaPMS(fecha){
+
+ if(!fecha) return {fecha:"",hora:""};
+
+ // 🔥 NORMALIZAR (clave)
+ const d = new Date(fecha);
+
+ if(isNaN(d)) return {fecha:"",hora:""};
+
+ return {
+   fecha: d.toLocaleDateString("es-MX"),
+   hora: d.toLocaleTimeString("es-MX",{
+     hour:"numeric",
+     minute:"2-digit",
+     hour12:true
+   })
+ };
+
+}
+/* ================= CARGA ================= */
+async function cargar(){
+
+ const r = await secureFetch(`${API}/tasks`);;
+ if(!r) return;
+
+ if(!r.ok){
+   const text = await r.text();
+   throw new Error(text);
+ }
+
+ tareas = await r.json();
+ render();
+ cargarKPIs();
+}
+/* ================= RENDER PMS SENIOR ================= */
+
+function render(){
+
+ if(usuarioEditando) return;
+
+ const contenedor = (vistaActual === "reportes")
+ ? document.getElementById("lista-reportes")
+ : document.getElementById("lista");
+
+ contenedor.innerHTML="";
+
+ let visibles = [...tareas];
+
+ const currentUser = JSON.parse(localStorage.getItem("user"));
+
+if(currentUser && currentUser.role === "operador"){
+  visibles = visibles.filter(t => 
+    (t.department || "").trim().toLowerCase() === 
+    (user.department || "").trim().toLowerCase()
+  );
+}
+
+ console.log("Filtro seleccionado:", filtroDepto);
+ console.log("Departamentos en tareas:", tareas.map(t => t.department));
+
+ if(
+  filtroDepto &&
+  Array.isArray(filtroDepto)
+){
+  visibles = visibles.filter(t =>
+    filtroDepto.includes(
+      t.department
+    )
+  );
+}
+
+ // 🔥 PMS UX: Reportes solo muestra resultados al consultar
+ if(vistaActual === "reportes" && !filtroFecha){
+
+   contenedor.innerHTML = "<small>Selecciona fechas y presiona Consultar</small>";
+   return;
+
+ }
+
+ // 🔥 ✅ AQUÍ VA TU NUEVO BLOQUE
+ if(vistaActual === "reportes" && filtroFecha){
+
+  contenedor.insertAdjacentHTML("afterbegin", `
+    <h4 style="margin-bottom:10px;">
+      📊 ${visibles.length} resultados encontrados
+    </h4>
+  `);
+
+}
+ // ================= DASHBOARD = SOLO HOY =================
+
+ if(vistaActual === "dashboard" && !filtroEstado && modoFecha === "today"){
+
+  const hoy = new Date();
+  hoy.setHours(0,0,0,0);
+
+  const finHoy = new Date();
+  finHoy.setHours(23,59,59,999);
+
+  visibles = visibles.filter(t=>{
+
+    // 🔥 PRIORIDAD: created_at
+    if(t.created_at){
+      const fecha = new Date(String(t.created_at).replace(" ","T"));
+      return fecha >= hoy && fecha <= finHoy;
+    }
+
+    // 🔥 fallback (por si no existe created_at)
+    if(t.due_date){
+      const fecha = new Date(String(t.due_date).replace(" ","T"));
+      return fecha >= hoy && fecha <= finHoy;
+    }
+
+    return false;
+
+  });
+
+  actividadDepartamento();
+}
+
+ // KPI solo aplica en dashboard
+
+// KPI solo aplica en dashboard
+if(vistaActual === "dashboard" && filtroEstado){
+
+ visibles = visibles.filter(t=>{
+
+   const est = estado(t);
+
+   // 🔥 ABIERTAS
+   if(filtroEstado === "abierto"){
+     return est === "abierto";
+   }
+
+   // 🔥 EN PROCESO
+   if(filtroEstado === "proceso"){
+     return est === "proceso";
+   }
+
+   // 🔥 VENCIDAS ABIERTAS (no cerradas)
+   if(filtroEstado === "vencido"){
+
+  if(!t.created_at || t.status === "terminado") return false;
+
+  const inicio = new Date(String(t.created_at).replace(" ","T"));
+  const ahora = new Date();
+
+  const minutos = (ahora - inicio) / 60000;
+
+  return minutos > 15; // 🔥 SLA base
+
+}
+
+   // 🔥 VENCIDAS CERRADAS
+   if(filtroEstado === "vencido_cerrado"){
+     return est === "vencido_cerrado";
+   }
+
+   // 🔥 CERRADAS (incluye vencidas cerradas)
+   if(filtroEstado === "cerrado"){
+     return est === "cerrado" || est === "vencido_cerrado";
+   }
+
+   return true;
+
+ });
+
+}
+ // ================= SIN RESULTADOS =================
+
+ if(!visibles.length){
+
+   contenedor.innerHTML="<small>No hay tareas</small>";
+   return;
+
+ }
+
+ // ================= RENDER TARJETAS =================
+
+ visibles.forEach(t=>{
+
+  const esCerrada = t.status === "terminado";
+   let comentarios=[];
+
+   try{
+     if(Array.isArray(t.comments)){
+       comentarios=t.comments;
+     }
+     else if(typeof t.comments==="string" && t.comments.trim()!==""){
+       comentarios=JSON.parse(t.comments);
+     }
+   }catch(e){}
+
+if(esCerrada){
+
+contenedor.innerHTML += `
+
+<div class="tarea cerrado" data-id="${t.id}">
+
+<div class="tarea-header">
+<span class="badge cerrado">CERRADO</span>
+<span>${t.department}</span>
+</div>
+
+<div class="tarea-title">${t.title}</div>
+
+<div id="evidencias-${t.id}" style="margin-top:6px">
+
+${(t.evidences || []).map(e => `
+<img src="${e.image_url}"
+style="width:80px;height:80px;object-fit:cover;border-radius:6px;margin:4px;cursor:pointer;"
+onclick="verImagen('${e.image_url}')">
+`).join("")}
+
+</div>
+
+<div style="font-size:11px;color:#6b7280;margin-top:6px;">
+
+Create: ${fechaPMS(t.created_at).fecha} ${fechaPMS(t.created_at).hora}
+
+&nbsp;&nbsp;
+
+Closed: ${t.closed_at ? fechaPMS(t.closed_at).fecha + " " + fechaPMS(t.closed_at).hora : "-"}
+
+&nbsp;&nbsp;
+
+⏱ ${calcularTiempoTotal(t)}
+
+</div>
+
+</div>
+`;
+}
+else{
+
+contenedor.innerHTML += `
+<div class="tarea ${estadoTiempo(t)}" data-id="${t.id}">
+
+<div class="tarea-header">
+<span class="badge ${estado(t)}">${estado(t).toUpperCase()}</span>
+<span>${t.department}</span>
+</div>
+
+<div class="tarea-title">${t.title}</div>
+
+<div>${t.description}</div>
+<div style="
+ font-size:11px;
+ color:#6b7280;
+ margin-top:6px;
+">
+
+User: ${t.created_by || t.user || "N/A"} &nbsp;&nbsp;
+Create: ${fechaPMS(t.created_at).fecha}
+&nbsp;&nbsp;
+Time: ${fechaPMS(t.created_at).hora}
+${t.closed_at ? `
+<div style="font-size:11px;color:#6b7280;margin-top:4px;">
+✅ Cerrado: ${fechaPMS(t.closed_at).fecha} ${fechaPMS(t.closed_at).hora}
+</div>
+` : ""}
+${t.closed_at ? `
+<div style="font-size:11px;color:#6b7280;">
+⏱ Tiempo resolución: ${calcularTiempoTotal(t)}
+</div>
+` : ""}
+</div>
+
+${t.due_date ? `
+
+<div style="font-size:11px;color:#6b7280;margin-top:4px;">
+⏰ Vence: ${fechaPMS(t.due_date).fecha} ${fechaPMS(t.due_date).hora}
+</div>
+
+` : ""}
+
+
+<div style="margin-top:10px">
+
+${comentarios.map(c=>`
+
+<div style="background:#f3f4f6;padding:6px;border-radius:8px;margin-bottom:4px;font-size:13px;">
+
+<div style="font-size:11px;color:#6b7280">
+👤 ${c.user} | 🕒 ${c.fecha}
+</div>
+
+${c.texto}
+
+</div>
+
+`).join("")}
+
+</div>
+
+${t.status !== "terminado" ? `
+
+<div style="margin-top:8px;display:flex;gap:6px">
+
+<button class="btn-dark" onclick="cambiarEstado(${t.id},'proceso')">Proceso</button>
+<button class="btn-dark" onclick="cambiarEstado(${t.id},'terminado')">Cerrar</button>
+<button class="btn-dark" onclick="postergarTarea(${t.id})">📅 Postergar</button>
+<button class="btn-dark" onclick="mostrarComentario(${t.id})">Comentario</button>
+
+</div>
+
+<!-- 🔥 BOX POSTERGAR -->
+<div id="postergar-${t.id}" style="display:none; position:relative;">
+
+<input type="date" id="fecha-${t.id}" style="width:100%">
+<input type="time" id="hora-${t.id}" style="width:100%">
+
+  <button class="btn-dark" onclick="confirmarPostergar(${t.id})">Guardar</button>
+
+</div>
+
+<div style="margin-top:10px;">
+
+<input type="file"
+       id="file-${t.id}"
+       accept="image/*"
+       style="display:none">
+
+<button class="btn-dark" onclick="seleccionarImagen(${t.id})">
+📎 Evidencia
+</button>
+
+<div id="evidencias-${t.id}"
+     style="margin-top:8px">
+
+${(t.evidences || []).map(e => `
+<img src="${e.image_url}"
+style="width:80px;height:80px;object-fit:cover;border-radius:6px;margin:4px;cursor:pointer;"
+onclick="verImagen('${e.image_url}')">
+`).join("")}
+
+</div>
+
+</div>
+
+<div id="box-comentario-${t.id}"
+     style="display:none;margin-top:8px">
+    
+<textarea class="comentario-input"
+id="comentario-${t.id}"
+placeholder="Escribir comentario..."></textarea>
+
+<button onclick="guardarComentario(${t.id})">Guardar</button>
+</div>
+
+` : ""} 
+</div>
+
+`;
+setTimeout(()=>{
+  activarInputEvidencia(t.id);
+},50);
+}
+ });
+}
+
+function renderTareaIndividual(t){
+
+ const contenedor = (vistaActual === "reportes")
+ ? document.getElementById("lista-reportes")
+ : document.getElementById("lista");
+
+ let comentarios = [];
+
+ try{
+   if(Array.isArray(t.comments)){
+     comentarios = t.comments;
+   }
+   else if(typeof t.comments === "string" && t.comments.trim() !== ""){
+     comentarios = JSON.parse(t.comments);
+   }
+ }catch(e){}
+
+ const html = `
+<div class="tarea ${estadoTiempo(t)}" data-id="${t.id}">
+
+<div class="tarea-header">
+<span class="badge ${estado(t)}">${estado(t).toUpperCase()}</span>
+<span>${t.department}</span>
+</div>
+
+<div class="tarea-title">${t.title}</div>
+<div>${t.description}</div>
+
+<div style="font-size:11px;color:#6b7280;margin-top:6px;">
+User: ${t.created_by || t.user || "N/A"}
+&nbsp;&nbsp;
+🕒 ${fechaPMS(t.created_at).fecha} ${fechaPMS(t.created_at).hora}
+</div>
+
+${t.due_date ? `
+<div style="font-size:11px;color:#6b7280;margin-top:4px;">
+⏰ Vence: ${fechaPMS(t.due_date).fecha} ${fechaPMS(t.due_date).hora}
+</div>
+` : ""}
+
+<div style="margin-top:10px">
+
+${comentarios.map(c=>`
+
+<div style="background:#f3f4f6;padding:6px;border-radius:8px;margin-bottom:4px;font-size:13px;">
+
+<div style="font-size:11px;color:#6b7280">
+👤 ${c.user} | 🕒 ${c.fecha}
+</div>
+
+${c.texto}
+
+</div>
+
+`).join("")}
+
+</div>
+
+
+<div id="evidencias-${t.id}" style="margin-top:8px">
+
+${(t.evidences || []).map(e => `
+<img src="${e.image_url}"
+style="width:80px;height:80px;object-fit:cover;border-radius:6px;margin:4px;cursor:pointer;"
+onclick="verImagen('${e.image_url}')">
+`).join("")}
+
+</div>
+
+<div style="margin-top:8px;display:flex;gap:6px">
+
+<button onclick="cambiarEstado(${t.id},'proceso')">Proceso</button>
+<button onclick="cambiarEstado(${t.id},'terminado')">Cerrar</button>
+<button onclick="mostrarComentario(${t.id})">Comentario</button>
+
+</div>
+
+<div style="margin-top:10px;">
+
+<input type="file"
+       id="file-${t.id}"
+       accept="image/*"
+       style="display:none">
+
+<button onclick="seleccionarImagen(${t.id})">
+📎 Evidencia
+</button>
+
+</div>
+
+<div id="box-comentario-${t.id}"
+     style="display:none;margin-top:8px">
+    
+<textarea class="comentario-input"
+id="comentario-${t.id}"
+placeholder="Escribir comentario..."></textarea>
+
+<button onclick="guardarComentario(${t.id})">Guardar</button>
+
+</div>
+
+</div>
+`;
+
+ const tarjetaExistente = document.querySelector(`[data-id='${t.id}']`);
+
+ if(tarjetaExistente){
+
+   tarjetaExistente.outerHTML = html;
+
+ }else{
+
+   contenedor.insertAdjacentHTML("afterbegin", html);
+
+ }
+
+activarInputEvidencia(t.id);
+
+}
+
+/* ================= KPIs ================= */
+function kpis(){
+
+ let c={
+  abierto:0,
+  proceso:0,
+  vencido:0,
+  cerrado:0
+ };
+
+ // 🔥 AGREGAR ESTO
+ const currentUser = JSON.parse(localStorage.getItem("user"));
+
+ let tareasFiltradas = tareas;
+
+ if(currentUser && currentUser.role === "operador"){
+   tareasFiltradas = tareas.filter(t => 
+     (t.department || "").trim().toLowerCase() === 
+     (user.department || "").trim().toLowerCase()
+   );
+ }
+
+ // 🔥 SOLO CAMBIAR ESTA LÍNEA
+ tareasFiltradas.forEach(t=>{
+
+   const e = estado(t);
+
+   if(e === "vencido_cerrado"){
+     c.cerrado++;
+   }else if(c[e] !== undefined){
+     c[e]++;
+   }
+
+ });
+
+ kA.innerText=c.abierto;
+ kP.innerText=c.proceso;
+ kV.innerText=c.vencido;
+ kC.innerText=c.cerrado;
+}
+
+function actividadDepartamento(){
+
+ const data = {};
+ const ahora = new Date();
+
+ const mesActual = ahora.getMonth();
+ const anioActual = ahora.getFullYear();
+
+ tareas.forEach(t=>{
+
+   if(!t.created_at) return;
+
+   const fecha = new Date(String(t.created_at).replace(" ","T"));
+
+   if(
+     fecha.getMonth() === mesActual &&
+     fecha.getFullYear() === anioActual
+   ){
+
+     if(!data[t.department]){
+        data[t.department] = 0;
+     }
+
+     data[t.department]++;
+
+   }
+
+ });
+
+const cont = document.getElementById("deptChart");
+if(!cont) return;
+
+const max = Math.max(...Object.values(data),1);
+
+cont.innerHTML = Object.entries(data)
+.sort((a,b)=>b[1]-a[1])
+.map(([dep,total])=>{
+
+const width = (total / max) * 100;
+
+return `
+<div style="margin-bottom:14px; max-width:500px;">
+
+  <div style="
+    display:flex;
+    justify-content:space-between;
+    margin-bottom:6px;
+  ">
+    <span style="
+      font-size:13px;
+      color:#111827;
+      font-weight:500;
+    ">
+      ${dep}
+    </span>
+
+    <span style="
+      font-size:12px;
+      color:#6b7280;
+      font-weight:600;
+    ">
+      ${total}
+    </span>
+  </div>
+
+  <div style="
+    height:6px;
+    background:#e5e7eb;
+    border-radius:999px;
+  ">
+    <div style="
+      width:${width}%;
+      height:100%;
+      background:#1e3a8a;
+      border-radius:999px;
+      transition:width 0.6s ease;
+    "></div>
+  </div>
+
+</div>
+`;
+}).join("");
+}
+
+async function cargarKPIs(){
+
+ const r = await secureFetch(`${API}/kpis`);
+
+ if(!r) return;
+
+ const k = await r.json();
+
+ kA.innerText = k.abiertas;
+ kP.innerText = k.proceso;
+ kV.innerText = k.vencidas;
+ kC.innerText = k.cerradas;
+
+}
+/* ================= FILTROS ================= */
+function aplicarFiltro(e){
+
+ filtroEstado = e;
+
+ // quitar activo de todos
+ document.querySelectorAll(".card").forEach(c=>{
+   c.classList.remove("active");
+ });
+
+ // activar el seleccionado
+ const mapa = {
+   abierto:0,
+   proceso:1,
+   vencido:2,
+   cerrado:3
+ };
+
+ const card = document.querySelectorAll(".card")[mapa[e]];
+ if(card) card.classList.add("active");
+
+ render();
+
+}
+
+function limpiarFiltros(){
+
+ filtroEstado = null;
+ filtroFecha = null;
+
+ console.log("Filtros limpiados PMS");
+
+ render();
+
+}
+function parseJwt(token){
+ try{
+   const base64Payload = token.split('.')[1];
+   const payload = atob(base64Payload);
+   return JSON.parse(payload);
+ }catch{
+   return null;
+ }
+}
+
+// ejecutar fuera
+const decodedUser = parseJwt(token);
+
+// mostrar solo a roles permitidos
+if(user && ["admin","recepcion"].includes(user.role)){
+  document.getElementById("configBtn").style.display = "block";
+}
+
+function goConfig(){
+  window.open("/admin-config.html", "_blank");
+}
+function scheduleAutoLogout(){
+
+ 
+ if(!token) return;
+
+ const decoded = parseJwt(token);
+ if(!decoded || !decoded.exp) return;
+
+ const expirationTime = decoded.exp * 1000; // exp viene en segundos
+ const now = Date.now();
+
+ // ⏳ Cerramos 2 minutos antes
+ const earlyLogout = expirationTime - (2 * 60 * 1000);
+
+ const timeout = earlyLogout - now;
+
+ if(timeout <= 0){
+   logoutAuto("Sesión expirada");
+   return;
+ }
+
+ setTimeout(()=>{
+   logoutAuto("Tu sesión está por expirar por seguridad.");
+ }, timeout);
+
+}
+function logoutAuto(reason){
+
+ localStorage.removeItem("token");
+ localStorage.removeItem("user");
+
+ alert(reason);
+
+ window.location.href="login.html";
+}
+
+function filtrarPorFecha(){
+
+ const fromInput = document.getElementById("from");
+ const toInput = document.getElementById("to");
+
+ if(!fromInput.value || !toInput.value){
+   alert("Selecciona ambas fechas");
+   return;
+ }
+
+ const i = new Date(fromInput.value + "T00:00:00");
+ const f = new Date(toInput.value + "T23:59:59");
+
+ filtroFecha = { from: i, to: f };
+
+ // 🔥 NUEVO
+ const depPDF = document.getElementById("filtroDeptoPDF").value;
+ filtroDepto = depPDF || null;
+
+ document.getElementById("filtroActivo").style.display="block";
+
+ render();
+}
+/* ================= CRUD ================= */
+async function crearTarea(){
+
+ try{
+
+   const tarea = document.getElementById("tareaRapida");
+   const descripcion = document.getElementById("d");
+   const due = document.getElementById("due");
+
+   const depCheckboxes = document.querySelectorAll(
+     ".dept-checkbox:checked"
+   );
+
+   const currentUser = JSON.parse(
+     localStorage.getItem("user")
+   );
+
+   const title = tarea.value === "libre"
+     ? descripcion.value
+     : tarea.options[tarea.selectedIndex].text;
+
+   if(!title || title === "Seleccionar tarea"){
+     alert("Selecciona una tarea");
+     return;
+   }
+
+   // múltiples departamentos
+   const departments = Array.from(
+     depCheckboxes
+   ).map(cb => cb.value);
+
+   if(!descripcion.value || departments.length === 0){
+     alert("Completa los campos");
+     return;
+   }
+
+   const res = await secureFetch(
+     `${API}/tasks`,
+     {
+       method:"POST",
+       body:JSON.stringify({
+         title,
+         description: descripcion.value,
+         departments,
+         due_date: due.value
+           ? new Date(due.value).toISOString()
+           : null,
+         user: currentUser.username
+       })
+     }
+   );
+
+   if(!res) return;
+
+   if(!res.ok){
+     const text = await res.text();
+     console.error("ERROR:", text);
+     alert("Error creando tarea");
+     return;
+   }
+
+   const data = await res.json();
+
+   console.log("✅ Tareas creadas:", data);
+
+   await recargarTareas();
+
+   mostrarVista("dashboard");
+
+   // limpiar formulario
+   tarea.value = "";
+   descripcion.value = "";
+   due.value = "";
+
+   // limpiar checkboxes
+   document
+     .querySelectorAll(".dept-checkbox")
+     .forEach(cb => {
+       cb.checked = false;
+     });
+
+ }catch(e){
+
+   console.error(
+     "Error creando tarea:",
+     e
+   );
+
+   alert("No se pudo crear la tarea");
+
+ }
+
+}
+async function cambiarEstado(id,s){
+
+ await secureFetch(`${API}/tasks/${id}`,{
+   method:"PUT",
+   headers:{
+     "Content-Type":"application/json","Authorization":"Bearer "+localStorage.getItem("token")
+   },
+   body:JSON.stringify({
+     status: s
+   })
+ });
+
+ await recargarTareas();
+
+}
+ // 🔥 guardar en backend
+
+async function recargarTareas(){
+
+ const r = await secureFetch(`${API}/tasks`,
+   {
+     headers:{
+       "Authorization":"Bearer "+localStorage.getItem("token")
+     }
+   }
+ );
+
+ if(!r) return; 
+
+ if(!r.ok){
+   const text = await r.text();
+   throw new Error(text);
+ }
+
+ tareas = await r.json();
+ render();
+ cargarKPIs();
+
+}
+/* ================= SISTEMAS ================= */
+async function crearUsuario(){
+
+ const res = await secureFetch(`${API}/users`,
+  {
+    method:"POST",
+    headers:{
+      "Content-Type":"application/json"
+    },
+    body: JSON.stringify({
+      username: document.getElementById("nu").value,
+      password: document.getElementById("np").value,
+      role: document.getElementById("userRole").value,
+      department: document.getElementById("userDepartment").value
+    })
+  }
+ );
+
+ if(!res) return;
+
+ if(res.ok){
+   alert("Usuario creado");
+   cargarUsuarios();
+ }else{
+   alert("Error creando usuario");
+ }
+
+}
+
+function cambiarPassword(){
+
+ secureFetch(`${API}/change-password`,{
+
+  method:"POST",
+
+  headers:{
+    "Content-Type":"application/json",
+    "Authorization":"Bearer "+localStorage.getItem("token")
+  },
+
+  body:JSON.stringify({
+    username: document.getElementById("cu").value.trim(),
+    newPassword: document.getElementById("cp").value.trim()
+  })
+
+ }).then(()=>alert("Contraseña actualizada"));
+
+}
+
+async function cargarUsuarios(){
+
+  try{
+
+    const res = await secureFetch(`${API}/users`);
+    if(!res) return;
+
+    const usuarios = await res.json();
+
+    if(!Array.isArray(usuarios)){
+      console.warn("⚠️ usuarios inválidos");
+      return;
+    }
+
+    const cont = document.getElementById("listaUsuarios");
+    if(!cont) return;
+
+    cont.innerHTML = "";
+
+    usuarios.forEach(u=>{
+      cont.innerHTML += `
+        <tr>
+          <td>${u.username}</td>
+          <td>${u.role || "-"}</td>
+          <td>${u.department || "-"}</td>
+          <td>
+            <button onclick="borrarUsuario(${u.id})">
+              ❌
+            </button>
+          </td>
+        </tr>
+      `;
+    });
+
+  }catch(err){
+    console.error("❌ cargarUsuarios error:", err);
+  }
+
+}
+
+async function borrarUsuario(id){
+
+ if(!confirm("¿Eliminar usuario?")) return;
+
+ const res = await secureFetch(`${API}/users/${id}`,
+   { method:"DELETE" }
+ );
+
+ if(!res) return;
+
+ cargarUsuarios();
+}
+
+function obtenerTareasVisibles(){
+
+  return tareas.filter(t=>{
+
+    if(filtroDepto && t.department !== filtroDepto){
+      return false;
+    }
+
+    if(filtroFecha){
+
+      if(!t.created_at) return false;
+
+      const fecha = new Date((t.created_at || "").replace(" ","T"));
+
+      if(isNaN(fecha)) return false;
+
+      if(fecha < filtroFecha.from || fecha > filtroFecha.to){
+        return false;
+      }
+    }
+
+    return true;
+  });
+}
+
+/* ================= EXPORT ================= */
+function exportarPDF(){
+
+  try{
+    const { jsPDF } = window.jspdf;
+
+    const pdf = new jsPDF('l','mm','a4');
+    const logoMollyHelpersData = "icon-192.png";
+
+    let y = 70;
+    
+    const data = obtenerTareasVisibles();
+    console.log("📊 DATA PDF:", data);
+
+    // 🔥 SOLO tareas cerradas
+    const cerradas = data.filter(t => t.closed_at);
+
+    let total = cerradas.length;
+    let enTiempo = 0;
+    let fueraTiempo = 0;
+    let tiempoTotal = 0;
+
+    cerradas.forEach(t=>{
+
+      if(!t.created_at || !t.closed_at) return;
+
+      const inicio = new Date((t.created_at || "").replace(" ","T"));
+      const fin = new Date((t.closed_at || "").replace(" ","T"));
+      const limite = t.due_date ? new Date((t.due_date || "").replace(" ","T")) : null;
+
+      if(isNaN(inicio) || isNaN(fin)) return;
+
+      const minutos = Math.floor((fin - inicio)/60000);
+      tiempoTotal += minutos;
+
+      if(limite && fin <= limite){
+        enTiempo++;
+      }else if(limite){
+        fueraTiempo++;
+      }
+
+    });
+
+    const promedio = total ? Math.round(tiempoTotal/total) : 0;
+    const cumplimiento = total ? Math.round((enTiempo/total)*100) : 0;
+
+    // ===== HEADER =====
+    const pageWidth = pdf.internal.pageSize.getWidth();
+
+    if(logoCloudData && logoCloudData.startsWith("data:image")){
+      pdf.addImage(logoCloudData,"PNG",14,10,20,20);
+    }
+
+    pdf.addImage(logoMollyHelpersData,"PNG",pageWidth - 34,10,20,20);
+
+    pdf.setFontSize(14);
+    pdf.setFont(undefined,"bold");
+    pdf.text("MollyHelpers",pageWidth - 40,35,{ align:"right" });
+
+    pdf.setFontSize(16);
+    pdf.setFont(undefined,"normal");
+    pdf.text("Reporte Ejecutivo Operativo",50,18);
+
+    // 🔥 NUEVA LÍNEA (más abajo)
+    pdf.setDrawColor(200);
+    pdf.line(14,45,pageWidth-14,45);
+
+    pdf.setFontSize(10);
+    pdf.text(`Usuario: ${user.username}`,50,24);
+    pdf.text(`Generado: ${new Date().toLocaleString()}`,50,30);
+
+    // 🔥 KPIs (más abajo)
+    pdf.setFontSize(11);
+    pdf.text(`Total tareas: ${total}`,14,55);
+    pdf.text(`Cumplimiento SLA: ${cumplimiento}%`,60,55);
+    pdf.text(`Fuera de tiempo: ${fueraTiempo}`,120,55);
+    pdf.text(`Tiempo promedio resolución: ${promedio} min`,170,55);
+
+    // ===== FILTROS =====
+    let filtroTexto = `Departamento: ${filtroDepto || "Todos"}`;
+
+    if(filtroFecha){
+      filtroTexto += ` | Periodo: ${
+        filtroFecha.from.toLocaleDateString()
+      } - ${
+        filtroFecha.to.toLocaleDateString()
+      }`;
+    }
+
+    pdf.setFontSize(10);
+
+    // 🔥 FILTROS MÁS ABAJO
+    pdf.setFont(undefined,"bold");
+    pdf.text("Filtros:", 14, 50);
+
+    pdf.setFont(undefined,"normal");
+    pdf.text(filtroTexto, 30, 50);
+
+    // ===== TABLA =====
+    y = 75;
+
+    pdf.setFontSize(9);
+
+    const colWidth = [40, 30, 28, 30, 35, 25, 25, 25, 55];
+
+    pdf.setFont(undefined,"bold");
+
+    const headers = [
+      "Tarea",
+      "Departamento",
+      "Estado",
+      "Usuario",
+      "Fecha",
+      "Tiempo Total",
+      "SLA",
+      "Score",
+      "Comentarios"
+    ];
+
+    let x = 14;
+
+    headers.forEach((h,i)=>{
+      pdf.text(h,x,y);
+      x += colWidth[i];
+    });
+
+    pdf.setFont(undefined,"normal");
+
+    y += 8;
+
+    data.forEach(t=>{
+
+      let comentariosTexto = "";
+
+      try{
+        let comentarios = [];
+
+        if(Array.isArray(t.comments)) comentarios = t.comments;
+        else if(typeof t.comments === "string")
+          comentarios = JSON.parse(t.comments);
+
+        comentariosTexto = comentarios
+          .map(c=>`${c.user}: ${c.texto}`)
+          .join(" | ");
+
+      }catch(e){}
+
+      const fecha = fechaPMS(t.created_at);
+
+      const row = [
+  t.title || "",
+  t.department || "",
+  (() => {
+    const e = estado(t)
+      .replace("_","  ")
+      .toLowerCase()
+      .replace(/\b\w/g, l => l.toUpperCase());
+    return e;
+  })(),
+   t.closed_by || t.created_by || "",
+  `${fecha.fecha} ${fecha.hora}`,
+  calcularTiempoTotal(t),
+  calcularSLA(t),
+  formatearVidaTarea(t),
+  comentariosTexto
+];
+
+      const splitRow = row.map((col,i)=>{
+
+  // 🔥 TIEMPOS (array)
+  if(i === 7 && Array.isArray(col)){
+    return col;
+  }
+
+  // 🔥 NO cortar textos cortos
+  if(String(col).length < 15){
+    return [String(col)];
+  }
+
+  return pdf.splitTextToSize(String(col),colWidth[i]-8);
+
+});
+
+      const rowHeight = Math.max(...splitRow.map(r => r.length)) * 6;
+
+      if(y + rowHeight > 190){
+
+        pdf.addPage();
+        y = 20;
+
+        pdf.setFont(undefined,"bold");
+
+        let xHeader = 14;
+
+        headers.forEach((h,i)=>{
+          pdf.text(h,xHeader,y);
+          xHeader += colWidth[i];
+        });
+
+        pdf.setFont(undefined,"normal");
+
+        y += 8;
+      }
+
+      x = 14;
+
+      splitRow.forEach((col,i)=>{
+
+  // 🎨 SLA (columna 6)
+  if(i === 6){
+    if(String(col).includes("En tiempo")){
+      pdf.setTextColor(0,150,0);
+    }
+    else if(String(col).includes("Fuera")){
+      pdf.setTextColor(255,165,0);
+    }
+    else if(String(col).includes("Vencida")){
+      pdf.setTextColor(200,0,0);
+    }
+  }
+
+  // 🎨 TIEMPOS (columna 7)
+  if(i === 7 && Array.isArray(col)){
+
+    let yTemp = y;
+
+    col.forEach(linea=>{
+      pdf.text(linea, x, yTemp);
+      yTemp += 5;
+    });
+
+  }else{
+    pdf.text(col, x, y);
+  }
+
+  pdf.setTextColor(0,0,0);
+  x += colWidth[i];
+
+});
+y += rowHeight;
+});
+    agregarFooter(pdf);
+
+    pdf.save("reporte_ejecutivo_operativo.pdf");
+
+    console.log("✅ PDF GENERADO OK");
+
+  }catch(error){
+
+    console.error("💥 ERROR EXPORT PDF:", error);
+    alert("Error generando PDF — revisa consola (F12)");
+
+  }
+}
+function formatearVidaTarea(t){
+
+  const creado = t.created_at ? new Date(t.created_at) : null;
+  const proceso = t.started_at ? new Date(t.started_at) : null;
+  const cerrado = t.closed_at ? new Date(t.closed_at) : null;
+
+  const fmt = (d)=>{
+    if(!d) return "-";
+    return d.toLocaleTimeString("es-MX",{
+      hour:"2-digit",
+      minute:"2-digit",
+      hour12:true
+    });
+  };
+
+  return [
+    fmt(creado),
+    fmt(proceso),
+    fmt(cerrado)
+  ];
+}
+// ================= FOOTER =================
+function agregarFooter(pdf){
+
+ const pageCount = pdf.getNumberOfPages();
+
+ for(let i=1;i<=pageCount;i++){
+
+   pdf.setPage(i);
+   pdf.setFontSize(9);
+
+   pdf.text(
+     `© Michelle Romero para Empresa | Página ${i}/${pageCount}`,
+     105,
+     290,
+     { align:"center" }
+   );
+ }
+}
+function mostrarComentario(id){
+
+ const box = document.getElementById(`box-comentario-${id}`);
+
+ if(!box) return;
+
+ if(box.style.display === "none" || box.style.display === ""){
+
+   box.style.display = "block";
+
+ }else{
+
+   box.style.display = "none";
+
+ }
+
+}
+
+document.addEventListener("input",(e)=>{
+
+ if(!e.target.classList.contains("comentario-input")) return;
+
+
+ usuarioEditando = true;
+
+ clearTimeout(window.timerEdit);
+
+ window.timerEdit = setTimeout(()=>{
+
+   usuarioEditando = false;
+
+ },5000);
+
+});
+
+document.addEventListener("input",()=>{
+
+ if(document.activeElement.classList.contains("comentario-input")
+ || document.activeElement.id==="d"){
+
+   usuarioEditando = true;
+
+   clearTimeout(window.timerEdit);
+
+   window.timerEdit=setTimeout(()=>{
+
+     usuarioEditando=false;
+
+   },4000);
+
+ }
+
+});
+let guardandoComentario=false;
+
+async function guardarComentario(id){
+
+   if(guardandoComentario) return;
+   guardandoComentario = true;
+
+   const tarea = tareas.find(t => String(t.id) === String(id));
+   if(!tarea){
+      guardandoComentario = false;
+      return;
+   }
+
+   const textarea = document.getElementById(`comentario-${id}`);
+   if(!textarea){
+      guardandoComentario = false;
+      return;
+   }
+
+   const texto = textarea.value.trim();
+   if(!texto){
+      guardandoComentario = false;
+      return;
+   }
+
+   const nuevoComentario = {
+      user: user.username,
+      texto: texto,
+      fecha: new Date().toLocaleString()
+   };
+
+   if(typeof tarea.comments === "string"){
+      try{
+         tarea.comments = JSON.parse(tarea.comments);
+      }catch(e){
+         tarea.comments = [];
+      }
+   }
+
+   if(!Array.isArray(tarea.comments)){
+      tarea.comments = [];
+   }
+
+   tarea.comments.push(nuevoComentario);
+
+   renderTareaIndividual(tarea);
+
+   const res = await secureFetch(`${API}/tasks/${id}`,{
+      method:"PUT",
+      headers:{
+         "Content-Type":"application/json",
+         "Authorization":"Bearer "+localStorage.getItem("token")
+      },
+      body:JSON.stringify({
+         comments: tarea.comments
+      })
+   });
+
+   if(!res) return; 
+
+   if(!res.ok){
+      console.error("Error actualizando comentarios");
+   }
+
+   await recargarTareas();
+
+   textarea.value="";
+   guardandoComentario=false;
+}
+
+function mostrarVista(nombre){
+
+ const vistaAnterior = vistaActual;
+ vistaActual = nombre;
+
+ if(nombre === "dashboard"){
+  const badge = document.getElementById("badgeNotif");
+  if(badge) badge.style.display = "none";
+}
+
+if(nombre === "crear"){
+}
+
+if(nombre === "sistemas"){
+  console.log("🔥 ENTRANDO A SISTEMAS");
+}
+
+ if(vistaAnterior === "reportes" && nombre !== "reportes"){
+   filtroFecha = null;
+   filtroDepto = null; // 🔥 agregar esto
+}
+
+ document.querySelectorAll(".vista").forEach(v=>{
+   v.style.display="none";
+ });
+
+ document.getElementById("vista-"+nombre).style.display="block";
+
+ render();
+ cargarDepartamentos();
+
+}
+
+// cargar inicial
+
+
+
+cargar();
+cargarDepartamentos();
+cargarFiltroDepartamentos();
+aplicarPermisos();
+
+// ================= PUSH SUBSCRIPTION ENTERPRISE =================
+
+if("serviceWorker" in navigator){
+
+ navigator.serviceWorker.register("service-worker-staging.js")
+.then(async reg=>{
+
+ console.log("🔥 SW registrado");
+
+ const permission = await Notification.requestPermission();
+
+ if(permission !== "granted"){
+   console.log("Notificaciones bloqueadas");
+   return;
+ }
+
+ let sub = await reg.pushManager.getSubscription();
+
+ if(!sub){
+
+   sub = await reg.pushManager.subscribe({
+     userVisibleOnly:true,
+     applicationServerKey: urlBase64ToUint8Array("BFCjuIrtlaAGysbjuC1YpFH3YZfEL9KNGNMsmqyVdQRHdmYG6g8QcD8qcziJNiPk2ETcC66Esa-K5y_eVqhQ-D4")
+   });
+
+ }
+
+ await secureFetch(`${API}/subscribe`,{
+   method:"POST",
+   headers:{
+     "Content-Type":"application/json"
+   },
+   body:JSON.stringify({
+ subscription: sub,
+ department: user.department,
+ username: user.username,
+ device: navigator.userAgent
+})
+ });
+
+ console.log("✅ Push suscrito enterprise");
+
+});
+
+}
+
+function urlBase64ToUint8Array(base64String) {
+
+ const padding = '='.repeat((4 - base64String.length % 4) % 4);
+ const base64 = (base64String + padding)
+   .replace(/\-/g, '+')
+   .replace(/_/g, '/');
+
+ const rawData = window.atob(base64);
+ const outputArray = new Uint8Array(rawData.length);
+
+ for (let i = 0; i < rawData.length; ++i) {
+   outputArray[i] = rawData.charCodeAt(i);
+ }
+
+ return outputArray;
+}
+// refresh inteligente cada 5 segundos
+let ultimaNotificacion = 0;
+
+// ================= DEEP LINK LISTENER =================
+
+if("serviceWorker" in navigator){
+
+ navigator.serviceWorker.addEventListener("message",(event)=>{
+
+  if(event.data?.type === "OPEN_TASK"){
+
+    const id = event.data.taskId;
+
+    const elemento = document.querySelector(`[data-id='${id}']`);
+
+    if(elemento){
+
+      elemento.scrollIntoView({
+        behavior:"smooth",
+        block:"center"
+      });
+
+      elemento.style.boxShadow="0 0 0 3px #2563eb";
+
+      setTimeout(()=>{
+        elemento.style.boxShadow="";
+      },3000);
+
+    }
+
+  }
+
+ });
+
+}
+// ================= SUBIR LOGO =================
+ document.getElementById("logoInput").addEventListener("change", function(e){
+
+ const file = e.target.files[0];
+
+ const reader = new FileReader();
+
+ reader.onload = async function(){  // 🔥 IMPORTANTE async
+
+   const res = await secureFetch(`${API}/settings`,{
+     method:"POST",
+     headers:{
+       "Content-Type":"application/json"
+     },
+     body:JSON.stringify({
+       key:"logo",
+       value:reader.result
+     })
+   });
+
+   if(!res || !res.ok){
+     alert("Error guardando logo");
+     return;
+   }
+
+   console.log("Logo guardado correctamente");
+
+ };
+
+ reader.readAsDataURL(file);
+
+});
+
+// ================= CARGAR LOGO DESDE CLOUD =================
+const logo = document.getElementById("logo");
+
+secureFetch(`${API}/settings`)
+.then(async r=>{
+
+  if(!r) return;
+
+  if(!r.ok){
+    console.error("Error cargando settings");
+    return;
+  }
+
+  const settings = await r.json();
+
+  if(!Array.isArray(settings)){
+    console.error("Settings inválido:", settings);
+    return;
+  }
+
+  const logoCloud = settings.find(s=>s.key==="logo");
+
+  if(logoCloud){
+    logo.src = logoCloud.value;
+    logoCloudData = logoCloud.value;
+  }
+
+});
+function iniciarSocket(){
+
+  // 🔥 limpiar socket previo
+  if(socket){
+    socket.disconnect();
+    socket = null;
+  }
+
+  const token = localStorage.getItem("token");
+  if(!token) return;
+
+  if(!user || !user.department){
+    console.warn("⚠️ Usuario sin departamento");
+  }
+
+  socket = io(API,{
+    auth:{ token },
+    query:{ department: user?.department || "" },
+    reconnection:true
+  });
+
+  // ================= CONNECT =================
+  socket.on("connect", () => {
+
+    console.log("🔥 SOCKET CONECTADO:", socket.id);
+
+    const company_code = localStorage.getItem("company_code");
+
+    if(company_code){
+      socket.emit("join_admin", company_code);
+      console.log("🟢 Unido a canal:", "admin_" + company_code);
+    }
+
+    // 🔥 estado inicial app
+    if(document.hidden){
+      console.log("📴 Sync inicial: background");
+      socket.emit("app_background", user?.department);
+    }else{
+      console.log("📱 Sync inicial: foreground");
+      socket.emit("app_foreground", user?.department);
+    }
+
+  });
+
+  // ================= COMENTARIOS =================
+  socket.on("comentarioAgregado", data => {
+
+    if(!localStorage.getItem("token")) return;
+    if(!Array.isArray(tareas)) return;
+
+    const tarea = tareas.find(t => String(t.id) === String(data.tareaId));
+    if(!tarea) return;
+
+    tarea.comments.push(data.comentario);
+    renderTareaIndividual(tarea);
+
+  });
+
+}
+async function guardarSub(sub){
+
+  const token = localStorage.getItem("token");
+
+  try{
+
+    await fetch(API + "/save-subscription",{
+      method:"POST",
+      headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer " + token
+      },
+      body: JSON.stringify({
+        subscription: sub
+      })
+    });
+
+    console.log("✅ Sub guardada");
+
+  }catch(e){
+    console.log("❌ Error guardando sub:", e);
+  }
+
+}
+async function logout(){
+
+  try{
+
+    const registration = await navigator.serviceWorker.ready;
+    const sub = await registration.pushManager.getSubscription();
+
+    console.log("🔔 SUB:", sub);
+
+    const endpoint = sub?.endpoint;
+
+    console.log("📡 ENDPOINT:", endpoint);
+
+    await secureFetch(`${API}/logout-device`, {
+      method:"POST",
+      body: JSON.stringify({ endpoint })
+    });
+
+    if(sub){
+      await sub.unsubscribe();
+      console.log("🧹 Push desuscrito");
+    }
+
+  }catch(e){
+    console.log("❌ Error logout:", e);
+  }
+
+  if(socket){
+    socket.emit("logout"); // 🔥 AGREGA ESTO
+    socket.disconnect();
+    socket = null;
+  }
+
+  localStorage.removeItem("token");
+  localStorage.removeItem("user");
+
+  location.href="login.html";
+}
+function toggleMenu(){
+
+ const sidebar = document.querySelector(".sidebar");
+ const overlay = document.getElementById("overlay");
+
+ sidebar.classList.toggle("open");
+ overlay.classList.toggle("show");
+
+}
+window.addEventListener("load", ()=>{
+ scheduleAutoLogout();
+ aplicarPermisos();
+});
+
+function reproducirAlerta(){
+
+  if(!audioUnlocked) return; // 🔥 CLAVE REAL
+
+  const audio = document.getElementById("alertSound");
+  if(!audio) return;
+
+  audio.currentTime = 0;
+  audio.play().catch(()=>{});
+
+}
+socket.on("task_update",(payload)=>{
+
+  if(!payload) return;
+
+  const currentUser = JSON.parse(
+    localStorage.getItem("user")
+  );
+
+  if(typeof payload.comments === "string"){
+    try{
+      payload.comments = JSON.parse(payload.comments);
+    }catch(e){}
+  }
+
+  // 🔒 FILTRO POR DEPARTAMENTO
+  const rolesFullAccess = [
+    "admin",
+    "recepcion",
+    "sistemas"
+  ];
+
+  const puedeVerTodo = rolesFullAccess.includes(
+    currentUser.role
+  );
+
+  const puedeVerDepartamento =
+    currentUser.role === "operador" &&
+    payload.department === currentUser.department;
+
+  if(!puedeVerTodo && !puedeVerDepartamento){
+    console.log(
+      "⛔ tarea bloqueada por departamento:",
+      payload.department
+    );
+    return;
+  }
+
+  const visible =
+    document.visibilityState === "visible";
+
+  if(visible){
+    mostrarAlerta(payload);
+  }
+
+  if(visible && audioUnlocked){
+  reproducirAlerta();
+}
+
+  const payloadId = String(payload.id);
+
+  const existe = tareas.some(
+    t => String(t.id) === payloadId
+  );
+
+  if(existe){
+
+    tareas = tareas.map(t =>
+      String(t.id) === payloadId
+        ? { ...t, ...payload }
+        : t
+    );
+
+  }else{
+
+    tareas.unshift(payload);
+
+    if(visible){
+      reproducirAlerta();
+      activarNotificacionVisual();
+      mostrarNotificacionSistema(payload);
+    }
+  }
+
+  if(payload.status === "terminado"){
+    render();
+  }else{
+    renderTareaIndividual(payload);
+  }
+
+  cargarKPIs();
+
+});
+function activarNotificacionVisual(){
+
+ const badge = document.getElementById("badgeNotif");
+
+ badge.innerText = "●";
+ badge.style.display = "inline-block";
+
+ // vibración si es móvil
+if(audioEnabled && "vibrate" in navigator){
+  navigator.vibrate([200,100,200]);
+}
+}
+document.addEventListener("click",()=>{
+  audioEnabled = true;
+ const audio = document.getElementById("alertSound");
+ if(audio){
+   audio.play().then(()=>{
+     audio.pause();
+     audio.currentTime=0;
+   }).catch(()=>{});
+ }
+},{once:true});
+
+document.addEventListener("pointerdown", unlockAudio);
+document.addEventListener("touchstart", unlockAudio);
+document.addEventListener("keydown", unlockAudio);
+
+function mostrarNotificacionSistema(tarea){
+
+ if(!("Notification" in window)) return;
+
+ if(Notification.permission === "granted"){
+
+   new Notification("Nueva tarea",{
+     body: `${tarea.title} - ${tarea.department}`,
+     icon: "icon-192.png"
+   });
+
+ }
+
+}
+if("Notification" in window && Notification.permission !== "granted"){
+ Notification.requestPermission();
+}
+if(Notification.permission === "granted"){
+
+ navigator.serviceWorker.ready.then(reg=>{
+
+   reg.showNotification("MollyHelpers activo",{
+     body:"Recibirás notificaciones de nuevas tareas",
+     icon:"icon-192.png"
+   });
+
+ });
+
+}
+function seleccionarImagen(id){
+  document.getElementById(`file-${id}`).click();
+}
+
+function activarInputEvidencia(task_id){
+
+ const input = document.getElementById("file-" + task_id);
+
+ if(!input) return;
+
+ input.onchange = async function(){
+
+   const file = input.files[0];
+
+   if(!file) return;
+
+   const formData = new FormData();
+   formData.append("image", file);
+   formData.append("task_id", task_id);
+   formData.append("uploaded_by", "admin");
+
+   try{
+
+     const token = localStorage.getItem("token");
+
+const res = await fetch(`${API}/tasks/${task_id}/evidence`,{
+  method:"POST",
+  headers:{
+    Authorization: "Bearer " + token
+  },
+  body: formData
+});
+
+if(!res.ok){
+  const text = await res.text();
+  console.error("❌ ERROR:", text);
+  alert("Error subiendo evidencia");
+  return;
+}
+
+const data = await res.json();
+console.log("✅ Subido:", data);
+
+     // 🔥 recargar tarea
+     cargar();
+
+   }catch(err){
+     console.error(err);
+     alert("Error conexión");
+   }
+
+ };
+}
+
+async function cargarEvidencias(id){
+
+  const contenedor = document.getElementById(`evidencias-${id}`);
+  if(!contenedor) return;
+
+ 
+  try{
+
+    const res = await fetch(`${API}/task/evidence`,{
+      
+        headers:{Authorization: "Bearer " + localStorage.getItem("token")}
+      }
+    );
+
+    const evidencias = await res.json();
+
+    console.log("Evidencias:", evidencias);
+
+    contenedor.innerHTML = evidencias.map(e=>`
+      <img src="${e.image_url}"
+      style="
+      width:80px;
+      height:80px;
+      object-fit:cover;
+      border-radius:6px;
+      margin:4px;
+      cursor:pointer;
+      "
+      onclick="verImagen('${e.image_url}')">
+    `).join("");
+
+  }catch(err){
+    console.error("Error cargando evidencias",err);
+  }
+
+}
+function seleccionarImagen(task_id){
+
+ const input = document.getElementById("file-" + task_id);
+
+ if(!input) return;
+
+ input.click();
+}
+function filtrarDepto(dep){
+  filtroDepto = dep || null;
+
+  console.log("Filtro seleccionado:", filtroDepto);
+
+  render();
+}
+async function subirEvidencia(task_id){
+
+ const fileInput = document.getElementById("evidenceInput");
+
+ if(!fileInput.files.length){
+  alert("Selecciona imagen");
+  return;
+ }
+
+ const file = fileInput.files[0];
+
+ const formData = new FormData();
+ formData.append("image", file);
+ formData.append("task_id", task_id);
+ formData.append("uploaded_by", "admin");
+
+ try{
+
+  const res = await fetch(`${API}/tasks/${id}/evidences`,{
+    method:"POST",
+    body: formData
+  });
+
+  const data = await res.json();
+
+  if(!res.ok){
+    console.error("❌ ERROR:", data);
+    alert("Error subiendo imagen");
+    return;
+  }
+
+  alert("✅ Evidencia subida");
+
+ }catch(err){
+  console.error(err);
+  alert("Error conexión");
+ }
+}
+function postergarTarea(taskId){
+
+  console.log("📅 Postergar:", taskId);
+
+  const box = document.getElementById(`postergar-${taskId}`);
+
+  if(!box){
+    console.error("❌ No existe el contenedor");
+    return;
+  }
+
+  const visible = box.style.display === "flex";
+
+  document.querySelectorAll("[id^='postergar-']").forEach(el=>{
+    el.style.display = "none";
+  });
+
+  box.style.display = visible ? "none" : "flex";
+
+  // 🔥 FECHA LOCAL (FIX)
+  const now = new Date();
+  now.setMinutes(now.getMinutes() + 15);
+
+  const fecha = now.getFullYear() + "-" +
+                String(now.getMonth()+1).padStart(2,"0") + "-" +
+                String(now.getDate()).padStart(2,"0");
+
+  const hora = String(now.getHours()).padStart(2,"0") + ":" +
+               String(now.getMinutes()).padStart(2,"0");
+
+  document.getElementById(`fecha-${taskId}`).value = fecha;
+  document.getElementById(`hora-${taskId}`).value = hora;
+
+}
+async function confirmarPostergar(taskId){
+
+  const fechaInput = document.getElementById(`fecha-${taskId}`);
+  const horaInput = document.getElementById(`hora-${taskId}`);
+
+  if(!fechaInput || !horaInput){
+    console.error("❌ Inputs no existen");
+    return;
+  }
+
+  const fecha = fechaInput.value;
+  const hora = horaInput.value;
+
+  if(!fecha || !hora){
+    alert("Selecciona fecha y hora");
+    return;
+  }
+
+  // 🔥 CORRECCIÓN TIMEZONE REAL (CLAVE)
+  const [year,month,day] = fecha.split("-");
+  const [h,m] = hora.split(":");
+
+  const nuevaFecha = new Date(
+    year,
+    month - 1,
+    day,
+    h,
+    m
+  );
+
+  // 🔥 cerrar UI ANTES
+  const box = document.getElementById(`postergar-${taskId}`);
+
+if (!box) {
+  console.warn("⚠️ Box no encontrado:", taskId);
+} else {
+  box.style.display = "none";
+}
+
+  try{
+
+    const res = await secureFetch(`${API}/tasks/${taskId}`,{
+      method:"PUT",
+      headers:{
+        "Content-Type":"application/json",
+        Authorization:"Bearer " + token
+      },
+      body: JSON.stringify({
+        due_date: nuevaFecha.toISOString()
+      })
+    });
+
+    if(!res || !res.ok){
+      alert("Error al guardar");
+      return;
+    }
+
+    await cargar();
+
+    alert("✅ Tarea postergada");
+
+  }catch(err){
+    console.error(err);
+  }
+}
+function verImagen(url){
+
+ const modal = document.createElement("div");
+
+ modal.style = `
+ position:fixed;
+ inset:0;
+ background:rgba(0,0,0,0.8);
+ display:flex;
+ align-items:center;
+ justify-content:center;
+ z-index:9999;
+ `;
+
+ modal.innerHTML = `
+ <img src="${url}"
+ style="
+ max-width:90%;
+ max-height:90%;
+ border-radius:10px;
+ ">
+ `;
+
+ modal.onclick = ()=> modal.remove();
+
+ document.body.appendChild(modal);
+}
+function formatearFechaLocal(fechaStr){
+
+  if(!fechaStr) return "-";
+
+  const limpia = String(fechaStr).replace(" ", "T");
+
+  const fecha = new Date(limpia);
+
+  if(isNaN(fecha)) return "-";
+
+  // 🔥 FORZAR ZONA MÉXICO
+  return fecha.toLocaleString("es-MX",{
+    timeZone: "America/Mexico_City",
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true
+  });
+
+}
+async function resetDemo(){
+
+  if(!confirm("⚠️ Esto eliminará TODAS las tareas, chats y huéspedes del DEMO.\n\n¿Deseas continuar?")){
+    return;
+  }
+
+  const token = localStorage.getItem("token");
+
+  try{
+
+    const res = await fetch("https://pms-hotel-enterprise.onrender.com/admin/reset-demo",{
+      method:"POST",
+      headers:{
+        "Authorization":"Bearer " + token
+      }
+    });
+
+    const data = await res.json();
+
+    if(data.ok){
+      alert("✅ DEMO reiniciado correctamente");
+      location.reload();
+    }else{
+      alert("❌ Error: " + (data.error || "Error desconocido"));
+    }
+
+  }catch(err){
+    console.error(err);
+    alert("❌ Error de conexión");
+  }
+
+}
+document.addEventListener("DOMContentLoaded", () => {
+
+  const yearEl = document.getElementById("year");
+
+  if(yearEl){
+    yearEl.innerText = new Date().getFullYear();
+  }
+
+});
+
+// 🔥 Cargar empresa
+async function cargarEmpresa(){
+
+  try{
+
+    const r = await secureFetch(`${API}/company`);
+
+    if(!r || !r.ok){
+      console.error("❌ Error cargando empresa:", r?.status);
+      return;
+    }
+
+    const data = await r.json();
+
+    const el = document.getElementById("companyName");
+    if(el && data?.name){
+      el.innerText = data.name;
+    }
+
+  }catch(err){
+    console.error("Error cargando empresa", err);
+  }
+
+}
+
+// 🔥 EJECUTAR TODO CUANDO EL DOM YA EXISTE
+document.addEventListener("DOMContentLoaded", () => {
+
+  const yearEl = document.getElementById("year");
+  if(yearEl){
+    yearEl.innerText = new Date().getFullYear();
+  }
+
+  cargarEmpresa();
+
+});
+// 🔥 Ejecutar
+cargarEmpresa();
+// ================= PUSH PERMISSION + SUBSCRIPTION =================
+
+// 🔥 pedir permiso SOLO después de interacción
+document.addEventListener("click", async () => {
+
+  if (!("Notification" in window)) return;
+
+  if (Notification.permission === "default") {
+
+    const permission = await Notification.requestPermission();
+
+    console.log("Permiso notificaciones:", permission);
+
+    if (permission !== "granted") return;
+
+  }
+
+  try {
+
+ const user = JSON.parse(localStorage.getItem("user") || "{}");
+
+// 🔥 ESTA LÍNEA FALTABA
+const reg = await navigator.serviceWorker.ready;
+
+let sub = await reg.pushManager.getSubscription();
+
+// 🔥 LOG ÚTIL
+if (!sub) {
+  console.log("🆕 Creando suscripción...");
+} else {
+  console.log("✅ Ya existe suscripción");
+}
+
+if (!sub) {
+
+  sub = await reg.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array("BFCjuIrtlaAGysbjuC1YpFH3YZfEL9KNGNMsmqyVdQRHdmYG6g8QcD8qcziJNiPk2ETcC66Esa-K5y_eVqhQ-D4")
+  });
+
+  console.log("📩 Suscripción creada:", sub);
+
+  await secureFetch(`${API}/subscribe`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + localStorage.getItem("token")
+    },
+    body: JSON.stringify({
+      subscription: sub,
+      department: user.department || "general"
+    })
+  });
+
+}
+  } catch (err) {
+    console.error("Error push:", err);
+  }
+
+}, { once: true });
+function mostrarAlerta(tarea){
+
+  // 🔥 eliminar anterior si existe
+  const existente = document.querySelector(".toast-alert");
+  if (existente) existente.remove();
+
+  const toast = document.createElement("div");
+  toast.className = "toast-alert";
+
+  toast.innerHTML = `
+    <div class="toast-title">Nueva tarea</div>
+    <div class="toast-sub">${tarea.title} - ${tarea.department}</div>
+  `;
+
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add("show");
+  }, 50);
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+
+    setTimeout(()=>{
+      toast.remove();
+    },300);
+
+  }, 4000);
+}
+function limpiarNotificaciones(){
+
+ contadorNotificaciones = 0;
+
+const badge = document.getElementById("badgeNotif");
+if (!badge) return;
+
+badge.innerText = "0";
+badge.style.display = "none";
+
+}
+document.addEventListener("visibilitychange", () => {
+ if (document.visibilityState === "visible") {
+   limpiarNotificaciones();
+ }
+});
+</script>
+
+</div> 
+</div>  
+<footer>
+  © <span id="year"></span> Michelle Romero para 
+  <span id="empresaNombre"></span>
+</footer>
+
+</body>
+</html>

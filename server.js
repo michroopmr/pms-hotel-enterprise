@@ -14,7 +14,9 @@ app.use((req, res, next) => {
   const allowedOrigins = [
   "https://mollyhelpers.com",
   "https://www.mollyhelpers.com",
-  "https://pms-hotel-enterprise.onrender.com"
+  "https://pms-hotel-enterprise.onrender.com",
+  "https://pms-hotel-enterprise-staging.onrender.com", // 🔥 staging backend
+  "https://mollyhelpers-staging.onrender.com" // 🔥 staging frontend (si lo creas)
 ];
 
   // 🔥 SOLO permitir si coincide
@@ -87,7 +89,10 @@ const server = http.createServer(app);
 
 const io = new Server(server, {
   cors: {
-    origin: ["https://mollyhelpers.com"]
+    origin: [
+      "https://mollyhelpers.com",
+      "https://mollyhelpers-staging.onrender.com" // 🔥 staging frontend
+    ]
   }
 });
 // 🔥 VALIDACIÓN DE SOCKET (AQUÍ VA)
@@ -2847,6 +2852,6 @@ if(taskCheck.rows.length === 0){
   }
 });
 app.use((err, req, res, next) => {
-  res.header("Access-Control-Allow-Origin","https://mollyhelpers.com");
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
   res.status(500).json({ error: err.message });
 });
