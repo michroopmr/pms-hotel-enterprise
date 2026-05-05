@@ -1,12 +1,11 @@
 /* ================= MOLLYHELPERS SERVICE WORKER ================= */
 
 /* ===== CACHE CONFIG ===== */
-
-const CACHE_NAME = "molly-v123";
+const CACHE_NAME = "molly-staging-v1";
 
 const urlsToCache = [
   "/",
-  "/dashboard.html",
+  "/dashboard-staging.html",
   "/icon-192.png"
 ];
 
@@ -84,7 +83,7 @@ self.addEventListener("fetch", event => {
             if(res) return res;
 
             if(event.request.mode === "navigate"){
-              return caches.match("/dashboard.html");
+              return caches.match("/dashboard-staging.html");
             }
 
           });
@@ -142,7 +141,7 @@ self.addEventListener("notificationclick", event => {
 
       for (const client of clientList) {
 
-        if (client.url.includes("dashboard.html")) {
+        if (client.url.includes("/dashboard-staging.html")) {
 
           client.focus();
 
@@ -157,7 +156,7 @@ self.addEventListener("notificationclick", event => {
         }
       }
 
-      return clients.openWindow("/dashboard.html");
+      return clients.openWindow("/dashboard-staging.html");
 
     })
 

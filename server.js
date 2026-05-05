@@ -90,8 +90,7 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: [
-      "https://mollyhelpers.com",
-      "https://mollyhelpers-staging.onrender.com" // 🔥 staging frontend
+      "https://mollyhelpers-staging.onrender.com"
     ]
   }
 });
