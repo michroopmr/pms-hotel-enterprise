@@ -1,7 +1,7 @@
 /* ================= MOLLYHELPERS SERVICE WORKER ================= */
 
 /* ===== CACHE CONFIG ===== */
-const CACHE_NAME = "molly-staging-v1";
+const CACHE_NAME = "molly-staging-v2";
 
 const urlsToCache = [
   "/",
