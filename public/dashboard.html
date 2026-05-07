@@ -1143,6 +1143,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
       <table style="width:100%; border-collapse:collapse;">
         <thead>
           <tr>
+            <th>Nombre</th>
             <th>Usuario</th>
             <th>Rol</th>
             <th>Departamento</th>
@@ -2794,6 +2795,7 @@ async function cargarUsuarios(){
     usuarios.forEach(u=>{
       cont.innerHTML += `
         <tr>
+          <td>${u.nombre || "-"}</td>
           <td>${u.username}</td>
           <td>${u.role || "-"}</td>
           <td>${u.department || "-"}</td>
@@ -3283,6 +3285,10 @@ if(nombre === "sistemas"){
   console.log("🔥 ENTRANDO A SISTEMAS");
 }
 
+if(nombre === "usuarios"){
+  renderUsuariosConectados();
+}
+
  if(vistaAnterior === "reportes" && nombre !== "reportes"){
    filtroFecha = null;
    filtroDepto = null; // 🔥 agregar esto
@@ -3300,8 +3306,6 @@ if(nombre === "sistemas"){
 }
 
 // cargar inicial
-
-
 
 cargar();
 cargarDepartamentos();
