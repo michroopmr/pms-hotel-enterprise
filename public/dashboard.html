@@ -1260,7 +1260,7 @@ window.addEventListener("beforeunload", ()=>{
   }
 });
 // 🔥 AGREGA AQUÍ
-const API = "https://pms-hotel-enterprise.onrender.com";
+const API = window.location.origin;
 
 const saved = localStorage.getItem("user");
 if(saved) user = JSON.parse(saved);
@@ -4037,7 +4037,7 @@ async function resetDemo(){
 
   try{
 
-    const res = await fetch("https://pms-hotel-enterprise.onrender.com/admin/reset-demo",{
+    const res = await fetch(`${API}/admin/reset-demo`,{
       method:"POST",
       headers:{
         "Authorization":"Bearer " + token
