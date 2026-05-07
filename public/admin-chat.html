@@ -110,10 +110,10 @@ button{
 <script src="/socket.io/socket.io.js"></script>
 
 <script>
-const socket = io("https://mollyhelpers.com");
+const socket = io(window.location.origin);
 const params = new URLSearchParams(window.location.search);
 const company_code = params.get("empresa") || "DEMO01";
-const API = "https://mollyhelpers.com";
+const API = window.location.origin;
 
 socket.on("connect", ()=>{
   console.log("✅ Conectado como admin");

@@ -173,7 +173,7 @@ let sessionTimer;
 let inactivityTimer;
 
 // 🔥 AHORA SÍ SOCKET
-const API = "https://mollyhelpers.com";
+const API = window.location.origin;
 
 const socket = io(API,{
   transports:["websocket","polling"],

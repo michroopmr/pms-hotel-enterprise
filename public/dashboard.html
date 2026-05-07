@@ -23,7 +23,7 @@
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 <!-- socket -->
-<script src="https://mollyhelpers.com/socket.io/socket.io.js"></script>
+<script src="/socket.io/socket.io.js"></script>
 
 <style>
 
@@ -3228,7 +3228,7 @@ async function guardarComentario(id){
 
    renderTareaIndividual(tarea);
 
-   const res = await secureFetch(`https://mollyhelpers.com/tasks/${id}`,{
+   const res = await secureFetch(`${API}/tasks/${id}`,{
       method:"PUT",
       headers:{
          "Content-Type":"application/json",
@@ -3760,7 +3760,7 @@ function activarInputEvidencia(task_id){
 
      const token = localStorage.getItem("token");
 
-const res = await fetch(`https://mollyhelpers.com/tasks/${task_id}/evidence`,{
+const res = await fetch(`${API}/tasks/${task_id}/evidence`,{
   method:"POST",
   headers:{
     Authorization: "Bearer " + token
@@ -3798,7 +3798,7 @@ async function cargarEvidencias(id){
   try{
 
     const res = await fetch(
-      `https://mollyhelpers.com/tasks/${id}/evidences`,
+      `${API}/tasks/${id}/evidences`,
       {
         headers:{Authorization: "Bearer " + localStorage.getItem("token")}
       }
@@ -3859,7 +3859,7 @@ async function subirEvidencia(task_id){
 
  try{
 
-  const res = await fetch("https://mollyhelpers.com/task/evidence",{
+  const res = await fetch(`${API}/task/evidence`,{
     method:"POST",
     body: formData
   });

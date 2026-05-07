@@ -98,7 +98,7 @@ body {
   const params = new URLSearchParams(window.location.search);
 const company_code = params.get("empresa") || "DEMO01";
 
-const API = "https://mollyhelpers.com";
+const API = window.location.origin;
 
 async function login(){
 
