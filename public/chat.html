@@ -357,6 +357,11 @@ async function send(){
  if(sending) return;
  sending = true;
 
+ // 🔥 Asegurar que el socket está en la sala correcta
+ if(socket.connected && guest?.id){
+   socket.emit("join_guest", guest.id);
+ }
+
  const input = document.getElementById("msgInput");
  const text = input.value.trim();
 
