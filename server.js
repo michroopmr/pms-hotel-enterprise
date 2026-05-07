@@ -2378,6 +2378,20 @@ app.get("/tasks/:department", authMiddleware, async (req,res)=>{
 
 });
 
+app.delete("/tasks/:id/evidences/:evidencia_id", authMiddleware, async (req,res)=>{
+  try{
+    await db.query(
+      `DELETE FROM task_evidences 
+       WHERE id=$1 AND task_id=$2`,
+      [req.params.evidencia_id, req.params.id]
+    );
+    res.json({ ok:true });
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ error:"Error eliminando evidencia" });
+  }
+});
+
 app.get("/tasks/:id/evidences", authMiddleware, async (req,res)=>{
 
   try{

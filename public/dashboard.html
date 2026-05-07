@@ -3996,16 +3996,33 @@ async function cargarEvidencias(id){
     console.log("Evidencias:", evidencias);
 
     contenedor.innerHTML = evidencias.map(e=>`
-      <img src="${e.image_url}"
-      style="
-      width:80px;
-      height:80px;
-      object-fit:cover;
-      border-radius:6px;
-      margin:4px;
-      cursor:pointer;
-      "
-      onclick="verImagen('${e.image_url}')">
+      <div style="position:relative; display:inline-block; margin:4px;">
+        <img src="${e.image_url}"
+        style="
+        width:80px;
+        height:80px;
+        object-fit:cover;
+        border-radius:6px;
+        cursor:pointer;
+        "
+        onclick="verImagen('${e.image_url}')">
+        <button onclick="eliminarEvidencia(${e.id}, ${e.task_id})" style="
+          position:absolute;
+          top:-6px;
+          right:-6px;
+          background:#ef4444;
+          color:white;
+          border:none;
+          border-radius:50%;
+          width:20px;
+          height:20px;
+          font-size:11px;
+          cursor:pointer;
+          line-height:20px;
+          text-align:center;
+          padding:0;
+        ">✕</button>
+      </div>
     `).join("");
 
   }catch(err){
@@ -4013,6 +4030,22 @@ async function cargarEvidencias(id){
   }
 
 }
+async function eliminarEvidencia(evidencia_id, task_id){
+  if(!confirm("¿Eliminar esta evidencia?")) return;
+
+  const res = await secureFetch(`${API}/tasks/${task_id}/evidences/${evidencia_id}`, {
+    method: "DELETE"
+  });
+
+  if(!res) return;
+
+  if(res.ok){
+    cargarEvidencias(task_id);
+  }else{
+    alert("Error eliminando evidencia");
+  }
+}
+
 function seleccionarImagen(task_id){
 
  const input = document.getElementById("file-" + task_id);
