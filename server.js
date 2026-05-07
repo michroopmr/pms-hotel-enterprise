@@ -2838,7 +2838,8 @@ if(taskCheck.rows.length === 0){
         {
           folder:"molly-evidences",
           resource_type:"image",
-          transformation:[{ width:1200, quality:"auto" }]
+          allowed_formats:["jpg","jpeg","png","heic","heif","webp"],
+          transformation:[{ width:1200, quality:"auto", fetch_format:"jpg" }]
         },
         (error,result)=>{
           if(error) reject(error);
