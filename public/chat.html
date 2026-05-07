@@ -198,8 +198,7 @@ input.addEventListener("input", ()=>{
   typingTimeout = setTimeout(()=>{}, 1000);
 
 });
-
-socket.on("connect", ()=>{ 
+socket.on("connect", async ()=>{ 
   console.log("🟢 Socket conectado");
 
   if(!guest || !guest.id){
@@ -208,8 +207,32 @@ socket.on("connect", ()=>{
   }
 
   console.log("JOIN ROOM:", guest.id);
-
   socket.emit("join_guest", guest.id);
+
+  // 🔥 Esperar a que la sala esté lista
+  await new Promise(r => setTimeout(r, 600));
+
+  // 🔥 Mensaje de bienvenida
+  const hora = new Date().getHours();
+  let saludo = "Hola";
+  if(hora < 12) saludo = "Buenos días";
+  else if(hora < 19) saludo = "Buenas tardes";
+  else saludo = "Buenas noches";
+
+  const mensaje = `${saludo} ${guest.name} 👋  \nSoy Luka 🤖, tu asistente virtual del hotel.  \n\n¿En qué puedo ayudarte hoy?`;
+
+  addMsg(mensaje, "bot");
+
+  await fetch(`${API}/chat/message`,{
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({
+      guest_id: guest.id,
+      message: mensaje,
+      sender: "bot",
+      company_code: guest.company_code
+    })
+  });
 });
 
 socket.on("disconnect", ()=>{
@@ -254,7 +277,7 @@ socket.on("new_message", (data)=>{
   }
 
 });
- 
+
 let typingTimer;
 
 socket.on("typing_admin", ()=>{
@@ -278,7 +301,6 @@ socket.on("typing_admin", ()=>{
   }, 1500);
 
 });
-
 function addMessage(text, type) {
   const container = document.getElementById("chatMessages");
 
