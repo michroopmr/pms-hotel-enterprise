@@ -428,7 +428,7 @@ async function send(){
  // 🔥 MENSAJE NORMAL
  addMsg(text,"user");
 
- await fetch("/chat/message",{
+ const res = await fetch(`${API}/chat/message`,{
   method:"POST",
   headers:{"Content-Type":"application/json"},
   body: JSON.stringify({
@@ -438,6 +438,13 @@ async function send(){
    company_code: guest.company_code
   })
  });
+
+ const data = await res.json();
+
+ // 🔥 Fallback: si el socket no entregó la respuesta, mostrarla aquí
+ if(data.ok && data.ia && data.respuesta){
+   addMsg(data.respuesta, "bot");
+ }
 
  input.value="";
  input.focus();

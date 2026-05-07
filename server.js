@@ -719,9 +719,11 @@ io.to("guest_" + guest_id).emit("new_message",{
   return res.json({
     ok:true,
     ia:true,
-    task: !!taskCreada
+    task: !!taskCreada,
+    respuesta: textoFinal
   });
-}
+
+ }
 
   return res.json({ ok:true });
 
@@ -1506,6 +1508,9 @@ socket.on("heartbeat", ()=>{
 
   socket.on("join_guest", (guest_id)=>{
     socket.join("guest_" + guest_id);
+    console.log("✅ Guest unido a sala:", "guest_" + guest_id);
+    // Emitir mensajes pendientes si los hay
+    socket.to("guest_" + guest_id).emit("joined", { guest_id });
   });
 
   // ================= EVENTOS =================
