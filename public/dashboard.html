@@ -2073,12 +2073,20 @@ contenedor.innerHTML += `
 
 <div class="tarea-title">${t.title}</div>
 
-<div id="evidencias-${t.id}" style="margin-top:6px">
+<div id="evidencias-${t.id}" style="margin-top:6px; overflow:visible; padding:6px 0;">
 
 ${(t.evidences || []).map(e => `
-<img src="${e.image_url}"
-style="width:80px;height:80px;object-fit:cover;border-radius:6px;margin:4px;cursor:pointer;"
-onclick="verImagen('${e.image_url}')">
+<div style="position:relative; display:inline-block; margin:10px 10px 4px 4px;">
+  <img src="${e.image_url}"
+  style="width:80px;height:80px;object-fit:cover;border-radius:6px;cursor:pointer;"
+  onclick="verImagen('${e.image_url}')">
+  <button onclick="eliminarEvidencia(${e.id}, ${t.id})" style="
+    position:absolute;top:-6px;right:-6px;
+    background:#ef4444;color:white;border:none;
+    border-radius:50%;width:20px;height:20px;
+    font-size:11px;cursor:pointer;z-index:10;
+    line-height:20px;text-align:center;padding:0;">✕</button>
+</div>
 `).join("")}
 
 </div>
