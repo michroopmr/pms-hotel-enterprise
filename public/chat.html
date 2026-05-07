@@ -459,43 +459,6 @@ function scrollBottom(){
     behavior: "smooth"
   });
 }
-// 🔥 mensaje de bienvenida PRO
-
-const hora = new Date().getHours();
-
-let saludo = "Hola";
-
-if(hora < 12) saludo = "Buenos días";
-else if(hora < 19) saludo = "Buenas tardes";
-else saludo = "Buenas noches";
-
-(async () => {
-
- const mensaje = `${saludo} ${guest.name} 👋  
-Soy Luka 🤖, tu asistente virtual del hotel.  
-
-¿En qué puedo ayudarte hoy?`;
-
- addMsg(mensaje, "bot");
-
- const res = await fetch("/chat/message",{
-  method:"POST",
-  headers:{"Content-Type":"application/json"},
-  body: JSON.stringify({
-    guest_id: guest.id,
-    message: mensaje,
-    sender: "bot",
-    company_code: guest.company_code
-  })
- });
-
- const data = await res.json();
-
- if(!res.ok){
-  console.error("❌ ERROR BACKEND:", data);
- }
-
-})();
 
 window.addEventListener("load", ()=>{
 
