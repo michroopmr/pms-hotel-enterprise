@@ -3219,12 +3219,18 @@ function agregarFooter(pdf){
    pdf.setPage(i);
    pdf.setFontSize(9);
 
+   const pageHeight = pdf.internal.pageSize.getHeight();
+   const pageWidth = pdf.internal.pageSize.getWidth();
+   console.log("📄 pageHeight:", pageHeight, "pageWidth:", pageWidth);
+   pdf.setFontSize(9);
+   pdf.setTextColor(100,100,100);
    pdf.text(
      `© ${new Date().getFullYear()} Michelle Romero para ${window.empresaNombreGlobal || 'Hotel'} | Página ${i}/${pageCount}`,
-     105,
-     290,
+     pageWidth / 2,
+     pageHeight - 8,
      { align:"center" }
    );
+   pdf.setTextColor(0,0,0);
  }
 }
 function mostrarComentario(id){
