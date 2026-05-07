@@ -2857,8 +2857,8 @@ if(taskCheck.rows.length === 0){
     res.json({ ok:true, url: result.secure_url });
 
   }catch(err){
-    console.error(err);
-    res.status(500).json({error:"Error subiendo evidencia"});
+    console.error("❌ ERROR EVIDENCIA:", err.message, err.http_code);
+    res.status(500).json({error:"Error subiendo evidencia", detalle: err.message});
   }
 });
 app.use((err, req, res, next) => {
