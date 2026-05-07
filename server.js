@@ -100,7 +100,7 @@ io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
 
   if(!token){
-    return next(new Error("No autorizado"));
+    return next(); // Guests sin token: permitir pasar
   }
 
   try{
@@ -629,7 +629,11 @@ try{
   try{
     ai = await detectarIntencion(message, company_id);
   }catch(e){
-    ai = { texto:"Error IA", ticket:false };
+    console.error("❌ Error en detectarIntencion:", e.message);
+    ai = {
+      texto: "Lo siento, tuve un problema técnico. Por favor intenta de nuevo o llama a recepción 🙏",
+      ticket: false
+    };
   }
 
   if(!ai || !ai.texto){
@@ -1105,8 +1109,7 @@ function authMiddleware(req, res, next){
 
   const authHeader = req.headers.authorization;
 
-  console.log("🔐 SECRET:", SECRET);
-  console.log("📩 AUTH HEADER:", authHeader);
+  
 
   if(!authHeader){
     return res.status(401).json({ error:"Token requerido" });
@@ -1114,12 +1117,12 @@ function authMiddleware(req, res, next){
 
   const token = authHeader.split(" ")[1];
 
-  console.log("🎫 TOKEN RECIBIDO:", token);
+  
 
   try{
     req.user = jwt.verify(token, SECRET);
 
-    console.log("✅ TOKEN OK:", req.user);
+  
 
     next();
 
@@ -2208,7 +2211,8 @@ io.to("admin_" + company_code)
        tareaActualizada.department,
        "Estado actualizado",
        `Nuevo estado: ${status}`,
-       id
+       id,
+       req.user.company_id
      );
    }
 
