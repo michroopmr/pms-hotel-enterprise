@@ -2745,6 +2745,30 @@ app.get("/users", authMiddleware, async (req,res)=>{
 
 });
 
+app.put("/users/:id", authMiddleware, async (req,res)=>{
+
+  if(req.user.role !== "sistemas"){
+    return res.status(403).send("No autorizado");
+  }
+
+  try{
+    const { nombre, role, department } = req.body;
+    const id = req.params.id;
+
+    await db.query(
+      `UPDATE users SET nombre=$1, role=$2, department=$3
+       WHERE id=$4 AND company_id=$5`,
+      [nombre, role, department, id, req.user.company_id]
+    );
+
+    res.json({ ok:true });
+
+  }catch(err){
+    console.error(err);
+    res.status(500).send("Error actualizando usuario");
+  }
+});
+
 app.delete("/users/:id", authMiddleware, async (req,res)=>{
 
  if(req.user.role !== "sistemas"){

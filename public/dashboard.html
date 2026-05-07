@@ -2810,8 +2810,11 @@ async function cargarUsuarios(){
           <td>${u.username}</td>
           <td>${u.role || "-"}</td>
           <td>${u.department || "-"}</td>
-          <td>
-            <button onclick="borrarUsuario(${u.id})">
+          <td style="display:flex; gap:6px;">
+            <button onclick="editarUsuario(${u.id}, '${u.nombre || ''}', '${u.username}', '${u.role}', '${u.department}')" style="background:#3b82f6; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;">
+              ✏️
+            </button>
+            <button onclick="borrarUsuario(${u.id})" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;">
               ❌
             </button>
           </td>
@@ -2836,6 +2839,74 @@ async function borrarUsuario(id){
  if(!res) return;
 
  cargarUsuarios();
+}
+
+function editarUsuario(id, nombre, username, role, department){
+
+  const modal = document.createElement("div");
+  modal.id = "modalEditarUsuario";
+  modal.style.cssText = `
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.6); z-index:9999;
+    display:flex; align-items:center; justify-content:center;
+  `;
+
+  modal.innerHTML = `
+    <div style="background:#1e293b; padding:30px; border-radius:16px; width:400px; max-width:90%;">
+      <h3 style="color:#f1f5f9; margin-bottom:20px;">✏️ Editar usuario: ${username}</h3>
+
+      <label style="color:#94a3b8; font-size:13px;">Nombre completo</label>
+      <input id="editNombre" value="${nombre || ''}" placeholder="Nombre completo"
+        style="width:100%; padding:10px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#f1f5f9; margin-bottom:12px;">
+
+      <label style="color:#94a3b8; font-size:13px;">Rol</label>
+      <select id="editRol" style="width:100%; padding:10px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#f1f5f9; margin-bottom:12px;">
+        <option value="operador" ${role==='operador'?'selected':''}>Operador</option>
+        <option value="admin" ${role==='admin'?'selected':''}>Admin</option>
+        <option value="sistemas" ${role==='sistemas'?'selected':''}>Sistemas</option>
+      </select>
+
+      <label style="color:#94a3b8; font-size:13px;">Departamento</label>
+      <select id="editDepartment" style="width:100%; padding:10px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#f1f5f9; margin-bottom:20px;">
+        ${["Recepción","Mantenimiento","Housekeeping","Operaciones","Seguridad","Spa","Alimentos Bebidas","Cocina","Room Service","Eventos","Ventas","Recursos Humanos","Finanzas","Gerencia General"]
+          .map(d => `<option value="${d}" ${department===d?'selected':''}>${d}</option>`)
+          .join("")}
+      </select>
+
+      <div style="display:flex; gap:10px;">
+        <button onclick="guardarEdicionUsuario(${id})" style="flex:1; background:#22c55e; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold;">
+          Guardar
+        </button>
+        <button onclick="document.getElementById('modalEditarUsuario').remove()" style="flex:1; background:#475569; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer;">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+async function guardarEdicionUsuario(id){
+
+  const nombre = document.getElementById("editNombre").value.trim();
+  const role = document.getElementById("editRol").value;
+  const department = document.getElementById("editDepartment").value;
+
+  const res = await secureFetch(`${API}/users/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nombre, role, department })
+  });
+
+  if(!res) return;
+
+  if(res.ok){
+    document.getElementById("modalEditarUsuario").remove();
+    cargarUsuarios();
+  }else{
+    alert("Error actualizando usuario");
+  }
 }
 
 function obtenerTareasVisibles(){
