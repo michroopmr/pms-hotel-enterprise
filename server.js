@@ -745,7 +745,7 @@ app.get("/users", authMiddleware, async (req,res)=>{
     console.log("🏢 company_id:", req.user.company_id);
 
     const result = await db.query(`
-      SELECT id, username, department, role
+      SELECT id, username, nombre, department, role
       FROM users
       WHERE company_id=$1
       ORDER BY username
