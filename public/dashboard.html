@@ -3220,7 +3220,7 @@ function agregarFooter(pdf){
    pdf.setFontSize(9);
 
    pdf.text(
-     `© ${new Date().getFullYear()} Michelle Romero para ${document.getElementById('empresaNombre')?.innerText || 'Hotel'} | Página ${i}/${pageCount}`,
+     `© ${new Date().getFullYear()} Michelle Romero para ${window.empresaNombreGlobal || 'Hotel'} | Página ${i}/${pageCount}`,
      105,
      290,
      { align:"center" }
@@ -4263,6 +4263,9 @@ async function cargarEmpresa(){
     if(footer && data?.name){
       footer.innerText = data.name;
     }
+
+    // 🔥 Guardar nombre empresa globalmente para PDF
+    window.empresaNombreGlobal = data?.name || "Hotel";
 
   }catch(err){
     console.error("Error cargando empresa", err);
