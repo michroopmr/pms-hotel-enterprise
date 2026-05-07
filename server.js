@@ -67,7 +67,7 @@ const cloudinary = require("./config/cloudinary");
 
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 3 * 1024 * 1024 }
+  limits: { fileSize: 10 * 1024 * 1024 }
 });
 
 const logger = pino();
@@ -2838,7 +2838,8 @@ if(taskCheck.rows.length === 0){
         {
           folder:"molly-evidences",
           resource_type:"image",
-          allowed_formats:["jpg","jpeg","png","heic","heif","webp"],
+          allowed_formats:["jpg","jpeg","png","heic","heif","HEIF","HEIC","webp"],
+          format:"jpg",
           transformation:[{ width:1200, quality:"auto", fetch_format:"jpg" }]
         },
         (error,result)=>{
