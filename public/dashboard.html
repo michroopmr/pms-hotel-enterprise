@@ -4169,16 +4169,6 @@ async function resetDemo(){
   }
 
 }
-document.addEventListener("DOMContentLoaded", () => {
-
-  const yearEl = document.getElementById("year");
-
-  if(yearEl){
-    yearEl.innerText = new Date().getFullYear();
-  }
-
-});
-
 // 🔥 Cargar empresa
 async function cargarEmpresa(){
 
@@ -4196,6 +4186,11 @@ async function cargarEmpresa(){
     const el = document.getElementById("companyName");
     if(el && data?.name){
       el.innerText = data.name;
+    }
+
+    const footer = document.getElementById("empresaNombre");
+    if(footer && data?.name){
+      footer.innerText = data.name;
     }
 
   }catch(err){
