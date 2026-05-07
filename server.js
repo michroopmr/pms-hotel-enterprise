@@ -703,7 +703,8 @@ await db.query(
   [guest_id, textoFinal]
 );
 
-  io.to("guest_" + guest_id).emit("new_message",{
+  console.log("📡 EMITIENDO A SALA:", "guest_" + guest_id);
+io.to("guest_" + guest_id).emit("new_message",{
     guest_id,
     message: textoFinal,
     sender: "bot"
