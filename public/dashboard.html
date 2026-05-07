@@ -3220,7 +3220,7 @@ function agregarFooter(pdf){
    pdf.setFontSize(9);
 
    pdf.text(
-     `© Michelle Romero para Empresa | Página ${i}/${pageCount}`,
+     `© ${new Date().getFullYear()} Michelle Romero para ${document.getElementById('empresaNombre')?.innerText || 'Hotel'} | Página ${i}/${pageCount}`,
      105,
      290,
      { align:"center" }
