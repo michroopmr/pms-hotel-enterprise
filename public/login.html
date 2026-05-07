@@ -252,6 +252,8 @@ body{
 
 <script>
 
+const API = window.location.origin;
+
 let loginRunning = false;
 
 async function login(){
@@ -272,7 +274,7 @@ async function login(){
 
  try{
 
-   const r = await fetch("https://pms-hotel-enterprise.onrender.com/login",{
+   const r = await fetch(`${API}/login`,{
      method:"POST",
      headers:{ "Content-Type":"application/json" },
      body: JSON.stringify({
@@ -316,7 +318,8 @@ document.getElementById("year").innerText = new Date().getFullYear();
 if ("serviceWorker" in navigator) {
  window.addEventListener("load", () => {
    navigator.serviceWorker.register("service-worker.js")
-     .then(()=>console.log("PWA activa"));
+     .then(()=>console.log("PWA activa"))
+     .catch(()=>console.log("Service worker no disponible"));
  });
 }
 
