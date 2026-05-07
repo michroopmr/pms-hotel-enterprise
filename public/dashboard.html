@@ -730,6 +730,11 @@ footer{
   <button onclick="goConfig()">💬 Chatbot</button>
 </div>
 
+    <div class="menu-item" id="menuUsuarios" onclick="mostrarVista('usuarios')">
+      <span class="icon">👥</span>
+      <span class="text">Usuarios</span>
+    </div>
+
     <div class="menu-item" id="menuSistemas" onclick="mostrarVista('sistemas')">
       <span class="icon">🛠️</span>
       <span class="text">Sistemas</span>
@@ -1067,6 +1072,14 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
 </div>
 
+<!-- ================= USUARIOS CONECTADOS ================= -->
+<div id="vista-usuarios" class="vista" style="display:none;">
+  <div style="padding:20px; width:100%;">
+    <h3 style="color:#f1f5f9; margin-bottom:20px;">👥 Usuarios Conectados</h3>
+    <div id="usuariosConectadosLista" style="max-width:600px;"></div>
+  </div>
+</div>
+
 <!-- ================= SISTEMAS ================= -->
 <div id="vista-sistemas" class="vista" style="display:none; align-items:flex-start;">
       <input type="file" id="logoInput" accept="image/*">
@@ -1082,6 +1095,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
       <h4>Crear usuario</h4>
 
+      <input id="nn" placeholder="Nombre completo">
       <input id="nu" placeholder="Usuario">
       <input id="np" placeholder="Password">
 
@@ -2718,6 +2732,7 @@ async function crearUsuario(){
       "Content-Type":"application/json"
     },
     body: JSON.stringify({
+      nombre: document.getElementById("nn").value,
       username: document.getElementById("nu").value,
       password: document.getElementById("np").value,
       role: document.getElementById("userRole").value,
@@ -3480,7 +3495,12 @@ function iniciarSocket(){
     const company_code = localStorage.getItem("company_code");
 
     if(company_code){
-      socket.emit("join_admin", company_code);
+      socket.emit("join_admin", {
+        company_code,
+        username: user?.username,
+        nombre: user?.nombre || user?.username,
+        department: user?.department
+      });
       console.log("🟢 Unido a canal:", "admin_" + company_code);
     }
 
@@ -3679,6 +3699,79 @@ socket.on("task_update",(payload)=>{
   cargarKPIs();
 
 });
+// 🔥 USUARIOS CONECTADOS EN TIEMPO REAL
+const usuariosConectados = {};
+
+socket.on("user_connected", (data)=>{
+  usuariosConectados[data.socketId] = {
+    username: data.username,
+    nombre: data.nombre,
+    department: data.department,
+    role: data.role,
+    connectedAt: data.connectedAt
+  };
+  renderUsuariosConectados();
+});
+
+socket.on("user_disconnected", (data)=>{
+  delete usuariosConectados[data.socketId];
+  renderUsuariosConectados();
+});
+
+socket.on("admin_connected", (data)=>{
+  usuariosConectados[data.socketId] = {
+    username: data.username,
+    nombre: data.nombre,
+    department: data.department,
+    role: "admin",
+    connectedAt: data.connectedAt
+  };
+  renderUsuariosConectados();
+});
+
+socket.on("admin_disconnected", (data)=>{
+  delete usuariosConectados[data.socketId];
+  renderUsuariosConectados();
+});
+
+function tiempoEnLinea(connectedAt){
+  const diff = Math.floor((Date.now() - connectedAt) / 1000);
+  if(diff < 60) return `${diff}s`;
+  if(diff < 3600) return `${Math.floor(diff/60)}min`;
+  return `${Math.floor(diff/3600)}h ${Math.floor((diff%3600)/60)}min`;
+}
+
+function renderUsuariosConectados(){
+  const container = document.getElementById("usuariosConectadosLista");
+  if(!container) return;
+
+  const lista = Object.values(usuariosConectados);
+
+  if(lista.length === 0){
+    container.innerHTML = `<p style="color:#94a3b8;text-align:center;padding:20px;">Sin usuarios conectados</p>`;
+    return;
+  }
+
+  container.innerHTML = lista.map(u => `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:#1e293b;border-radius:10px;margin-bottom:8px;">
+      <div style="width:10px;height:10px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div style="font-weight:bold;color:#f1f5f9;">${u.nombre || u.username}</div>
+        <div style="font-size:12px;color:#94a3b8;">${u.department || "—"} · ${u.role || "—"}</div>
+      </div>
+      <div style="font-size:12px;color:#64748b;" id="timer_${u.username}">${tiempoEnLinea(u.connectedAt)}</div>
+    </div>
+  `).join("");
+
+  // Actualizar timers cada minuto
+  clearInterval(window._timerUsuarios);
+  window._timerUsuarios = setInterval(()=>{
+    lista.forEach(u => {
+      const el = document.getElementById(`timer_${u.username}`);
+      if(el) el.textContent = tiempoEnLinea(u.connectedAt);
+    });
+  }, 30000);
+}
 function activarNotificacionVisual(){
 
  const badge = document.getElementById("badgeNotif");
