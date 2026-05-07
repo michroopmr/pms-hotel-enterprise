@@ -1322,25 +1322,38 @@ function aplicarPermisos(){
 
  if(!user) return;
 
- // 🔒 Solo Sistemas puede ver panel de usuarios
- if(user.role !== "sistemas"){
+ const role = user.role?.toLowerCase();
+
+ // 🔒 Solo Sistemas puede ver panel de sistemas
+ if(role !== "sistemas"){
    const panel = document.getElementById("panelSistemas");
    if(panel) panel.style.display = "none";
+   const menuSistemas = document.getElementById("menuSistemas");
+   if(menuSistemas) menuSistemas.style.display = "none";
+ }
+
+ // 🔒 Panel usuarios solo para admin y sistemas
+ const menuUsuarios = document.getElementById("menuUsuarios");
+ if(menuUsuarios){
+   if(role === "admin" || role === "sistemas"){
+     menuUsuarios.style.display = "block";
+   }else{
+     menuUsuarios.style.display = "none";
+   }
  }
 
  // 🔒 Operador no puede ver vista global
- if(user.role === "operador"){
+ if(role === "operador"){
    const btnGlobal = document.getElementById("btnVistaGlobal");
    if(btnGlobal) btnGlobal.style.display = "none";
  }
 
- if(user.role === "sistemas"){
+ if(role === "sistemas"){
    cargarUsuarios();
  }
 
- // 🔥 CONTROL RESET DEMO (AQUÍ VA)
+ // 🔥 CONTROL RESET DEMO
  const resetBox = document.getElementById("resetDemoBox");
-
  if(!user || user.username !== "mromero"){
    if(resetBox) resetBox.style.display = "none";
  }
