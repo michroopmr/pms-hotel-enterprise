@@ -2344,7 +2344,10 @@ placeholder="Escribir comentario..."></textarea>
 activarInputEvidencia(t.id);
 
 // 🔥 Cargar evidencias con botón de eliminar
-setTimeout(() => cargarEvidencias(t.id), 100);
+setTimeout(() => {
+  console.log("🔥 Cargando evidencias para tarea:", t.id);
+  cargarEvidencias(t.id);
+}, 200);
 
 }
 
