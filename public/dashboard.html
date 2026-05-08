@@ -730,6 +730,11 @@ footer{
   <button onclick="goConfig()">💬 Chatbot</button>
 </div>
 
+    <div class="menu-item" id="menuUsuarios" onclick="mostrarVista('usuarios')">
+      <span class="icon">👥</span>
+      <span class="text">Usuarios</span>
+    </div>
+
     <div class="menu-item" id="menuSistemas" onclick="mostrarVista('sistemas')">
       <span class="icon">🛠️</span>
       <span class="text">Sistemas</span>
@@ -1063,11 +1068,15 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
 </div>
 
+<!-- ================= USUARIOS CONECTADOS ================= -->
+<div id="vista-usuarios" class="vista" style="display:none;">
+  <div style="padding:20px; width:100%;">
+    <h3 style="color:#f1f5f9; margin-bottom:20px;">👥 Usuarios Conectados</h3>
+    <div id="usuariosConectadosLista" style="max-width:600px;"></div>
   </div>
-
 </div>
 
-<!-- ================= SISTEMAS ================= -->
+  <!-- ================= SISTEMAS ================= -->
 <div id="vista-sistemas" class="vista" style="display:none; align-items:flex-start;">
       <input type="file" id="logoInput" accept="image/*">
 
@@ -1082,6 +1091,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
       <h4>Crear usuario</h4>
 
+      <input id="nn" placeholder="Nombre completo">
       <input id="nu" placeholder="Usuario">
       <input id="np" placeholder="Password">
 
@@ -1129,6 +1139,7 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
       <table style="width:100%; border-collapse:collapse;">
         <thead>
           <tr>
+            <th>Nombre</th>
             <th>Usuario</th>
             <th>Rol</th>
             <th>Departamento</th>
@@ -1166,7 +1177,9 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
   </div> <!-- panelSistemas -->
 
-</div> <!-- vista-sistemas 🔥 ESTE FALTABA -->
+</div> <!-- vista-sistemas -->
+
+  </div> <!-- main -->
 
 <script>
   /* ===== DETECTAR MODO APP INSTALADA ===== */
@@ -1307,25 +1320,38 @@ function aplicarPermisos(){
 
  if(!user) return;
 
- // 🔒 Solo Sistemas puede ver panel de usuarios
- if(user.role !== "sistemas"){
+ const role = user.role?.toLowerCase();
+
+ // 🔒 Solo Sistemas puede ver panel de sistemas
+ if(role !== "sistemas"){
    const panel = document.getElementById("panelSistemas");
    if(panel) panel.style.display = "none";
+   const menuSistemas = document.getElementById("menuSistemas");
+   if(menuSistemas) menuSistemas.style.display = "none";
+ }
+
+ // 🔒 Panel usuarios solo para admin y sistemas
+ const menuUsuarios = document.getElementById("menuUsuarios");
+ if(menuUsuarios){
+   if(role === "admin" || role === "sistemas"){
+     menuUsuarios.style.display = "block";
+   }else{
+     menuUsuarios.style.display = "none";
+   }
  }
 
  // 🔒 Operador no puede ver vista global
- if(user.role === "operador"){
+ if(role === "operador"){
    const btnGlobal = document.getElementById("btnVistaGlobal");
    if(btnGlobal) btnGlobal.style.display = "none";
  }
 
- if(user.role === "sistemas"){
+ if(role === "sistemas"){
    cargarUsuarios();
  }
 
- // 🔥 CONTROL RESET DEMO (AQUÍ VA)
+ // 🔥 CONTROL RESET DEMO
  const resetBox = document.getElementById("resetDemoBox");
-
  if(!user || user.username !== "mromero"){
    if(resetBox) resetBox.style.display = "none";
  }
@@ -2047,12 +2073,20 @@ contenedor.innerHTML += `
 
 <div class="tarea-title">${t.title}</div>
 
-<div id="evidencias-${t.id}" style="margin-top:6px">
+<div id="evidencias-${t.id}" style="margin-top:6px; overflow:visible; padding:6px 0;">
 
 ${(t.evidences || []).map(e => `
-<img src="${e.image_url}"
-style="width:80px;height:80px;object-fit:cover;border-radius:6px;margin:4px;cursor:pointer;"
-onclick="verImagen('${e.image_url}')">
+<div style="position:relative; display:inline-block; margin:10px 10px 4px 4px;">
+  <img src="${e.image_url}"
+  style="width:80px;height:80px;object-fit:cover;border-radius:6px;cursor:pointer;"
+  onclick="verImagen('${e.image_url}')">
+  <button onclick="eliminarEvidencia(${e.id}, ${t.id})" style="
+    position:absolute;top:-6px;right:-6px;
+    background:#ef4444;color:white;border:none;
+    border-radius:50%;width:20px;height:20px;
+    font-size:11px;cursor:pointer;z-index:10;
+    line-height:20px;text-align:center;padding:0;">✕</button>
+</div>
 `).join("")}
 
 </div>
@@ -2171,11 +2205,7 @@ ${t.status !== "terminado" ? `
 <div id="evidencias-${t.id}"
      style="margin-top:8px">
 
-${(t.evidences || []).map(e => `
-<img src="${e.image_url}"
-style="width:80px;height:80px;object-fit:cover;border-radius:6px;margin:4px;cursor:pointer;"
-onclick="verImagen('${e.image_url}')">
-`).join("")}
+
 
 </div>
 
@@ -2197,7 +2227,8 @@ placeholder="Escribir comentario..."></textarea>
 `;
 setTimeout(()=>{
   activarInputEvidencia(t.id);
-},50);
+  cargarEvidencias(t.id);
+},100);
 }
  });
 }
@@ -2261,14 +2292,7 @@ ${c.texto}
 </div>
 
 
-<div id="evidencias-${t.id}" style="margin-top:8px">
-
-${(t.evidences || []).map(e => `
-<img src="${e.image_url}"
-style="width:80px;height:80px;object-fit:cover;border-radius:6px;margin:4px;cursor:pointer;"
-onclick="verImagen('${e.image_url}')">
-`).join("")}
-
+<div id="evidencias-${t.id}" style="margin-top:8px; overflow:visible; padding:6px 0;">
 </div>
 
 <div style="margin-top:8px;display:flex;gap:6px">
@@ -2319,6 +2343,12 @@ placeholder="Escribir comentario..."></textarea>
  }
 
 activarInputEvidencia(t.id);
+
+// 🔥 Cargar evidencias con botón de eliminar
+setTimeout(() => {
+  console.log("🔥 Cargando evidencias para tarea:", t.id);
+  cargarEvidencias(t.id);
+}, 200);
 
 }
 
@@ -2718,6 +2748,7 @@ async function crearUsuario(){
       "Content-Type":"application/json"
     },
     body: JSON.stringify({
+      nombre: document.getElementById("nn").value,
       username: document.getElementById("nu").value,
       password: document.getElementById("np").value,
       role: document.getElementById("userRole").value,
@@ -2779,11 +2810,15 @@ async function cargarUsuarios(){
     usuarios.forEach(u=>{
       cont.innerHTML += `
         <tr>
+          <td>${u.nombre || "-"}</td>
           <td>${u.username}</td>
           <td>${u.role || "-"}</td>
           <td>${u.department || "-"}</td>
-          <td>
-            <button onclick="borrarUsuario(${u.id})">
+          <td style="display:flex; gap:6px;">
+            <button onclick="editarUsuario(${u.id}, '${u.nombre || ''}', '${u.username}', '${u.role}', '${u.department}')" style="background:#3b82f6; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;">
+              ✏️
+            </button>
+            <button onclick="borrarUsuario(${u.id})" style="background:#ef4444; color:white; border:none; padding:6px 10px; border-radius:6px; cursor:pointer;">
               ❌
             </button>
           </td>
@@ -2808,6 +2843,74 @@ async function borrarUsuario(id){
  if(!res) return;
 
  cargarUsuarios();
+}
+
+function editarUsuario(id, nombre, username, role, department){
+
+  const modal = document.createElement("div");
+  modal.id = "modalEditarUsuario";
+  modal.style.cssText = `
+    position:fixed; top:0; left:0; width:100%; height:100%;
+    background:rgba(0,0,0,0.6); z-index:9999;
+    display:flex; align-items:center; justify-content:center;
+  `;
+
+  modal.innerHTML = `
+    <div style="background:#1e293b; padding:30px; border-radius:16px; width:400px; max-width:90%;">
+      <h3 style="color:#f1f5f9; margin-bottom:20px;">✏️ Editar usuario: ${username}</h3>
+
+      <label style="color:#94a3b8; font-size:13px;">Nombre completo</label>
+      <input id="editNombre" value="${nombre || ''}" placeholder="Nombre completo"
+        style="width:100%; padding:10px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#f1f5f9; margin-bottom:12px;">
+
+      <label style="color:#94a3b8; font-size:13px;">Rol</label>
+      <select id="editRol" style="width:100%; padding:10px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#f1f5f9; margin-bottom:12px;">
+        <option value="operador" ${role==='operador'?'selected':''}>Operador</option>
+        <option value="admin" ${role==='admin'?'selected':''}>Admin</option>
+        <option value="sistemas" ${role==='sistemas'?'selected':''}>Sistemas</option>
+      </select>
+
+      <label style="color:#94a3b8; font-size:13px;">Departamento</label>
+      <select id="editDepartment" style="width:100%; padding:10px; border-radius:8px; border:1px solid #334155; background:#0f172a; color:#f1f5f9; margin-bottom:20px;">
+        ${["Recepción","Mantenimiento","Housekeeping","Operaciones","Seguridad","Spa","Alimentos Bebidas","Cocina","Room Service","Eventos","Ventas","Recursos Humanos","Finanzas","Gerencia General"]
+          .map(d => `<option value="${d}" ${department===d?'selected':''}>${d}</option>`)
+          .join("")}
+      </select>
+
+      <div style="display:flex; gap:10px;">
+        <button onclick="guardarEdicionUsuario(${id})" style="flex:1; background:#22c55e; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer; font-weight:bold;">
+          Guardar
+        </button>
+        <button onclick="document.getElementById('modalEditarUsuario').remove()" style="flex:1; background:#475569; color:white; border:none; padding:12px; border-radius:8px; cursor:pointer;">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(modal);
+}
+
+async function guardarEdicionUsuario(id){
+
+  const nombre = document.getElementById("editNombre").value.trim();
+  const role = document.getElementById("editRol").value;
+  const department = document.getElementById("editDepartment").value;
+
+  const res = await secureFetch(`${API}/users/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ nombre, role, department })
+  });
+
+  if(!res) return;
+
+  if(res.ok){
+    document.getElementById("modalEditarUsuario").remove();
+    cargarUsuarios();
+  }else{
+    alert("Error actualizando usuario");
+  }
 }
 
 function obtenerTareasVisibles(){
@@ -3120,12 +3223,18 @@ function agregarFooter(pdf){
    pdf.setPage(i);
    pdf.setFontSize(9);
 
+   const pageHeight = pdf.internal.pageSize.getHeight();
+   const pageWidth = pdf.internal.pageSize.getWidth();
+   console.log("📄 pageHeight:", pageHeight, "pageWidth:", pageWidth);
+   pdf.setFontSize(9);
+   pdf.setTextColor(100,100,100);
    pdf.text(
-     `© Michelle Romero para Empresa | Página ${i}/${pageCount}`,
-     105,
-     290,
+     `© ${new Date().getFullYear()} Michelle Romero para ${window.empresaNombreGlobal || 'Hotel'} | Página ${i}/${pageCount}`,
+     pageWidth / 2,
+     pageHeight - 8,
      { align:"center" }
    );
+   pdf.setTextColor(0,0,0);
  }
 }
 function mostrarComentario(id){
@@ -3268,6 +3377,10 @@ if(nombre === "sistemas"){
   console.log("🔥 ENTRANDO A SISTEMAS");
 }
 
+if(nombre === "usuarios"){
+  renderUsuariosConectados();
+}
+
  if(vistaAnterior === "reportes" && nombre !== "reportes"){
    filtroFecha = null;
    filtroDepto = null; // 🔥 agregar esto
@@ -3285,8 +3398,6 @@ if(nombre === "sistemas"){
 }
 
 // cargar inicial
-
-
 
 cargar();
 cargarDepartamentos();
@@ -3480,7 +3591,12 @@ function iniciarSocket(){
     const company_code = localStorage.getItem("company_code");
 
     if(company_code){
-      socket.emit("join_admin", company_code);
+      socket.emit("join_admin", {
+        company_code,
+        username: user?.username,
+        nombre: user?.nombre || user?.username,
+        department: user?.department
+      });
       console.log("🟢 Unido a canal:", "admin_" + company_code);
     }
 
@@ -3538,23 +3654,25 @@ async function logout(){
 
   try{
 
-    const registration = await navigator.serviceWorker.ready;
-    const sub = await registration.pushManager.getSubscription();
+    if("serviceWorker" in navigator){
+      const registration = await Promise.race([
+        navigator.serviceWorker.ready,
+        new Promise(resolve => setTimeout(resolve, 2000))
+      ]);
 
-    console.log("🔔 SUB:", sub);
+      if(registration){
+        const sub = await registration.pushManager?.getSubscription();
+        const endpoint = sub?.endpoint;
 
-    const endpoint = sub?.endpoint;
+        if(endpoint){
+          await secureFetch(`${API}/logout-device`, {
+            method:"POST",
+            body: JSON.stringify({ endpoint })
+          });
+        }
 
-    console.log("📡 ENDPOINT:", endpoint);
-
-    await secureFetch(`${API}/logout-device`, {
-      method:"POST",
-      body: JSON.stringify({ endpoint })
-    });
-
-    if(sub){
-      await sub.unsubscribe();
-      console.log("🧹 Push desuscrito");
+        if(sub) await sub.unsubscribe();
+      }
     }
 
   }catch(e){
@@ -3679,6 +3797,79 @@ socket.on("task_update",(payload)=>{
   cargarKPIs();
 
 });
+// 🔥 USUARIOS CONECTADOS EN TIEMPO REAL
+const usuariosConectados = {};
+
+socket.on("user_connected", (data)=>{
+  usuariosConectados[data.socketId] = {
+    username: data.username,
+    nombre: data.nombre,
+    department: data.department,
+    role: data.role,
+    connectedAt: data.connectedAt
+  };
+  renderUsuariosConectados();
+});
+
+socket.on("user_disconnected", (data)=>{
+  delete usuariosConectados[data.socketId];
+  renderUsuariosConectados();
+});
+
+socket.on("admin_connected", (data)=>{
+  usuariosConectados[data.socketId] = {
+    username: data.username,
+    nombre: data.nombre,
+    department: data.department,
+    role: "admin",
+    connectedAt: data.connectedAt
+  };
+  renderUsuariosConectados();
+});
+
+socket.on("admin_disconnected", (data)=>{
+  delete usuariosConectados[data.socketId];
+  renderUsuariosConectados();
+});
+
+function tiempoEnLinea(connectedAt){
+  const diff = Math.floor((Date.now() - connectedAt) / 1000);
+  if(diff < 60) return `${diff}s`;
+  if(diff < 3600) return `${Math.floor(diff/60)}min`;
+  return `${Math.floor(diff/3600)}h ${Math.floor((diff%3600)/60)}min`;
+}
+
+function renderUsuariosConectados(){
+  const container = document.getElementById("usuariosConectadosLista");
+  if(!container) return;
+
+  const lista = Object.values(usuariosConectados);
+
+  if(lista.length === 0){
+    container.innerHTML = `<p style="color:#94a3b8;text-align:center;padding:20px;">Sin usuarios conectados</p>`;
+    return;
+  }
+
+  container.innerHTML = lista.map(u => `
+    <div style="display:flex;align-items:center;gap:12px;padding:12px;background:#1e293b;border-radius:10px;margin-bottom:8px;">
+      <div style="width:10px;height:10px;border-radius:50%;background:#22c55e;flex-shrink:0;"></div>
+      <div style="flex:1;">
+        <div style="font-weight:bold;color:#f1f5f9;">${u.nombre || u.username}</div>
+        <div style="font-size:12px;color:#94a3b8;">${u.department || "—"} · ${u.role || "—"}</div>
+      </div>
+      <div style="font-size:12px;color:#64748b;" id="timer_${u.username}">${tiempoEnLinea(u.connectedAt)}</div>
+    </div>
+  `).join("");
+
+  // Actualizar timers cada minuto
+  clearInterval(window._timerUsuarios);
+  window._timerUsuarios = setInterval(()=>{
+    lista.forEach(u => {
+      const el = document.getElementById(`timer_${u.username}`);
+      if(el) el.textContent = tiempoEnLinea(u.connectedAt);
+    });
+  }, 30000);
+}
 function activarNotificacionVisual(){
 
  const badge = document.getElementById("badgeNotif");
@@ -3809,16 +4000,34 @@ async function cargarEvidencias(id){
     console.log("Evidencias:", evidencias);
 
     contenedor.innerHTML = evidencias.map(e=>`
-      <img src="${e.image_url}"
-      style="
-      width:80px;
-      height:80px;
-      object-fit:cover;
-      border-radius:6px;
-      margin:4px;
-      cursor:pointer;
-      "
-      onclick="verImagen('${e.image_url}')">
+      <div style="position:relative; display:inline-block; margin:10px 10px 4px 4px;">
+        <img src="${e.image_url}"
+        style="
+        width:80px;
+        height:80px;
+        object-fit:cover;
+        border-radius:6px;
+        cursor:pointer;
+        "
+        onclick="verImagen('${e.image_url}')">
+        <button onclick="eliminarEvidencia(${e.id}, ${e.task_id})" style="
+          position:absolute;
+          top:-6px;
+          right:-6px;
+          background:#ef4444;
+          color:white;
+          border:none;
+          border-radius:50%;
+          width:20px;
+          height:20px;
+          font-size:11px;
+          cursor:pointer;
+          line-height:20px;
+          text-align:center;
+          padding:0;
+          z-index:10;
+        ">✕</button>
+      </div>
     `).join("");
 
   }catch(err){
@@ -3826,6 +4035,22 @@ async function cargarEvidencias(id){
   }
 
 }
+async function eliminarEvidencia(evidencia_id, task_id){
+  if(!confirm("¿Eliminar esta evidencia?")) return;
+
+  const res = await secureFetch(`${API}/tasks/${task_id}/evidences/${evidencia_id}`, {
+    method: "DELETE"
+  });
+
+  if(!res) return;
+
+  if(res.ok){
+    cargarEvidencias(task_id);
+  }else{
+    alert("Error eliminando evidencia");
+  }
+}
+
 function seleccionarImagen(task_id){
 
  const input = document.getElementById("file-" + task_id);
@@ -4059,16 +4284,6 @@ async function resetDemo(){
   }
 
 }
-document.addEventListener("DOMContentLoaded", () => {
-
-  const yearEl = document.getElementById("year");
-
-  if(yearEl){
-    yearEl.innerText = new Date().getFullYear();
-  }
-
-});
-
 // 🔥 Cargar empresa
 async function cargarEmpresa(){
 
@@ -4087,6 +4302,14 @@ async function cargarEmpresa(){
     if(el && data?.name){
       el.innerText = data.name;
     }
+
+    const footer = document.getElementById("empresaNombre");
+    if(footer && data?.name){
+      footer.innerText = data.name;
+    }
+
+    // 🔥 Guardar nombre empresa globalmente para PDF
+    window.empresaNombreGlobal = data?.name || "Hotel";
 
   }catch(err){
     console.error("Error cargando empresa", err);

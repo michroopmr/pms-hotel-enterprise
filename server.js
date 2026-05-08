@@ -367,6 +367,7 @@ app.post("/login", async (req, res) => {
       token,
       user: {
         username: user.username,
+        nombre: user.nombre || user.username,
         role: user.role,
         department: user.department
       },
@@ -744,7 +745,7 @@ app.get("/users", authMiddleware, async (req,res)=>{
     console.log("🏢 company_id:", req.user.company_id);
 
     const result = await db.query(`
-      SELECT id, username, department, role
+      SELECT id, username, nombre, department, role
       FROM users
       WHERE company_id=$1
       ORDER BY username
@@ -1502,8 +1503,38 @@ socket.on("heartbeat", ()=>{
     });
   }
 
-  socket.on("join_admin", (company_code)=>{
+  // 🔥 Registrar usuario conectado
+  if(decoded.company_id){
+    socket.connectedAt = Date.now();
+    io.to("admin_" + socket.company_code).emit("user_connected", {
+      socketId: socket.id,
+      username: decoded.username,
+      nombre: decoded.nombre || decoded.username,
+      department: decoded.department,
+      role: decoded.role,
+      connectedAt: socket.connectedAt
+    });
+  }
+
+  socket.on("join_admin", async (data)=>{
+    // Compatibilidad: acepta string o objeto
+    const company_code = typeof data === "string" ? data : data.company_code;
+    const username = typeof data === "object" ? data.username : null;
+    const nombre = typeof data === "object" ? data.nombre : null;
+    const department = typeof data === "object" ? data.department : null;
+
     socket.join("admin_" + company_code);
+    socket.company_code = company_code;
+    socket.adminUser = { username, nombre, department, connectedAt: Date.now() };
+
+    // Notificar a todos los admins de la empresa
+    io.to("admin_" + company_code).emit("admin_connected", {
+      socketId: socket.id,
+      username,
+      nombre,
+      department,
+      connectedAt: Date.now()
+    });
   });
 
   socket.on("join_guest", (guest_id)=>{
@@ -1612,6 +1643,13 @@ socket.on("heartbeat", ()=>{
   if(department){
     onlineDepartments[department] = 0;
     console.log(`🔴 ${department} offline`);
+  }
+
+  // 🔥 Notificar desconexión de usuario
+  if(socket.company_code){
+    io.to("admin_" + socket.company_code).emit("user_disconnected", {
+      socketId: socket.id
+    });
   }
 
 });
@@ -2275,7 +2313,7 @@ app.post("/users", authMiddleware, async (req,res)=>{
 
  try{
 
-   const { username, password, role, department } = req.body;
+   const { username, password, role, department, nombre } = req.body;
 
    if(!username || !password){
      return res.status(400).json({error:"Datos incompletos"});
@@ -2284,9 +2322,9 @@ app.post("/users", authMiddleware, async (req,res)=>{
    const hashedPassword = await bcrypt.hash(password, 10);
 
    await db.query(
-     `INSERT INTO users (username,password,role,department,company_id)
-      VALUES($1,$2,$3,$4,$5)`,
-     [username, hashedPassword, role, department, req.user.company_id]
+     `INSERT INTO users (username, password, role, department, company_id, nombre)
+      VALUES($1,$2,$3,$4,$5,$6)`,
+     [username, hashedPassword, role, department, req.user.company_id, nombre || username]
    );
 
    res.json({ok:true});
@@ -2338,6 +2376,20 @@ app.get("/tasks/:department", authMiddleware, async (req,res)=>{
 
  }
 
+});
+
+app.delete("/tasks/:id/evidences/:evidencia_id", authMiddleware, async (req,res)=>{
+  try{
+    await db.query(
+      `DELETE FROM task_evidences 
+       WHERE id=$1 AND task_id=$2`,
+      [req.params.evidencia_id, req.params.id]
+    );
+    res.json({ ok:true });
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ error:"Error eliminando evidencia" });
+  }
 });
 
 app.get("/tasks/:id/evidences", authMiddleware, async (req,res)=>{
@@ -2705,6 +2757,30 @@ app.get("/users", authMiddleware, async (req,res)=>{
    res.status(500).send("Error obteniendo usuarios");
  }
 
+});
+
+app.put("/users/:id", authMiddleware, async (req,res)=>{
+
+  if(req.user.role !== "sistemas"){
+    return res.status(403).send("No autorizado");
+  }
+
+  try{
+    const { nombre, role, department } = req.body;
+    const id = req.params.id;
+
+    await db.query(
+      `UPDATE users SET nombre=$1, role=$2, department=$3
+       WHERE id=$4 AND company_id=$5`,
+      [nombre, role, department, id, req.user.company_id]
+    );
+
+    res.json({ ok:true });
+
+  }catch(err){
+    console.error(err);
+    res.status(500).send("Error actualizando usuario");
+  }
 });
 
 app.delete("/users/:id", authMiddleware, async (req,res)=>{
