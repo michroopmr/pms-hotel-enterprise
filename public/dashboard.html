@@ -2295,14 +2295,7 @@ ${c.texto}
 </div>
 
 
-<div id="evidencias-${t.id}" style="margin-top:8px">
-
-${(t.evidences || []).map(e => `
-<img src="${e.image_url}"
-style="width:80px;height:80px;object-fit:cover;border-radius:6px;margin:4px;cursor:pointer;"
-onclick="verImagen('${e.image_url}')">
-`).join("")}
-
+<div id="evidencias-${t.id}" style="margin-top:8px; overflow:visible; padding:6px 0;">
 </div>
 
 <div style="margin-top:8px;display:flex;gap:6px">
@@ -2353,6 +2346,9 @@ placeholder="Escribir comentario..."></textarea>
  }
 
 activarInputEvidencia(t.id);
+
+// 🔥 Cargar evidencias con botón de eliminar
+cargarEvidencias(t.id);
 
 }
 
