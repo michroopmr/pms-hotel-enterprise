@@ -1873,6 +1873,16 @@ function aplicarTareaRapida(){
       const dept = option.getAttribute("data-dept");
       descripcion.value = title;
       marcarDepartamento(dept);
+
+      // 🔥 Fecha y hora automática: ahora + 30 minutos
+      const ahora = new Date();
+      ahora.setMinutes(ahora.getMinutes() + 30);
+      const yyyy = ahora.getFullYear();
+      const mm = String(ahora.getMonth()+1).padStart(2,"0");
+      const dd = String(ahora.getDate()).padStart(2,"0");
+      const hh = String(ahora.getHours()).padStart(2,"0");
+      const min = String(ahora.getMinutes()).padStart(2,"0");
+      due.value = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
     }
     return;
   }
