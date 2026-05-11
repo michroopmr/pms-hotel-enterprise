@@ -959,6 +959,62 @@ app.get("/admin/flows", authMiddleware, async (req,res)=>{
   );
   res.json(result.rows);
 });
+
+// 🔥 TASK TEMPLATES
+app.get("/task-templates", authMiddleware, async (req,res)=>{
+  try{
+    const dept = req.query.department;
+    let query = "SELECT * FROM task_templates WHERE company_id=$1";
+    const params = [req.user.company_id];
+    if(dept){
+      query += " AND department=$2";
+      params.push(dept);
+    }
+    query += " ORDER BY department, title";
+    const result = await db.query(query, params);
+    res.json(result.rows);
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ error:"Error obteniendo templates" });
+  }
+});
+
+app.post("/task-templates", authMiddleware, async (req,res)=>{
+  try{
+    if(!["admin","sistemas"].includes(req.user.role)){
+      return res.status(403).json({ error:"Sin permisos" });
+    }
+    const { department, title, description } = req.body;
+    if(!department || !title){
+      return res.status(400).json({ error:"Datos incompletos" });
+    }
+    const result = await db.query(
+      `INSERT INTO task_templates (company_id, department, title, description)
+       VALUES ($1,$2,$3,$4) RETURNING *`,
+      [req.user.company_id, department, title, description || ""]
+    );
+    res.json({ ok:true, template: result.rows[0] });
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ error:"Error creando template" });
+  }
+});
+
+app.delete("/task-templates/:id", authMiddleware, async (req,res)=>{
+  try{
+    if(!["admin","sistemas"].includes(req.user.role)){
+      return res.status(403).json({ error:"Sin permisos" });
+    }
+    await db.query(
+      "DELETE FROM task_templates WHERE id=$1 AND company_id=$2",
+      [req.params.id, req.user.company_id]
+    );
+    res.json({ ok:true });
+  }catch(err){
+    console.error(err);
+    res.status(500).json({ error:"Error eliminando template" });
+  }
+});
 app.get("/dashboard/:company_code", async (req,res)=>{
  try{
 
