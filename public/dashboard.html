@@ -881,7 +881,26 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
     <h4>➕ Crear tarea</h4>
 
-    <!-- 1. TAREA -->
+    <!-- 1. FILTRO DEPARTAMENTO -->
+    <select id="filtroDeptCrear" onchange="cargarTareasDepto()" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd; margin-bottom:8px; color:#6b7280;">
+      <option value="">Filtrar por departamento (opcional)</option>
+      <option value="Recepción">Recepción</option>
+      <option value="Mantenimiento">Mantenimiento</option>
+      <option value="Housekeeping">Housekeeping</option>
+      <option value="Operaciones">Operaciones</option>
+      <option value="Seguridad">Seguridad</option>
+      <option value="Spa">Spa</option>
+      <option value="Alimentos Bebidas">Alimentos Bebidas</option>
+      <option value="Cocina">Cocina</option>
+      <option value="Room Service">Room Service</option>
+      <option value="Eventos">Eventos</option>
+      <option value="Ventas">Ventas</option>
+      <option value="Recursos Humanos">Recursos Humanos</option>
+      <option value="Finanzas">Finanzas</option>
+      <option value="Gerencia General">Gerencia General</option>
+    </select>
+
+    <!-- 2. TAREA -->
     <select id="tareaRapida" onchange="aplicarTareaRapida()">
       <option value="">Seleccionar tarea</option>
 
@@ -1154,6 +1173,55 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
       <h4>Plantillas existentes</h4>
       <div id="listaTemplates"></div>
 
+      <hr style="margin:30px 0">
+
+      <h4>📋 Tareas por departamento</h4>
+
+      <div style="display:flex; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+        <select id="templateDept" style="padding:8px; border-radius:8px; border:1px solid #ddd; flex:1;">
+          <option value="">Selecciona departamento</option>
+          <option value="Recepción">Recepción</option>
+          <option value="Mantenimiento">Mantenimiento</option>
+          <option value="Housekeeping">Housekeeping</option>
+          <option value="Operaciones">Operaciones</option>
+          <option value="Seguridad">Seguridad</option>
+          <option value="Spa">Spa</option>
+          <option value="Alimentos Bebidas">Alimentos Bebidas</option>
+          <option value="Cocina">Cocina</option>
+          <option value="Room Service">Room Service</option>
+          <option value="Eventos">Eventos</option>
+          <option value="Ventas">Ventas</option>
+          <option value="Recursos Humanos">Recursos Humanos</option>
+          <option value="Finanzas">Finanzas</option>
+          <option value="Gerencia General">Gerencia General</option>
+        </select>
+        <input id="templateTitle" placeholder="Nombre de la tarea" style="padding:8px; border-radius:8px; border:1px solid #ddd; flex:2;">
+        <input id="templateDesc" placeholder="Descripción (opcional)" style="padding:8px; border-radius:8px; border:1px solid #ddd; flex:2;">
+        <button onclick="crearTemplate()" style="background:#22c55e; color:white; border:none; padding:8px 16px; border-radius:8px; cursor:pointer; font-weight:bold;">+ Agregar</button>
+      </div>
+
+      <div style="margin-bottom:10px;">
+        <select id="filtroTemplateDept" onchange="cargarTemplates()" style="padding:8px; border-radius:8px; border:1px solid #ddd; width:100%;">
+          <option value="">Todos los departamentos</option>
+          <option value="Recepción">Recepción</option>
+          <option value="Mantenimiento">Mantenimiento</option>
+          <option value="Housekeeping">Housekeeping</option>
+          <option value="Operaciones">Operaciones</option>
+          <option value="Seguridad">Seguridad</option>
+          <option value="Spa">Spa</option>
+          <option value="Alimentos Bebidas">Alimentos Bebidas</option>
+          <option value="Cocina">Cocina</option>
+          <option value="Room Service">Room Service</option>
+          <option value="Eventos">Eventos</option>
+          <option value="Ventas">Ventas</option>
+          <option value="Recursos Humanos">Recursos Humanos</option>
+          <option value="Finanzas">Finanzas</option>
+          <option value="Gerencia General">Gerencia General</option>
+        </select>
+      </div>
+
+      <div id="listaTaskTemplates"></div>
+
     </div>
 <div style="position:relative;display:inline-block">
 
@@ -1348,6 +1416,7 @@ function aplicarPermisos(){
 
  if(role === "sistemas"){
    cargarUsuarios();
+   cargarTemplates();
  }
 
  // 🔥 CONTROL RESET DEMO
@@ -1694,6 +1763,70 @@ document.addEventListener("click", function(e){
   }
 
 });
+async function cargarTareasDepto(){
+  const dept = document.getElementById("filtroDeptCrear").value;
+  const select = document.getElementById("tareaRapida");
+
+  // Limpiar opciones dinámicas (mantener las fijas)
+  const opcionesFijas = [
+    { value: "", label: "Seleccionar tarea" },
+    { value: "wc", label: "WC tapado" },
+    { value: "tv", label: "Falla de TV" },
+    { value: "tina", label: "Tina tapada" },
+    { value: "ac", label: "Falla de Aire acondicionado" },
+    { value: "limpieza", label: "Limpieza de habitación" },
+    { value: "foco", label: "Foco fundido" },
+    { value: "toallas", label: "Toallas extras" },
+    { value: "jabon", label: "Jabón extra" },
+    { value: "shampoo", label: "Shampoo extra" },
+    { value: "internet", label: "Falla de internet" },
+    { value: "tarja", label: "Tarja tapada" },
+    { value: "objeto", label: "Objeto olvidado" },
+    { value: "cambio", label: "Cambio de habitación" },
+    { value: "olor", label: "Mal olor" },
+    { value: "agua", label: "Agua caliente" },
+    { value: "coladera", label: "Coladera tapada" },
+    { value: "libre", label: "Tarea libre" },
+  ];
+
+  if(!dept){
+    // Sin filtro: mostrar todas las fijas
+    select.innerHTML = opcionesFijas.map(o =>
+      `<option value="${o.value}">${o.label}</option>`
+    ).join("");
+    return;
+  }
+
+  // Con filtro: cargar templates del departamento
+  try{
+    const res = await secureFetch(`${API}/task-templates?department=${encodeURIComponent(dept)}`);
+    if(!res) return;
+
+    const templates = await res.json();
+
+    // Opción vacía + templates del depto
+    select.innerHTML = `<option value="">Seleccionar tarea</option>`;
+
+    if(templates.length){
+      select.innerHTML += `<optgroup label="📋 ${dept}">` +
+        templates.map(t =>
+          `<option value="template_${t.id}" data-title="${t.title}" data-dept="${t.department}">${t.title}</option>`
+        ).join("") +
+        `</optgroup>`;
+    }
+
+    // También mostrar las fijas al final
+    select.innerHTML += `<optgroup label="── Tareas generales ──">` +
+      opcionesFijas.slice(1).map(o =>
+        `<option value="${o.value}">${o.label}</option>`
+      ).join("") +
+      `</optgroup>`;
+
+  }catch(err){
+    console.error("Error cargando templates:", err);
+  }
+}
+
 function aplicarTareaRapida(){
 
   const tipo = document.getElementById("tareaRapida").value;
@@ -1729,6 +1862,28 @@ function aplicarTareaRapida(){
     descripcion.value = "";
     due.value = "";
     limpiarDepartamentos();
+    return;
+  }
+
+  // 🔥 Si es un template del sistema
+  if(tipo.startsWith("template_")){
+    const option = document.querySelector(`#tareaRapida option[value="${tipo}"]`);
+    if(option){
+      const title = option.getAttribute("data-title");
+      const dept = option.getAttribute("data-dept");
+      descripcion.value = title;
+      marcarDepartamento(dept);
+
+      // 🔥 Fecha y hora automática: ahora + 30 minutos
+      const ahora = new Date();
+      ahora.setMinutes(ahora.getMinutes() + 15);
+      const yyyy = ahora.getFullYear();
+      const mm = String(ahora.getMonth()+1).padStart(2,"0");
+      const dd = String(ahora.getDate()).padStart(2,"0");
+      const hh = String(ahora.getHours()).padStart(2,"0");
+      const min = String(ahora.getMinutes()).padStart(2,"0");
+      due.value = `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+    }
     return;
   }
 
@@ -2831,7 +2986,85 @@ async function cargarUsuarios(){
   }
 
 }
+// 🔥 TASK TEMPLATES
+async function cargarTemplates(){
+  const dept = document.getElementById("filtroTemplateDept")?.value || "";
+  const url = dept ? `${API}/task-templates?department=${encodeURIComponent(dept)}` : `${API}/task-templates`;
+  
+  const res = await secureFetch(url);
+  if(!res) return;
 
+  const templates = await res.json();
+  const cont = document.getElementById("listaTaskTemplates");
+  if(!cont) return;
+
+  if(!templates.length){
+    cont.innerHTML = `<p style="color:#94a3b8; font-size:13px;">No hay tareas para este departamento.</p>`;
+    return;
+  }
+
+  // Agrupar por departamento
+  const grupos = {};
+  templates.forEach(t => {
+    if(!grupos[t.department]) grupos[t.department] = [];
+    grupos[t.department].push(t);
+  });
+
+  cont.innerHTML = Object.entries(grupos).map(([dept, items]) => `
+    <div style="margin-bottom:16px;">
+      <div style="font-weight:bold; color:#0f172a; background:#e2e8f0; padding:6px 10px; border-radius:6px; margin-bottom:6px;">
+        ${dept}
+      </div>
+      ${items.map(t => `
+        <div style="display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background:#f8fafc; border-radius:6px; margin-bottom:4px;">
+          <div>
+            <div style="font-size:14px; font-weight:500;">${t.title}</div>
+            ${t.description ? `<div style="font-size:12px; color:#64748b;">${t.description}</div>` : ""}
+          </div>
+          <button onclick="eliminarTemplate(${t.id})" style="background:#ef4444; color:white; border:none; padding:4px 10px; border-radius:6px; cursor:pointer; font-size:12px;">✕</button>
+        </div>
+      `).join("")}
+    </div>
+  `).join("");
+}
+
+async function crearTemplate(){
+  const department = document.getElementById("templateDept").value;
+  const title = document.getElementById("templateTitle").value.trim();
+  const description = document.getElementById("templateDesc").value.trim();
+
+  if(!department || !title){
+    alert("Selecciona departamento y escribe el nombre de la tarea");
+    return;
+  }
+
+  const res = await secureFetch(`${API}/task-templates`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ department, title, description })
+  });
+
+  if(!res) return;
+
+  if(res.ok){
+    document.getElementById("templateTitle").value = "";
+    document.getElementById("templateDesc").value = "";
+    cargarTemplates();
+  }else{
+    alert("Error creando tarea");
+  }
+}
+
+async function eliminarTemplate(id){
+  if(!confirm("¿Eliminar esta tarea?")) return;
+
+  const res = await secureFetch(`${API}/task-templates/${id}`, {
+    method: "DELETE"
+  });
+
+  if(!res) return;
+  cargarTemplates();
+}
 async function borrarUsuario(id){
 
  if(!confirm("¿Eliminar usuario?")) return;
