@@ -881,7 +881,26 @@ box-shadow:0 2px 8px rgba(0,0,0,0.05);
 
     <h4>➕ Crear tarea</h4>
 
-    <!-- 1. TAREA -->
+    <!-- 1. FILTRO DEPARTAMENTO -->
+    <select id="filtroDeptCrear" onchange="cargarTareasDepto()" style="width:100%; padding:10px; border-radius:8px; border:1px solid #ddd; margin-bottom:8px; color:#6b7280;">
+      <option value="">Filtrar por departamento (opcional)</option>
+      <option value="Recepción">Recepción</option>
+      <option value="Mantenimiento">Mantenimiento</option>
+      <option value="Housekeeping">Housekeeping</option>
+      <option value="Operaciones">Operaciones</option>
+      <option value="Seguridad">Seguridad</option>
+      <option value="Spa">Spa</option>
+      <option value="Alimentos Bebidas">Alimentos Bebidas</option>
+      <option value="Cocina">Cocina</option>
+      <option value="Room Service">Room Service</option>
+      <option value="Eventos">Eventos</option>
+      <option value="Ventas">Ventas</option>
+      <option value="Recursos Humanos">Recursos Humanos</option>
+      <option value="Finanzas">Finanzas</option>
+      <option value="Gerencia General">Gerencia General</option>
+    </select>
+
+    <!-- 2. TAREA -->
     <select id="tareaRapida" onchange="aplicarTareaRapida()">
       <option value="">Seleccionar tarea</option>
 
