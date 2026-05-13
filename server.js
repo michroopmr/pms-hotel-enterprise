@@ -1110,7 +1110,8 @@ const DEPARTMENTS = [
   "Ventas",
   "Recursos Humanos",
   "Finanzas",
-  "Gerencia General"
+  "Gerencia General",
+  "Dirección"
 ];
 async function traducirIA(texto, idioma){
 
@@ -1211,7 +1212,8 @@ app.get("/departments", authMiddleware, (req,res)=>{
   "Ventas",
   "Recursos Humanos",
   "Finanzas",
-  "Gerencia General"
+  "Gerencia General",
+  "Dirección"
   ]);
 });
 /* ================= DATABASE (POSTGRESQL) ================= */
