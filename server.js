@@ -539,6 +539,81 @@ app.post("/assign", authMiddleware, async (req,res)=>{
 // CHATBOT - HUÉSPEDES
 // ==========================
 
+// 🔥 WEBHOOK WHATSAPP
+app.post("/whatsapp/webhook", express.urlencoded({extended:false}), async (req,res)=>{
+  try{
+    const from = req.body.From; // whatsapp:+521553...
+    const body = req.body.Body?.trim();
+
+    if(!from || !body) return res.sendStatus(200);
+
+    const numero = from.replace("whatsapp:","");
+
+    // 🔥 Verificar si ya está registrado
+    const guestExistente = await db.query(
+      "SELECT * FROM guests WHERE whatsapp=$1 AND active=true ORDER BY created_at DESC LIMIT 1",
+      [numero]
+    );
+
+    // 🔥 Si ya está registrado → procesar con Luka
+    if(guestExistente.rows.length > 0){
+      const guest = guestExistente.rows[0];
+      const company = await db.query("SELECT code FROM companies WHERE id=$1", [guest.company_id]);
+      const company_code = company.rows[0]?.code;
+
+      const ai = await detectarIntencion(body, guest.company_id);
+      const textoFinal = ai?.texto || "¿Podrías darme más detalles?";
+
+      await db.query(
+        "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,$3)",
+        [guest.id, body, "guest"]
+      );
+      await db.query(
+        "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
+        [guest.id, textoFinal]
+      );
+
+      await enviarWhatsApp(numero, `🤖 Luka: ${textoFinal}`);
+      return res.sendStatus(200);
+    }
+
+    // 🔥 Si NO está registrado → pedir datos
+    const lineas = body.split("\n").map(l => l.trim());
+    let nombre = null;
+    let habitacion = null;
+    let empresa = null;
+
+    lineas.forEach(l => {
+      if(l.toLowerCase().startsWith("nombre:")) nombre = l.split(":")[1]?.trim();
+      if(l.toLowerCase().startsWith("habitación:") || l.toLowerCase().startsWith("habitacion:")) habitacion = l.split(":")[1]?.trim();
+      if(l.toLowerCase().startsWith("empresa:")) empresa = l.split(":")[1]?.trim();
+    });
+
+    if(!nombre || !habitacion || !empresa){
+      await enviarWhatsApp(numero, 
+        `👋 Bienvenido al sistema de concierge digital.\n\nPara registrarte envía:\n\n*Nombre:* Tu nombre\n*Habitación:* Tu número de habitación\n*Empresa:* Código del hotel`
+      );
+      return res.sendStatus(200);
+    }
+
+    // 🔥 Registrar guest
+    const company_id = await getCompanyId(empresa);
+    const nuevoGuest = await db.query(
+      "INSERT INTO guests (name, room, company_id, lang, whatsapp) VALUES ($1,$2,$3,$4,$5) RETURNING *",
+      [nombre, habitacion, company_id, "es", numero]
+    );
+
+    const bienvenida = `¡Hola ${nombre}! 👋 Soy Luka 🤖, tu asistente virtual.\n\n¿En qué puedo ayudarte hoy?`;
+    await enviarWhatsApp(numero, bienvenida);
+
+    return res.sendStatus(200);
+
+  }catch(err){
+    console.error("❌ ERROR webhook WhatsApp:", err.message);
+    res.sendStatus(500);
+  }
+});
+
 app.post("/guest/login", async (req,res)=>{
  try{
   const { name, room, company_code, lang, whatsapp } = req.body;
