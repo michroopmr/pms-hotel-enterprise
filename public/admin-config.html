@@ -509,7 +509,7 @@ const badge = unread[g.id]
   : "";
 
 el.innerHTML = `
-  👤 ${g.name} (Hab ${g.room}) ${badge} ${alerta}
+  👤 ${g.name} (Hab ${g.room}) ${badge} ${alerta}${g.whatsapp ? ' 📱' : ''}
   ${assigned}
 `;
 
