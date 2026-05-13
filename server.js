@@ -595,7 +595,8 @@ app.post("/whatsapp/webhook", express.urlencoded({extended:false}), async (req,r
       }
 
       await enviarWhatsApp(numero, `🤖 Luka: ${textoFinal}`);
-      return res.sendStatus(200);
+      res.set("Content-Type", "text/xml");
+      return res.send(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`);
     }
 
     // 🔥 Si NO está registrado → pedir datos
@@ -614,7 +615,8 @@ app.post("/whatsapp/webhook", express.urlencoded({extended:false}), async (req,r
       await enviarWhatsApp(numero, 
         `👋 Bienvenido al sistema de concierge digital.\n\nPara registrarte envía:\n\n*Nombre:* Tu nombre\n*Habitación:* Tu número de habitación\n*Empresa:* Código del hotel`
       );
-      return res.sendStatus(200);
+      res.set("Content-Type", "text/xml");
+      return res.send(`<?xml version="1.0" encoding="UTF-8"?><Response></Response>`);
     }
 
     // 🔥 Registrar guest
@@ -1880,58 +1882,83 @@ async function detectarIntencion(msg, company_id){
     return semantica;
   }
 
-  // ================= RESPUESTAS FIJAS HOTEL =================
   const RESPUESTAS_HOTEL = [
+    // ===== BIENVENIDA / SERVICIOS =====
     {
-      keywords: ["spa","masaje","temazcal","vapor"],
-      texto: `💆‍♀️ Spa
-🕘 9:00 a.m. a 5:00 p.m.
-✨ Masajes.
-Cabina de vapor.
-Temazcal
-📅 Todos los servicios requieren reservación previa`
+      keywords: ["menu","servicios","info","informacion","que hay","que tienen","que ofrecen","actividades","que puedo hacer"],
+      texto: `¡Hola! 😊 Bienvenido a *Hacienda Los Picachos* en San Miguel de Allende.\n\nEsquí nuestros servicios:\n\n🍽️ Restaurante YO\n💆‍♀️ Spa\n🎾 Cancha de Pádel\n🏹 Arquería\n🏊‍♀️ Alberca KASUKO\n🛍️ Boutique\n🚗 Transporte al centro\n\n👉 Escribe el servicio que te interese y te doy más detalles 😉`
     },
-    {
-      keywords: ["boutique","tienda"],
-      texto: `🛍️ Boutique
-🕘 9:00 a.m. a 5:00 p.m.
-🚫 Cerrado los miércoles`
-    },
-    {
-      keywords: ["padel","pádel","cancha"],
-      texto: `🎾 Cancha de pádel
-🕘 8:00 a.m. a 7:00 p.m.
-📅 Uso con previa reservación`
-    },
-    {
-      keywords: ["arqueria","arco"],
-      texto: `🏹 Arquería
-📅 Disponible bajo reservación`
-    },
-    {
-      keywords: ["alberca","piscina","pool","kasuko"],
-      texto: `🏊‍♀️ Alberca KASUKO
-🕘 11:00 a.m. a 7:00 p.m.
-📅 Disponible de viernes a domingo`
-    },
-    {
-      keywords: ["restaurante","comida","desayuno","cena","yo"],
-      texto: `🍽️ Restaurante YO
 
-🥐 Desayuno: 8:00 a.m. a 12:30 p.m.
-🍝 Comida y cena: 1:00 p.m. a 10:00 p.m.`
+    // ===== CHECK IN / CHECK OUT =====
+    {
+      keywords: ["check in","checkin","llegada","hora de entrada","cuando puedo entrar","puedo entrar"],
+      texto: `🏨 *Check-in*\n⏰ A partir de las 3:00 p.m.\n\nSi llegas antes, con gusto guardamos tu equipaje en recepción mientras tu habitación está lista. 🧳`
     },
     {
-      keywords: ["menu","servicios","info","informacion","hotel"],
-      texto: `¡Hola! 😊 Con gusto te comparto nuestros servicios:\n\n
-• 🛍️ Boutique  
-• 💆‍♀️ Spa  
-• 🎾 Actividades deportivas  
-• 🏊‍♀️ Alberca KASUKO  
-• 🍽️ Restaurante  
+      keywords: ["check out","checkout","salida","hora de salida","cuando salgo","hasta cuando"],
+      texto: `🏨 *Check-out*\n⏰ Hasta las 12:00 p.m.\n\nSi necesitas salida tardía, consúltalo en recepción con anticipación (sujeto a disponibilidad). 😊`
+    },
 
-👉 Escribe el servicio que te interese 😉`
-    }
+    // ===== WIFI =====
+    {
+      keywords: ["wifi","internet","contraseña","password","red","conexion","conectar"],
+      texto: `📶 *WiFi Hacienda Los Picachos*\n\n🌐 Red: *Hacienda Los Picachos*\n🔑 Contraseña: *mesientoenmicasa*\n\n¡Disfruta la conexión! 😊`
+    },
+
+    // ===== RESTAURANTE =====
+    {
+      keywords: ["restaurante","comida","desayuno","cena","almuerzo","comer","yo","menu","carta"],
+      texto: `🍽️ *Restaurante YO*\n\n🥐 Desayuno: 8:00 a.m. – 12:30 p.m.\n🍝 Comida y Cena: 1:00 p.m. – 10:00 p.m.\n\n¿Deseas hacer una reservación? Contáctanos en recepción o escríbeme. 😊`
+    },
+
+    // ===== SPA =====
+    {
+      keywords: ["spa","masaje","temazcal","vapor","relajar","relajacion","facial","tratamiento"],
+      texto: `💆‍♀️ *Spa Hacienda Los Picachos*\n\n🕘 9:00 a.m. – 5:00 p.m.\n\n✨ Servicios disponibles:\n• Masajes relajantes y terapéuticos\n• Cabina de vapor\n• Temazcal\n• Tratamientos faciales\n\n📅 *Todos los servicios requieren reservación previa en recepción.*\n\n¿Deseas que te ayude a reservar? 😊`
+    },
+
+    // ===== PÁDEL =====
+    {
+      keywords: ["padel","pádel","cancha","tenis","raqueta"],
+      texto: `🎾 *Cancha de Pádel*\n\n🕘 8:00 a.m. – 7:00 p.m.\n\n📅 *Reservación previa en recepción.*\n\n¿Deseas apartar la cancha? Con gusto te ayudo. 😊`
+    },
+
+    // ===== ARQUERÍA =====
+    {
+      keywords: ["arqueria","arquería","arco","flechas","tiro"],
+      texto: `🏹 *Arquería*\n\n📅 Disponible bajo reservación.\n\nUna actividad única rodeada de la naturaleza de San Miguel. 🌿\n\n¿Quieres reservar tu turno en recepción? 😊`
+    },
+
+    // ===== ALBERCA =====
+    {
+      keywords: ["alberca","piscina","pool","kasuko","nadar","chapotear"],
+      texto: `🏊‍♀️ *Alberca KASUKO*\n\n🕘 11:00 a.m. – 7:00 p.m.\n📅 Disponible viernes, sábado y domingo.\n\n¡Perfecta para relajarse bajo el sol de San Miguel! ☀️`
+    },
+
+    // ===== BOUTIQUE =====
+    {
+      keywords: ["boutique","tienda","comprar","souvenirs","recuerdos","artesanias"],
+      texto: `🛍️ *Boutique Hacienda Los Picachos*\n\n🕘 9:00 a.m. – 5:00 p.m.\n🚫 Cerrada los miércoles\n\nEncuentra artesanías, souvenirs y productos locales de San Miguel de Allende. 🎨`
+    },
+
+    // ===== TRANSPORTE =====
+    {
+      keywords: ["transporte","taxi","uber","centro","como llego","como ir","llevar","traslado","ir al centro"],
+      texto: `🚗 *Transporte al Centro de San Miguel*\n\nContamos con servicio de transporte al centro histórico.\n\n📅 *Con previa reservación en recepción.*\n\n📍 *¿Cómo llegar al centro por tu cuenta?*\nEl centro de San Miguel de Allende está a solo 10–15 minutos en auto.\n\n🗺️ Ruta sugerida:\n• Sal por la entrada principal de la hacienda\n• Toma la carretera hacia San Miguel de Allende\n• Sigue las señales al Centro Histórico\n• Estaciona cerca del Jardín Principal\n\n💡 También puedes pedir un Uber o taxi desde recepción. 😊`
+    },
+
+    // ===== SAN MIGUEL - LUGARES =====
+    {
+      keywords: ["san miguel","que ver","lugares","que visitar","turismo","recomendaciones","atractivos","centro historico"],
+      texto: `🏙️ *Lo mejor de San Miguel de Allende*\n\n📍 *Imperdibles:*\n• ⛪ Parroquia de San Miguel Arcángel — ícono de la ciudad\n• 🌳 Jardín Principal — corazón del centro histórico\n• 🎨 Fábrica La Aurora — galerías de arte y diseño\n• 🏛️ Bellas Artes — centro cultural\n• 🌅 Mirador del Chorro — vistas panorámicas\n• 🍷 Bodegas de vino — varios viñedos en los alrededores\n\n🍽️ *Para comer:*\n• Mercado de San Juan de Dios — comida local auténtica\n• Zona de restaurantes en Relox y Mesones\n\n🛍️ *Para comprar:*\n• Artesanías en el Mercado de Artesanías\n• Joyería y textiles en el centro\n\n💡 ¿Necesitas transporte al centro? Resérvalo en recepción. 😊`
+    },
+
+    // ===== ESTACIONAMIENTO =====
+    {
+      keywords: ["estacionamiento","parking","carro","auto","donde estaciono","parqueo"],
+      texto: `🅿️ *Estacionamiento*\n\nContamos con estacionamiento privado dentro de la hacienda, sin costo adicional para huéspedes. 🚗\n\n¿Necesitas alguna indicación para llegar? 😊`
+    },
+
   ];
 
   for(const r of RESPUESTAS_HOTEL){
