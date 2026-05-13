@@ -160,7 +160,7 @@ if(!res.ok){
   div.className = "user";
   div.id = "guest-"+g.id;
 
-  div.innerText = `${g.name} - Hab ${g.room}`;
+  div.innerText = `${g.name} - Hab ${g.room}${g.whatsapp ? ' 📱' : ''}`;
 
   div.onclick = ()=>{
     selectGuest(g);

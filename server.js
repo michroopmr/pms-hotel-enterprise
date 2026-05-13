@@ -735,12 +735,17 @@ try{
   });
 
   // 🔥 SI ES ADMIN → TERMINA AQUÍ
-  if(sender === "admin"){
+  if(sender === "admin" || sender === "staff"){
     await db.query(`
       UPDATE guests 
       SET last_response_at = NOW()
       WHERE id=$1
     `,[guest_id]);
+
+    // 🔥 Si el guest tiene WhatsApp, reenviar mensaje
+    if(guestData.whatsapp){
+      await enviarWhatsApp(guestData.whatsapp, `👨‍💼 Staff: ${message}`);
+    }
 
     return res.json({ ok:true });
   }
