@@ -5,6 +5,9 @@ const cors = require("cors");
 const twilio = require("twilio");
 
 // 🔥 Cliente Twilio para WhatsApp
+console.log("🔑 TWILIO SID:", process.env.TWILIO_ACCOUNT_SID?.substring(0,6));
+console.log("🔑 TWILIO TOKEN length:", process.env.TWILIO_AUTH_TOKEN?.length);
+
 const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
   ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
   : null;
