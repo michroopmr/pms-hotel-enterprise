@@ -2,6 +2,32 @@
 
 const express = require("express");
 const cors = require("cors");
+const twilio = require("twilio");
+
+// 🔥 Cliente Twilio para WhatsApp
+const twilioClient = process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN
+  ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+  : null;
+
+async function enviarWhatsApp(to, mensaje){
+  if(!twilioClient){
+    console.log("⚠️ Twilio no configurado");
+    return;
+  }
+  if(!to) return;
+
+  try{
+    const numero = to.startsWith("whatsapp:") ? to : `whatsapp:+${to.replace(/\D/g,"")}`;
+    await twilioClient.messages.create({
+      from: process.env.TWILIO_WHATSAPP_FROM,
+      to: numero,
+      body: mensaje
+    });
+    console.log("✅ WhatsApp enviado a:", numero);
+  }catch(err){
+    console.error("❌ Error WhatsApp:", err.message);
+  }
+}
 
 const app = express();
 
@@ -510,11 +536,7 @@ app.post("/assign", authMiddleware, async (req,res)=>{
 // CHATBOT - HUÉSPEDES
 // ==========================
 
-// Registrar huésped
-app.post("/guest/login", async (req,res)=>{
- try{
-
-  const { name, room, company_code, lang } = req.body;
+const { name, room, company_code, lang, whatsapp } = req.body;
 
   if(!name || !room || !company_code){
    return res.status(400).json({error:"Datos incompletos"});
@@ -523,17 +545,11 @@ app.post("/guest/login", async (req,res)=>{
   const company_id = await getCompanyId(company_code);
 
   const result = await db.query(
-   "INSERT INTO guests (name, room, company_id, lang) VALUES ($1,$2,$3,$4) RETURNING *",
-   [name, room, company_id, lang || "es"]
+   "INSERT INTO guests (name, room, company_id, lang, whatsapp) VALUES ($1,$2,$3,$4,$5) RETURNING *",
+   [name, room, company_id, lang || "es", whatsapp || null]
   );
 
   res.json(result.rows[0]);
-
- }catch(err){
-  console.error("ERROR guest/login:", err);
-  res.status(500).json({error:"Error creando huésped"});
- }
-});
 
 // Guardar mensaje
 app.post("/chat/message", async (req, res) => {
@@ -710,6 +726,11 @@ io.to("guest_" + guest_id).emit("new_message",{
     message: textoFinal,
     sender: "bot"
   });
+
+  // 🔥 Enviar también por WhatsApp si el huésped tiene número
+  if(guestData.whatsapp){
+    await enviarWhatsApp(guestData.whatsapp, `🤖 Luka: ${textoFinal}`);
+  }
 
   io.to("admin_" + company_code).emit("new_message",{
     guest_id,

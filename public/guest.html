@@ -83,6 +83,7 @@ body {
 
     <input type="text" placeholder="Nombre" id="guest_name">
     <input type="text" placeholder="Habitación" id="guest_room">
+    <input type="tel" placeholder="WhatsApp (opcional) ej: 5215531001234" id="guest_whatsapp">
 
     <select id="lang">
   <option value="es">🇲🇽 Español</option>
@@ -117,7 +118,8 @@ async function login(){
   name,
   room,
   company_code,
-  lang: document.getElementById("lang").value // 🔥 AQUÍ
+  lang: document.getElementById("lang").value,
+  whatsapp: document.getElementById("guest_whatsapp").value.trim() || null
 })
  });
 
