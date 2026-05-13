@@ -536,7 +536,9 @@ app.post("/assign", authMiddleware, async (req,res)=>{
 // CHATBOT - HUÉSPEDES
 // ==========================
 
-const { name, room, company_code, lang, whatsapp } = req.body;
+app.post("/guest/login", async (req,res)=>{
+ try{
+  const { name, room, company_code, lang, whatsapp } = req.body;
 
   if(!name || !room || !company_code){
    return res.status(400).json({error:"Datos incompletos"});
@@ -550,6 +552,12 @@ const { name, room, company_code, lang, whatsapp } = req.body;
   );
 
   res.json(result.rows[0]);
+
+ }catch(err){
+  console.error("ERROR guest/login:", err);
+  res.status(500).json({error:"Error creando huésped"});
+ }
+});
 
 // Guardar mensaje
 app.post("/chat/message", async (req, res) => {
