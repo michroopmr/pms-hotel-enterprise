@@ -573,6 +573,27 @@ app.post("/whatsapp/webhook", express.urlencoded({extended:false}), async (req,r
         [guest.id, textoFinal]
       );
 
+      // 🔥 Crear tarea si aplica
+      if(ai?.ticket === true){
+        try{
+          const task = await db.query(`
+            INSERT INTO tasks (title, description, department, status, created_by, company_id)
+            VALUES ($1,$2,$3,$4,$5,$6) RETURNING *`,
+            [
+              "Solicitud habitación " + guest.room,
+              body,
+              ai.departamento || "Recepción",
+              "abierto",
+              guest.name + " - Hab " + guest.room,
+              guest.company_id
+            ]
+          );
+          console.log("✅ Tarea creada desde WhatsApp:", task.rows[0].id);
+        }catch(err){
+          console.error("❌ Error creando tarea WhatsApp:", err.message);
+        }
+      }
+
       await enviarWhatsApp(numero, `🤖 Luka: ${textoFinal}`);
       return res.sendStatus(200);
     }
