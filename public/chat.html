@@ -219,7 +219,7 @@ socket.on("connect", async ()=>{
   await new Promise(r => setTimeout(r, 600));
 
   // 🔥 Verificar si ya hay mensajes previos
-  const historial = await fetch(`${API}/chat/${guest.id}`);
+  const historial = await fetch(`${API}/chat/${guest.id}?company_code=${guest.company_code}`);
   const msgs = await historial.json();
 
   if(msgs.length > 0){
