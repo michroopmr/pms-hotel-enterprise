@@ -1693,6 +1693,25 @@ io.on("connection",(socket)=>{
 
   if(!token){
     console.log("👤 Guest conectado");
+
+    // 🔥 Guests sin token — solo pueden unirse a su sala
+    socket.on("join_guest", (guest_id)=>{
+      socket.join("guest_" + guest_id);
+      console.log("✅ Guest unido a sala:", "guest_" + guest_id);
+    });
+
+    socket.on("typing", (data)=>{
+      if(data?.company_code){
+        socket.to("admin_" + data.company_code).emit("typing_guest", data);
+      }
+    });
+
+    socket.on("message_read", (data)=>{
+      if(data?.company_code){
+        socket.to("admin_" + data.company_code).emit("message_read", data);
+      }
+    });
+
     return;
   }
 
