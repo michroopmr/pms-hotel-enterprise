@@ -176,9 +176,9 @@ let inactivityTimer;
 const API = window.location.origin;
 
 const socket = io(API,{
-  transports:["websocket","polling"],
+  transports:["polling","websocket"],
   reconnection:true,
-  reconnectionAttempts:5,
+  reconnectionAttempts:10,
   reconnectionDelay:1000,
   timeout:20000
 });
@@ -215,6 +215,9 @@ socket.on("connect", async ()=>{
   if(bienvenidaEnviada) return;
   bienvenidaEnviada = true;
 
+  // 🔥 Esperar confirmación de sala
+  await new Promise(r => setTimeout(r, 300));
+
   // 🔥 Esperar a que la sala esté lista
   await new Promise(r => setTimeout(r, 600));
 
@@ -229,7 +232,7 @@ socket.on("connect", async ()=>{
       else if(m.sender === "admin" || m.sender === "staff") addMsg("👨‍💼 " + m.message, "bot");
       else addMsg(m.message, "bot");
     });
-    return;
+    return; // No enviar bienvenida pero ya está en la sala
   }
 
   // 🔥 Mensaje de bienvenida solo si no hay historial
