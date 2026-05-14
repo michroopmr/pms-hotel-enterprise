@@ -198,6 +198,8 @@ input.addEventListener("input", ()=>{
   typingTimeout = setTimeout(()=>{}, 1000);
 
 });
+let bienvenidaEnviada = false;
+
 socket.on("connect", async ()=>{ 
   console.log("🟢 Socket conectado");
 
@@ -209,10 +211,28 @@ socket.on("connect", async ()=>{
   console.log("JOIN ROOM:", guest.id);
   socket.emit("join_guest", guest.id);
 
+  // 🔥 Solo enviar bienvenida la primera vez
+  if(bienvenidaEnviada) return;
+  bienvenidaEnviada = true;
+
   // 🔥 Esperar a que la sala esté lista
   await new Promise(r => setTimeout(r, 600));
 
-  // 🔥 Mensaje de bienvenida
+  // 🔥 Verificar si ya hay mensajes previos
+  const historial = await fetch(`${API}/chat/${guest.id}`);
+  const msgs = await historial.json();
+
+  if(msgs.length > 0){
+    // 🔥 Cargar historial sin enviar bienvenida
+    msgs.forEach(m => {
+      if(m.sender === "guest") addMsg(m.message, "user");
+      else if(m.sender === "admin" || m.sender === "staff") addMsg("👨‍💼 " + m.message, "bot");
+      else addMsg(m.message, "bot");
+    });
+    return;
+  }
+
+  // 🔥 Mensaje de bienvenida solo si no hay historial
   const hora = new Date().getHours();
   let saludo = "Hola";
   if(hora < 12) saludo = "Buenos días";
