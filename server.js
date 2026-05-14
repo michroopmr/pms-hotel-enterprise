@@ -1875,6 +1875,31 @@ async function detectarIntencion(msg, company_id){
     }
   }
 
+  // 🔥 SALUDO
+  const ahora = new Date();
+  const hora = ahora.getHours();
+  let saludo = "¡Buenas noches";
+  if(hora >= 6 && hora < 12) saludo = "¡Buenos días";
+  else if(hora >= 12 && hora < 19) saludo = "¡Buenas tardes";
+
+  if(
+    msg === "hola" ||
+    msg === "hi" ||
+    msg === "hello" ||
+    msg === "buenas" ||
+    msg === "buen dia" ||
+    msg === "buenos dias" ||
+    msg === "buenas tardes" ||
+    msg === "buenas noches" ||
+    msg === "hey" ||
+    msg === "que tal"
+  ){
+    return {
+      texto: `${saludo}! 😊 Soy Luka, tu asistente virtual de Hacienda Los Picachos.\n\n¿En qué puedo ayudarte hoy?\n\n💡 Escribe *servicios* para ver todo lo que tenemos disponible.`,
+      ticket: false
+    };
+  }
+
   // 🔥 1. FALLAS (PRIORIDAD ALTA)
   const semantica = detectarIntencionSemantica(msg);
 
