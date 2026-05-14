@@ -561,7 +561,7 @@ app.post("/whatsapp/webhook", express.urlencoded({extended:false}), async (req,r
       const company = await db.query("SELECT code FROM companies WHERE id=$1", [guest.company_id]);
       const company_code = company.rows[0]?.code;
 
-      const ai = await detectarIntencion(body, guest.company_id);
+      const ai = await detectarIntencion(body, guest.company_id, guest.id);
       const textoFinal = ai?.texto || "¿Podrías darme más detalles?";
 
       await db.query(
@@ -1955,13 +1955,19 @@ async function detectarIntencion(msg, company_id, guest_id){
     if(guestEstado?.estado === "reservando"){
       const reserva = guestEstado.reserva_pendiente || {};
 
-      // Parsear datos del mensaje
-      const lineas = msg.split("\n").map(l => l.trim());
-      lineas.forEach(l => {
-        if(l.startsWith("nombre:")) reserva.nombre = l.split(":")[1]?.trim();
-        if(l.startsWith("servicio:")) reserva.servicio = l.split(":")[1]?.trim();
-        if(l.startsWith("horario:") || l.startsWith("fecha:") || l.startsWith("hora:")) reserva.horario = l.split(":").slice(1).join(":").trim();
-      });
+      // Parsear datos por comas: Nombre, Servicio, Horario
+      const partes = msg.split(",").map(p => p.trim());
+
+      if(partes.length >= 3){
+        reserva.nombre = partes[0];
+        reserva.servicio = partes[1];
+        reserva.horario = partes.slice(2).join(",").trim();
+      } else if(partes.length === 2){
+        reserva.nombre = partes[0];
+        reserva.horario = partes[1];
+      } else if(partes.length === 1 && partes[0].length > 2){
+        reserva.nombre = partes[0];
+      }
 
       // Si tiene todos los datos → crear tarea
       if(reserva.nombre && reserva.servicio && reserva.horario){
@@ -2022,7 +2028,7 @@ async function detectarIntencion(msg, company_id, guest_id){
       }
 
       return {
-        texto: `📋 *Solicitud de Reservación*\n\nPor favor envía los siguientes datos:\n\n*Nombre:* Tu nombre completo\n*Servicio:* ${servicio || "Servicio que deseas"}\n*Horario:* Fecha y hora deseada\n\nEjemplo:\nNombre: Juan García\nServicio: Spa\nHorario: Mañana a las 10am`,
+        texto: `📋 *Solicitud de Reservación*\n\nEscribe tus datos en un solo mensaje separados por comas:\n\n*Nombre, Servicio, Horario*\n\nEjemplo:\nJuan García, Spa, Mañana a las 10am`,
         ticket: false
       };
     }
