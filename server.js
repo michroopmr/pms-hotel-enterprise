@@ -736,6 +736,11 @@ try{
     sender
   });
 
+  // 🔥 SI ES BOT → TERMINA AQUÍ (no procesar con IA)
+  if(sender === "bot"){
+    return res.json({ ok:true });
+  }
+
   // 🔥 SI ES ADMIN → TERMINA AQUÍ
   if(sender === "admin" || sender === "staff"){
     await db.query(`
@@ -833,6 +838,61 @@ await db.query(
   "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
   [guest_id, textoFinal]
 );
+
+  // 🔥 Contar mensajes no entendidos
+  if(ai.noEntendio){
+    await db.query(
+      "UPDATE guests SET luka_no_entendio = COALESCE(luka_no_entendio,0) + 1 WHERE id=$1",
+      [guest_id]
+    );
+
+    const conteo = await db.query(
+      "SELECT luka_no_entendio FROM guests WHERE id=$1",
+      [guest_id]
+    );
+
+    const noEntendio = conteo.rows[0]?.luka_no_entendio || 0;
+
+    if(noEntendio >= 3){
+      // 🔥 Resetear contador
+      await db.query(
+        "UPDATE guests SET luka_no_entendio = 0 WHERE id=$1",
+        [guest_id]
+      );
+
+      // 🔥 Mensaje al huésped
+      const msgEscalado = "Voy a conectarte con un miembro de nuestro equipo para ayudarte mejor. 🙏 Un momento por favor.";
+
+      await db.query(
+        "INSERT INTO messages (guest_id, message, sender) VALUES ($1,$2,'bot')",
+        [guest_id, msgEscalado]
+      );
+
+      io.to("guest_" + guest_id).emit("new_message",{
+        guest_id,
+        message: msgEscalado,
+        sender: "bot"
+      });
+
+      // 🔥 Alerta al admin con sonido
+      io.to("admin_" + company_code).emit("staff_alert",{
+        guest_id,
+        guest_name: guestData.name,
+        room: guestData.room,
+        message: "⚠️ Luka no pudo ayudar al huésped. Requiere atención humana.",
+        escalado: true
+      });
+
+      console.log("🚨 Escalado a staff:", guestData.name, "Hab", guestData.room);
+      return res.json({ ok:true, escalado:true });
+    }
+  }else{
+    // 🔥 Resetear contador si entendió
+    await db.query(
+      "UPDATE guests SET luka_no_entendio = 0 WHERE id=$1",
+      [guest_id]
+    );
+  }
 
   console.log("📡 EMITIENDO A SALA:", "guest_" + guest_id);
 io.to("guest_" + guest_id).emit("new_message",{
@@ -2044,7 +2104,8 @@ async function detectarIntencion(msg, company_id){
 
   return {
     texto: "¿Podrías darme más detalles para ayudarte?",
-    ticket: false
+    ticket: false,
+    noEntendio: true
   };
 }
 
