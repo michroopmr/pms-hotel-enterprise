@@ -464,10 +464,7 @@ async function send(){
 
  const data = await res.json();
 
- // 🔥 Fallback: si el socket no entregó la respuesta, mostrarla aquí
- if(data.ok && data.ia && data.respuesta){
-   addMsg(data.respuesta, "bot");
- }
+ 
 
  input.value="";
  input.focus();
