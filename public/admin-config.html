@@ -607,6 +607,7 @@ async function enviarMensaje(){
     }
 
     // 🔥 ENVIAR SOLO VIA SOCKET
+    console.log("📤 Enviando via socket a guest:", currentGuest);
     socket.emit("admin_send_message", {
       guest_id: currentGuest,
       message: msg,
