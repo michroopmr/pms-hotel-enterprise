@@ -198,7 +198,7 @@ input.addEventListener("input", ()=>{
   typingTimeout = setTimeout(()=>{}, 1000);
 
 });
-let bienvenidaEnviada = false;
+let bienvenidaEnviada = sessionStorage.getItem("bienvenida_enviada") === "true";
 
 socket.on("connect", async ()=>{ 
   console.log("🟢 Socket conectado");
@@ -214,6 +214,7 @@ socket.on("connect", async ()=>{
   // 🔥 Solo enviar bienvenida la primera vez
   if(bienvenidaEnviada) return;
   bienvenidaEnviada = true;
+  sessionStorage.setItem("bienvenida_enviada", "true");
 
   // 🔥 Esperar confirmación de sala
   await new Promise(r => setTimeout(r, 300));
