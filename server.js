@@ -1840,6 +1840,11 @@ socket.on("heartbeat", ()=>{
       return;
     }
 
+    console.log("📨 admin_send_message → guest_" + guest_id);
+    const sala = "guest_" + guest_id;
+    const socketsEnSala = await io.in(sala).fetchSockets();
+    console.log("👥 Sockets en sala", sala, ":", socketsEnSala.length);
+
     try{
 
       await db.query(
