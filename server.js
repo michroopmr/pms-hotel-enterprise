@@ -763,7 +763,7 @@ try{
   let ai;
 
   try{
-    ai = await detectarIntencion(message, company_id);
+    ai = await detectarIntencion(message, company_id, guest_id);
   }catch(e){
     console.error("❌ Error en detectarIntencion:", e.message);
     ai = {
@@ -789,8 +789,8 @@ try{
         RETURNING *
       `,
       [
-        "Solicitud habitación " + guestData.room,
-        message,
+        ai.titulo || "Solicitud habitación " + guestData.room,
+        ai.descripcion || message,
         ai.departamento || "Recepción",
         "abierto",
         guestData.name + " - Hab " + guestData.room,
@@ -1939,9 +1939,94 @@ function normalizar(msg){
   .normalize("NFD").replace(/[\u0300-\u036f]/g,"") // quita acentos
 }
 
-async function detectarIntencion(msg, company_id){
+async function detectarIntencion(msg, company_id, guest_id){
 
   msg = normalizar(msg);
+
+  // ================= FLUJO DE RESERVACIÓN =================
+  if(guest_id){
+    const guestRes = await db.query(
+      "SELECT estado, reserva_pendiente FROM guests WHERE id=$1",
+      [guest_id]
+    );
+    const guestEstado = guestRes.rows[0];
+
+    // 🔥 Si está en proceso de reservación
+    if(guestEstado?.estado === "reservando"){
+      const reserva = guestEstado.reserva_pendiente || {};
+
+      // Parsear datos del mensaje
+      const lineas = msg.split("\n").map(l => l.trim());
+      lineas.forEach(l => {
+        if(l.startsWith("nombre:")) reserva.nombre = l.split(":")[1]?.trim();
+        if(l.startsWith("servicio:")) reserva.servicio = l.split(":")[1]?.trim();
+        if(l.startsWith("horario:") || l.startsWith("fecha:") || l.startsWith("hora:")) reserva.horario = l.split(":").slice(1).join(":").trim();
+      });
+
+      // Si tiene todos los datos → crear tarea
+      if(reserva.nombre && reserva.servicio && reserva.horario){
+
+        await db.query(
+          "UPDATE guests SET estado='normal', reserva_pendiente=NULL WHERE id=$1",
+          [guest_id]
+        );
+
+        return {
+          texto: `✅ ¡Reservación registrada!\n\n👤 Nombre: ${reserva.nombre}\n🎯 Servicio: ${reserva.servicio}\n🕘 Horario: ${reserva.horario}\n\nNuestro equipo de recepción confirmará tu reservación en breve. 😊`,
+          ticket: true,
+          departamento: "Recepción",
+          titulo: `Reservación: ${reserva.servicio} - ${reserva.nombre}`,
+          descripcion: `Nombre: ${reserva.nombre}\nServicio: ${reserva.servicio}\nHorario: ${reserva.horario}`
+        };
+      }
+
+      // Si faltan datos → pedir los que faltan
+      await db.query(
+        "UPDATE guests SET reserva_pendiente=$1 WHERE id=$2",
+        [JSON.stringify(reserva), guest_id]
+      );
+
+      const faltantes = [];
+      if(!reserva.nombre) faltantes.push("*Nombre:* Tu nombre completo");
+      if(!reserva.servicio) faltantes.push("*Servicio:* El servicio que deseas");
+      if(!reserva.horario) faltantes.push("*Horario:* Fecha y hora deseada");
+
+      return {
+        texto: `Por favor completa los datos que faltan:\n\n${faltantes.join("\n")}`,
+        ticket: false
+      };
+    }
+  }
+
+  // 🔥 Iniciar reservación
+  const serviciosReserva = {
+    "reservar spa": "Spa",
+    "reservar padel": "Cancha de Pádel",
+    "reservar pádel": "Cancha de Pádel",
+    "reservar arqueria": "Arquería",
+    "reservar arquería": "Arquería",
+    "reservar transporte": "Transporte al centro",
+    "quiero reservar": null,
+    "hacer reservacion": null,
+    "hacer reservación": null,
+    "reservar": null
+  };
+
+  for(const [key, servicio] of Object.entries(serviciosReserva)){
+    if(msg.includes(key)){
+      if(guest_id){
+        await db.query(
+          "UPDATE guests SET estado='reservando', reserva_pendiente=$1 WHERE id=$2",
+          [JSON.stringify({ servicio: servicio || "" }), guest_id]
+        );
+      }
+
+      return {
+        texto: `📋 *Solicitud de Reservación*\n\nPor favor envía los siguientes datos:\n\n*Nombre:* Tu nombre completo\n*Servicio:* ${servicio || "Servicio que deseas"}\n*Horario:* Fecha y hora deseada\n\nEjemplo:\nNombre: Juan García\nServicio: Spa\nHorario: Mañana a las 10am`,
+        ticket: false
+      };
+    }
+  }
 
   // ================= RESPUESTAS RÁPIDAS (DB) =================
   const flows = await db.query(
