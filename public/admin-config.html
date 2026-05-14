@@ -606,7 +606,14 @@ async function enviarMensaje(){
       return;
     }
 
-    // 🔥 ENVIAR
+    // 🔥 ENVIAR VIA SOCKET para que llegue al huésped en tiempo real
+    socket.emit("admin_send_message", {
+      guest_id: currentGuest,
+      message: msg,
+      company_code: company
+    });
+
+    // 🔥 También guardar via HTTP como respaldo
     const res = await fetch(API + "/chat/message",{
       method:"POST",
       headers:{"Content-Type":"application/json"},
